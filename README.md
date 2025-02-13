@@ -30,6 +30,13 @@ Discusson and assistance can be sort at: [MediaStack on Reddit](https://www.redd
 
  - Update and import the "**MediaStack.Guide Applications**" bookmarks file into your web browser to easily access each application's WebUI portal  
 
+
+<center>
+
+[![MediaStack - A Detailed Installation Walkthru (Ubuntu Linux)](https://i.ytimg.com/vi/zz2XjrurgXI/hq720.jpg)](https://youtu.be/zz2XjrurgXI "MediaStack - A Detailed Installation Walkthru (Ubuntu Linux)")
+
+</center>
+
 </br>
 
 ## What Is Docker And How Do I Use It
