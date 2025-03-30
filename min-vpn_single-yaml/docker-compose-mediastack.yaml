@@ -512,6 +512,10 @@ services:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
     restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
     volumes:
       - ${FOLDER_FOR_DATA:?err}/qbittorrent:/config
       - ${FOLDER_FOR_MEDIA:?err}:/data

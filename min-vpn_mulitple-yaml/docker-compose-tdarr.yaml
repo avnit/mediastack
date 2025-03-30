@@ -15,6 +15,10 @@ services:
     image: ghcr.io/haveagitgat/tdarr:latest
     container_name: tdarr
     restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
     volumes:
       - ${FOLDER_FOR_DATA:?err}/tdarr/server:/app/server
       - ${FOLDER_FOR_DATA:?err}/tdarr/configs:/app/configs

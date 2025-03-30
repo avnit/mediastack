@@ -36,7 +36,6 @@ services:
 # Comment out lines below if they are not going to use Gluetun VPN for Internet connection:
 
       - "${WEBUI_PORT_BAZARR:?err}:6767"        # WebUI Portal: Bazarr
-      - "${WEBUI_PORT_HOMARR:?err}:7575"        # WebUI Portal: Homarr
       - "${WEBUI_PORT_JELLYFIN:?err}:8096"      # WebUI Portal: Jellyfin
       - "${WEBUI_PORT_JELLYSEERR:?err}:5055"    # WebUI Portal: Jellyseerr
       - "${WEBUI_PORT_LIDARR:?err}:8686"        # WebUI Portal: Lidarr
@@ -47,8 +46,8 @@ services:
       - "${WEBUI_PORT_SABNZBD:?err}:8080"       # WebUI Portal: SABnzbd
       - "${WEBUI_PORT_SONARR:?err}:8989"        # WebUI Portal: Sonarr
       - "${WEBUI_PORT_WHISPARR:?err}:6969"      # WebUI Portal: Whisparr
+      - "${WEBUI_PORT_FILEBOT:?err}:5454"       # WebUI Portal: Filebot
 
-      - "${WEBUI_PORT_FILEBOT:?err}:${WEBUI_PORT_FILEBOT:?err}"           # WebUI Portal: Filebot
       - "${WEBUI_PORT_QBITTORRENT:?err}:${WEBUI_PORT_QBITTORRENT:?err}"   # WebUI Portal: qBittorrent
 
       - "${QBIT_PORT:?err}:6881"                # Transmission Torrent Port

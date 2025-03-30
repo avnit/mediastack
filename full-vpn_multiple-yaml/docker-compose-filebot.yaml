@@ -15,6 +15,10 @@ services:
     image: rednoah/filebot:xpra
     container_name: filebot
     restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
     volumes:
       - ${FOLDER_FOR_DATA:?err}/filebot:/data/filebot
       - ${FOLDER_FOR_MEDIA:?err}/filebot:/filebot

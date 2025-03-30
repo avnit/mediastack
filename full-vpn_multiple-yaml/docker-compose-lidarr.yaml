@@ -13,6 +13,10 @@ services:
     image: lscr.io/linuxserver/lidarr:latest
     container_name: lidarr
     restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
     volumes:
       - ${FOLDER_FOR_DATA:?err}/lidarr:/config
       - ${FOLDER_FOR_MEDIA:?err}:/data

@@ -13,6 +13,10 @@ services:
     image: lscr.io/linuxserver/prowlarr:develop
     container_name: prowlarr
     restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
     volumes:
       - ${FOLDER_FOR_DATA:?err}/prowlarr:/config
     environment:
