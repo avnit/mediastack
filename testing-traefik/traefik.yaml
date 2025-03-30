@@ -1,0 +1,70 @@
+#########################################################################
+#########################################################################
+#
+# Filename: traefik.yaml        Traefik Static Configuration File
+#
+# Replace all "YOUR_DOMAIN_NAME" values with your top level domain name
+#
+#  i.e.   - main: example.com
+#           sans:
+#             - "*.example.com"
+#
+#########################################################################
+#########################################################################
+
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: true
+
+log:
+  level: ERROR
+#  level: DEBUG
+
+accessLog:
+  filePath: /letsencrypt/access.log
+  format: json
+
+api:
+  dashboard: true
+  insecure: true
+
+entryPoints:
+  web:
+    address: :80
+    http:
+      redirections:
+        entryPoint:
+          to: secureweb
+          scheme: https
+          permanent: true
+  secureweb:
+    address: :443
+    http:
+      tls:
+        options: default
+        certResolver: letsencrypt
+        domains:
+          - main: YOUR_DOMAIN_NAME
+            sans:
+              - "*.YOUR_DOMAIN_NAME"
+
+providers:
+  docker:
+    exposedByDefault: false
+  file:
+    directory: /etc/traefik
+    watch: true
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      storage: /letsencrypt/acme.json
+      keyType: EC384
+      caServer: https://acme-v02.api.letsencrypt.org/directory
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - 1.1.1.1:53
+          - 1.0.0.1:53
+        propagation:
+          delayBeforeChecks: 2s

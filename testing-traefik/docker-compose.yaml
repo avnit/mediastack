@@ -1,0 +1,1192 @@
+###########################################################################
+###########################################################################
+networks:
+  mediastack:
+    name: mediastack
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: ${DOCKER_SUBNET:?err}
+        gateway: ${DOCKER_GATEWAY:?err}
+
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Traefik
+##  Function: Reverse Proxy Routing Server
+##
+##  Documentation: https://doc.traefik.io/traefik/
+##
+###########################################################################
+###########################################################################
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    restart: unless-stopped
+    networks:
+      - mediastack
+    environment:
+      - TZ=${TIMEZONE:?err}
+      - CF_DNS_API_TOKEN=${CLOUDFLARE_DNS_API_TOKEN:?err}
+    ports:
+      - ${REVERSE_PROXY_PORT_HTTP:?err}:80
+      - ${REVERSE_PROXY_PORT_HTTPS:?err}:443
+      - ${WEBUI_PORT_TRAEFIK:?err}:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${FOLDER_FOR_DATA:?err}/traefik:/etc/traefik:ro
+      - ${FOLDER_FOR_DATA:?err}/traefik/letsencrypt:/letsencrypt:rw
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Gluetun (qmcgaw)
+##  Function: VPN Client
+##
+##  Documentation: https://github.com/qdm12/gluetun-wiki
+##
+###########################################################################
+###########################################################################
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    restart: always
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "8888:8888/tcp"                         # Gluetun Local Network HTTP proxy
+      - "8388:8388/tcp"                         # Gluetun Local Network Shadowsocks
+      - "8388:8388/udp"                         # Gluetun Local Network Shadowsocks
+      - ${GLUETUN_CONTROL_PORT:?err}:${GLUETUN_CONTROL_PORT:?err} # Gluetun Status Port
+
+# Comment out lines below if they are not going to use Gluetun VPN for Internet connection:
+
+      - "${WEBUI_PORT_BAZARR:?err}:6767"        # WebUI Portal: Bazarr
+      - "${WEBUI_PORT_JELLYFIN:?err}:8096"      # WebUI Portal: Jellyfin
+      - "${WEBUI_PORT_JELLYSEERR:?err}:5055"    # WebUI Portal: Jellyseerr
+      - "${WEBUI_PORT_LIDARR:?err}:8686"        # WebUI Portal: Lidarr
+      - "${WEBUI_PORT_MYLAR:?err}:8090"         # WebUI Portal: Mylar3
+      - "${WEBUI_PORT_PROWLARR:?err}:9696"      # WebUI Portal: Prowlarr
+      - "${WEBUI_PORT_RADARR:?err}:7878"        # WebUI Portal: Radarr
+      - "${WEBUI_PORT_READARR:?err}:8787"       # WebUI Portal: Readarr
+      - "${WEBUI_PORT_SABNZBD:?err}:8080"       # WebUI Portal: SABnzbd
+      - "${WEBUI_PORT_SONARR:?err}:8989"        # WebUI Portal: Sonarr
+      - "${WEBUI_PORT_WHISPARR:?err}:6969"      # WebUI Portal: Whisparr
+      - "${WEBUI_PORT_FILEBOT:?err}:5454"       # WebUI Portal: Filebot
+
+      - "${WEBUI_PORT_QBITTORRENT:?err}:${WEBUI_PORT_QBITTORRENT:?err}"   # WebUI Portal: qBittorrent
+
+      - "${QBIT_PORT:?err}:6881"                # Transmission Torrent Port
+      - "${FLARESOLVERR_PORT:?err}:8191"        # Service Port: FlareSolverr
+      
+      - "${TDARR_SERVER_PORT:?err}:${TDARR_SERVER_PORT:?err}"   # Tdarr: Server Port
+      - "${WEBUI_PORT_TDARR:?err}:${WEBUI_PORT_TDARR:?err}"     # Tdarr: WebUI Portal
+
+      - "${WEBUI_PORT_PLEX:?err}:32400"         # WebUI Portal: Plex
+#      - 1900:1900/udp                           # DNLA Service       (Clashes with Synology: SSPD "File Services" --> "Advanced")
+#      - 5353:5353/udp                           # Plex Network Port  (Clashes with Synology: Bonjour "File Services" --> "Advanced")
+      - 8324:8324                               # Plex Network Port
+      - 32410:32410/udp                         # Plex Network Port
+      - 32412:32412/udp                         # Plex Network Port
+      - 32413:32413/udp                         # Plex Network Port
+      - 32414:32414/udp                         # Plex Network Port
+      - 32469:32469                             # Plex Network Port
+
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/gluetun:/gluetun
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - UMASK=${UMASK:?err}
+      - TZ=${TIMEZONE:?err}
+      - VPN_SERVICE_PROVIDER=${VPN_SERVICE_PROVIDER:?err}
+      - OPENVPN_USER=${VPN_USERNAME:?err}
+      - OPENVPN_PASSWORD=${VPN_PASSWORD:?err}
+      - SERVER_COUNTRIES=${SERVER_COUNTRIES}
+      - SERVER_REGIONS=${SERVER_REGIONS}
+      - SERVER_CITIES=${SERVER_CITIES}
+      - SERVER_HOSTNAMES=${SERVER_HOSTNAMES}
+      - SERVER_CATEGORIES=${SERVER_CATEGORIES}
+      - FIREWALL_OUTBOUND_SUBNETS=${LOCAL_SUBNET:?err}
+      - OPENVPN_CUSTOM_CONFIG=${OPENVPN_CUSTOM_CONFIG}
+      - HTTP_CONTROL_SERVER_ADDRESS=:${GLUETUN_CONTROL_PORT:?err}
+      - VPN_TYPE=${VPN_TYPE}
+      - VPN_ENDPOINT_IP=${VPN_ENDPOINT_IP}
+      - VPN_ENDPOINT_PORT=${VPN_ENDPOINT_PORT}
+      - WIREGUARD_PUBLIC_KEY=${WIREGUARD_PUBLIC_KEY}
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_PRESHARED_KEY=${WIREGUARD_PRESHARED_KEY}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
+      - HTTPPROXY=on
+      - SHADOWSOCKS=on
+    networks:
+      - mediastack
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Bazarr (LinuxServer.io)
+##  Function: Download subtitles for Radarr and Sonarr
+##
+##  Documentation: https://docs.linuxserver.io/images/docker-bazarr
+##
+###########################################################################
+###########################################################################
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/bazarr:/config
+      - ${FOLDER_FOR_MEDIA:?err}:/data
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - TZ=${TIMEZONE:?err}
+      - DOCKER_MODS=ghcr.io/themepark-dev/theme.park:bazarr
+      - TP_THEME=${TP_THEME:?err}
+    network_mode: "service:gluetun"
+#    ports:
+#      - "${WEBUI_PORT_BAZARR:?err}:6767"             # Configured in Gluetun VPN container
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.bazarr.service=bazarr
+      - traefik.http.routers.bazarr.rule=Host(`bazarr.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.bazarr.entrypoints=secureweb
+      - traefik.http.routers.bazarr.middlewares=bazarr-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.bazarr.loadbalancer.server.scheme=http
+      - traefik.http.services.bazarr.loadbalancer.server.port=6767
+      # MIDDLEWARES
+      - traefik.http.middlewares.bazarr-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##    Docker Compose File: DDNS-Updater (qmcgaw)
+##    Function: Update Dynamic IP addresses for DNS A and/or AAAA records
+##
+##    Documentation: https://hub.docker.com/r/qmcgaw/ddns-updater
+##
+###########################################################################
+###########################################################################
+  ddns-updater:
+    image: qmcgaw/ddns-updater:latest
+    container_name: ddns-updater
+    restart: always
+    user: ${PUID:?err}:${PGID:?err}
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/ddns-updater:/updater/data
+    ports:
+      - ${WEBUI_PORT_DDNS_UPDATER:?err}:${WEBUI_PORT_DDNS_UPDATER:?err}/tcp
+    environment:
+      - UMASK=${UMASK:?err}
+      - TZ=${TIMEZONE:?err}
+      - CONFIG=
+      - PERIOD=5m
+      - UPDATE_COOLDOWN_PERIOD=5m
+      - PUBLICIP_FETCHERS=all
+      - PUBLICIP_HTTP_PROVIDERS=all
+      - PUBLICIPV4_HTTP_PROVIDERS=all
+      - PUBLICIPV6_HTTP_PROVIDERS=all
+      - PUBLICIP_DNS_PROVIDERS=all
+      - PUBLICIP_DNS_TIMEOUT=3s
+      - HTTP_TIMEOUT=10s
+      # Web UI
+      - LISTENING_ADDRESS=:${WEBUI_PORT_DDNS_UPDATER:?err}
+      - ROOT_URL=/
+      # Backup
+      - BACKUP_PERIOD=0 # 0 to disable
+      - BACKUP_DIRECTORY=/updater/data
+      # Other
+      - LOG_LEVEL=info
+      - LOG_CALLER=hidden
+      - SHOUTRRR_ADDRESSES=
+# NOTE: DDNS-Update MUST NOT connect to the Gluetun VPN container
+    networks:
+      - mediastack
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.ddns.service=ddns
+      - traefik.http.routers.ddns.rule=Host(`ddns-updater.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.ddns.entrypoints=secureweb
+      - traefik.http.routers.ddns.middlewares=ddns-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.ddns.loadbalancer.server.scheme=http
+      - traefik.http.services.ddns.loadbalancer.server.port=${WEBUI_PORT_DDNS_UPDATER:?err}
+      # MIDDLEWARES
+      - traefik.http.middlewares.ddns-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Filebot (GitHub)
+##  Function: Lookup and Rename Media from Internet Databases
+##
+##  Docker Page:   https://github.com/filebot/filebot-docker#filebot-xpra
+##  Homepage:      https://www.filebot.net/
+##  User Forum:    https://www.filebot.net/forums
+##
+###########################################################################
+###########################################################################
+  filebot:
+    image: rednoah/filebot:xpra
+    container_name: filebot
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/filebot:/data/filebot
+      - ${FOLDER_FOR_MEDIA:?err}/filebot:/filebot
+    environment:
+#      - XPRA_AUTH=password:value=YOUR_PASSWORD
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - UMASK=${UMASK:?err}
+      - TZ=${TIMEZONE:?err}
+      - DARK_MODE=1
+    network_mode: "service:gluetun"
+#    ports:
+#      - "${WEBUI_PORT_FILEBOT:?err}:5454"             # Configured in Gluetun VPN service
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.filebot.service=filebot
+      - traefik.http.routers.filebot.rule=Host(`filebot.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.filebot.entrypoints=secureweb
+      - traefik.http.routers.filebot.middlewares=filebot-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.filebot.loadbalancer.server.scheme=http
+      - traefik.http.services.filebot.loadbalancer.server.port=5454
+      # MIDDLEWARES
+      - traefik.http.middlewares.filebot-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Flaresolverr (Flaresolverr)
+##  Function: Cloudflare Proxy Server
+##
+##  Documentation: https://github.com/FlareSolverr/FlareSolverr
+##
+###########################################################################
+###########################################################################
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    environment:
+      - LOG_LEVEL=info
+      - LOG_HTML=false
+      - CAPTCHA_SOLVER=none
+      - TZ=${TIMEZONE:?err}
+    network_mode: "service:gluetun"
+#    ports:
+#      - "${FLARESOLVERR_PORT:?err}:8191"             # Configured in Gluetun VPN container
+
+###########################################################################
+###########################################################################
+##
+##    Docker Compose File: Heimdall (LinuxServer.io)
+##    Function: Organise links to web sites and web applications
+##
+##    Documentation: https://docs.linuxserver.io/images/docker-heimdall
+##    https://docs.linuxserver.io/general/swag#using-heimdall-as-the-home-page-at-domain-root
+##
+###########################################################################
+###########################################################################
+  heimdall:
+    image: lscr.io/linuxserver/heimdall:latest
+    container_name: heimdall
+    restart: unless-stopped
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/heimdall:/config
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - UMASK=${UMASK:?err}
+      - TZ=${TIMEZONE:?err}
+    ports:
+      - "${WEBUI_PORT_HEIMDALL:?err}:80"
+# NOTE: Heimdall MUST NOT connect to the Gluetun VPN container
+    networks:
+      - mediastack
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.heimdall.service=heimdall
+      - traefik.http.routers.heimdall.rule=Host(`heimdall.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.heimdall.entrypoints=secureweb
+      - traefik.http.routers.heimdall.middlewares=heimdall-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.heimdall.loadbalancer.server.scheme=http
+      - traefik.http.services.heimdall.loadbalancer.server.port=80
+      # MIDDLEWARES
+      - traefik.http.middlewares.heimdall-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+      
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Homarr (https://ghcr.io/)
+##  Function: Application Dashboard
+##
+##  Documentation: https://homarr.dev/docs/getting-started/after-the-installation
+##
+###########################################################################
+###########################################################################
+  homarr:
+    image: ghcr.io/ajnart/homarr:latest
+    container_name: homarr
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${FOLDER_FOR_DATA:?err}/homarr/configs:/app/data/configs
+      - ${FOLDER_FOR_DATA:?err}/homarr/icons:/app/public/icons
+      - ${FOLDER_FOR_DATA:?err}/homarr/data:/data
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - UMASK=${UMASK:?err}
+      - TZ=${TIMEZONE:?err}
+    ports:
+      - "${WEBUI_PORT_HOMARR:?err}:7575"
+# NOTE: Heimdall MUST NOT connect to the Gluetun VPN container
+    networks:
+      - mediastack
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.homarr.service=homarr
+      - traefik.http.routers.homarr.rule=Host(`homarr.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.homarr.entrypoints=secureweb
+      - traefik.http.routers.homarr.middlewares=homarr-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.homarr.loadbalancer.server.scheme=http
+      - traefik.http.services.homarr.loadbalancer.server.port=7575
+      # MIDDLEWARES
+      - traefik.http.middlewares.homarr-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Homepage (https://ghcr.io/)
+##  Function: Application Dashboard
+##
+##  Documentation: https://gethomepage.dev/latest/configs/
+##
+###########################################################################
+###########################################################################
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    restart: unless-stopped
+    ports:
+      - ${WEBUI_PORT_HOMEPAGE:?err}:3000
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/homepage:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - UMASK=${UMASK:?err}
+      - TZ=${TIMEZONE:?err}
+# NOTE: Homepage MUST NOT connect to the Gluetun VPN container
+    networks:
+      - mediastack
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.homepage.service=homepage
+      - traefik.http.routers.homepage.rule=Host(`homepage.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.homepage.entrypoints=secureweb
+      - traefik.http.routers.homepage.middlewares=homepage-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.homepage.loadbalancer.server.scheme=http
+      - traefik.http.services.homepage.loadbalancer.server.port=3000
+      # MIDDLEWARES
+      - traefik.http.middlewares.homepage-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Jellyfin (LinuxServer.io)
+##  Function: Media Server
+##
+##  Documentation: https://jellyfin.org/docs/general/administration/installing#docker
+##  https://jellyfin.org/docs/general/administration/hardware-acceleration/
+##
+###########################################################################
+###########################################################################
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+# Add Configurations for GPU Hardware Rendering Here:
+#    devices:
+#      - /dev/dri/renderD128:/dev/dri/renderD128
+#      - /dev/dri/card0:/dev/dri/card0
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/jellyfin:/config
+      - ${FOLDER_FOR_MEDIA:?err}/media:/data/media
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - UMASK=${UMASK:?err}
+      - TZ=${TIMEZONE:?err}
+#      - JELLYFIN_PublishedServerUrl=${LOCAL_DOCKER_IP:?err}  # Enable for DLNA - Only works on HOST Network Mode
+    network_mode: "service:gluetun"
+#    ports:
+#      - "${WEBUI_PORT_JELLYFIN:?err}:8096"             # Configured in Gluetun VPN container
+#      - 7359:7359/udp                 # Enable for DLNA - Only works on HOST Network Mode
+#      - 1900:1900/udp                 # Enable for DLNA - Only works on HOST Network Mode
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.jellyfin.service=jellyfin
+      - traefik.http.routers.jellyfin.rule=Host(`jellyfin.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.jellyfin.entrypoints=secureweb
+      - traefik.http.routers.jellyfin.middlewares=jellyfin-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.jellyfin.loadbalancer.server.scheme=http
+      - traefik.http.services.jellyfin.loadbalancer.server.port=8096
+      # MIDDLEWARES
+      - traefik.http.middlewares.jellyfin-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Jellyseerr (fallenbagel)
+##  Function: Media Request Manager
+##
+##  Documentation: https://hub.docker.com/r/fallenbagel/jellyseerr
+##
+###########################################################################
+###########################################################################
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/jellyseerr:/app/config
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - UMASK=${UMASK:?err}
+      - TZ=${TIMEZONE:?err}
+    network_mode: "service:gluetun"
+#    ports:
+#      - "${WEBUI_PORT_JELLYSEERR:?err}:5055"             # Configured in Gluetun VPN container
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.jellyseerr.service=jellyseerr
+      - traefik.http.routers.jellyseerr.rule=Host(`jellyseerr.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.jellyseerr.entrypoints=secureweb
+      - traefik.http.routers.jellyseerr.middlewares=jellyseerr-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.jellyseerr.loadbalancer.server.scheme=http
+      - traefik.http.services.jellyseerr.loadbalancer.server.port=5055
+      # MIDDLEWARES
+      - traefik.http.middlewares.jellyseerr-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Lidarr (LinuxServer.io)
+##  Function: Music Library Manager
+##
+##  Documentation: https://docs.linuxserver.io/images/docker-lidarr
+##
+###########################################################################
+###########################################################################
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/lidarr:/config
+      - ${FOLDER_FOR_MEDIA:?err}:/data
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - TZ=${TIMEZONE:?err}
+      - DOCKER_MODS=ghcr.io/themepark-dev/theme.park:lidarr
+      - TP_THEME=${TP_THEME:?err}
+    network_mode: "service:gluetun"
+#    ports:
+#      - "${WEBUI_PORT_LIDARR:?err}:8686"             # Configured in Gluetun VPN container
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.lidarr.service=lidarr
+      - traefik.http.routers.lidarr.rule=Host(`lidarr.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.lidarr.entrypoints=secureweb
+      - traefik.http.routers.lidarr.middlewares=lidarr-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.lidarr.loadbalancer.server.scheme=http
+      - traefik.http.services.lidarr.loadbalancer.server.port=8686
+      # MIDDLEWARES
+      - traefik.http.middlewares.lidarr-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Mylar3 (LinuxServer.io)
+##  Function: Comic Library Manager
+##
+##  Documentation: https://github.com/mylar3/mylar3/wiki
+##
+###########################################################################
+###########################################################################
+  mylar:
+    image: lscr.io/linuxserver/mylar3:latest
+    container_name: mylar
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/mylar:/config
+      - ${FOLDER_FOR_MEDIA:?err}:/data
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - TZ=${TIMEZONE:?err}
+      - DOCKER_MODS=ghcr.io/themepark-dev/theme.park:mylar3
+      - TP_THEME=${TP_THEME:?err}
+    network_mode: "service:gluetun"
+#    ports:
+#      - "${WEBUI_PORT_MYLAR:?err}:8090"             # Configured in Gluetun VPN container
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.mylar.service=mylar
+      - traefik.http.routers.mylar.rule=Host(`mylar.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.mylar.entrypoints=secureweb
+      - traefik.http.routers.mylar.middlewares=mylar-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.mylar.loadbalancer.server.scheme=http
+      - traefik.http.services.mylar.loadbalancer.server.port=8090
+      # MIDDLEWARES
+      - traefik.http.middlewares.mylar-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Plex (LinuxServer.io)
+##  Function: Media Server
+##
+##  Documentation: https://hub.docker.com/r/linuxserver/plex
+##
+###########################################################################
+###########################################################################
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+# Add Configurations for GPU Hardware Rendering Here:
+#    devices:
+#      - /dev/dri/renderD128:/dev/dri/renderD128
+#      - /dev/dri/card0:/dev/dri/card0
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/plex:/config
+      - ${FOLDER_FOR_MEDIA:?err}/media:/data/media
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - UMASK=${UMASK:?err}
+      - TZ=${TIMEZONE:?err}
+      - VERSION=docker
+      - PLEX_CLAIM=${PLEX_CLAIM}
+    network_mode: "service:gluetun"
+# Ports are disabled in containers when they are connected to VPN, as the
+# Gluetun container manages the ports for containers that connect via VPN
+#    ports:
+#      - "${WEBUI_PORT_PLEX:?err}:32400"             # Configured in Gluetun VPN container
+#      - 1900:1900/udp
+#      - 5353:5353/udp
+#      - 8324:8324
+#      - 32410:32410/udp
+#      - 32412:32412/udp
+#      - 32413:32413/udp
+#      - 32414:32414/udp
+#      - 32469:32469
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.plex.service=plex
+      - traefik.http.routers.plex.rule=Host(`plex.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.plex.entrypoints=secureweb
+      - traefik.http.routers.plex.middlewares=plex-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.plex.loadbalancer.server.scheme=http
+      - traefik.http.services.plex.loadbalancer.server.port=32400
+      # MIDDLEWARES
+      - traefik.http.middlewares.plex-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Portainer (Portainer.io)
+##  Function: Alternate GUI Manager for Docker
+##
+##  Documentation: https://docs.portainer.io/start/install/server/docker
+##
+###########################################################################
+###########################################################################
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${FOLDER_FOR_DATA:?err}/portainer:/data
+    ports:
+      - "${WEBUI_PORT_PORTAINER:?err}:9000"
+# NOTE: Portainer MUST NOT connect to the Gluetun VPN container
+    networks:
+      - mediastack
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.portainer.service=portainer
+      - traefik.http.routers.portainer.rule=Host(`portainer.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.portainer.entrypoints=secureweb
+      - traefik.http.routers.portainer.middlewares=portainer-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.portainer.loadbalancer.server.scheme=http
+      - traefik.http.services.portainer.loadbalancer.server.port=9000
+      # MIDDLEWARES
+      - traefik.http.middlewares.portainer-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Prowlarr (LinuxServer.io)
+##  Function: Indexer and Search Manager
+##
+##  Documentation: https://docs.linuxserver.io/images/docker-prowlarr
+##
+###########################################################################
+###########################################################################
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:develop
+    container_name: prowlarr
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/prowlarr:/config
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - TZ=${TIMEZONE:?err}
+      - DOCKER_MODS=ghcr.io/themepark-dev/theme.park:prowlarr
+      - TP_THEME=${TP_THEME:?err}
+    network_mode: "service:gluetun"
+#    ports:
+#      - "${WEBUI_PORT_PROWLARR:?err}:9696"             # Configured in Gluetun VPN container
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.prowlarr.service=prowlarr
+      - traefik.http.routers.prowlarr.rule=Host(`prowlarr.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.prowlarr.entrypoints=secureweb
+      - traefik.http.routers.prowlarr.middlewares=prowlarr-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.prowlarr.loadbalancer.server.scheme=http
+      - traefik.http.services.prowlarr.loadbalancer.server.port=9696
+      # MIDDLEWARES
+      - traefik.http.middlewares.prowlarr-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: qBittorrent (LinuxServer.io)
+##  Function: Torrent Download Client
+##
+##  Documentation: https://docs.linuxserver.io/images/docker-qbittorrent
+##
+###########################################################################
+###########################################################################
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/qbittorrent:/config
+      - ${FOLDER_FOR_MEDIA:?err}:/data
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - UMASK=${UMASK:?err}
+      - TZ=${TIMEZONE:?err}
+      - WEBUI_PORT=${WEBUI_PORT_QBITTORRENT:?err}
+      - DOCKER_MODS=ghcr.io/themepark-dev/theme.park:qbittorrent
+      - TP_THEME=${TP_THEME:?err}
+## Do Not Change Network for qBittorrent
+## qBittorrent MUST always use a VPN / Secure Internet connection
+    network_mode: "service:gluetun"
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.qbittorrent.service=qbittorrent
+      - traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.qbittorrent.entrypoints=secureweb
+      - traefik.http.routers.qbittorrent.middlewares=qbittorrent-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.qbittorrent.loadbalancer.server.scheme=http
+      - traefik.http.services.qbittorrent.loadbalancer.server.port=${WEBUI_PORT_QBITTORRENT:?err}
+      # MIDDLEWARES
+      - traefik.http.middlewares.qbittorrent-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Radarr (LinuxServer.io)
+##  Function: Movie Library Manager
+##
+##  Documentation: https://docs.linuxserver.io/images/docker-radarr
+##
+###########################################################################
+###########################################################################
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/radarr:/config
+      - ${FOLDER_FOR_MEDIA:?err}:/data
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - TZ=${TIMEZONE:?err}
+      - DOCKER_MODS=ghcr.io/themepark-dev/theme.park:radarr
+      - TP_THEME=${TP_THEME:?err}
+    network_mode: "service:gluetun"
+#    ports:
+#      - "${WEBUI_PORT_RADARR:?err}:7878"             # Configured in Gluetun VPN container
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.radarr.service=radarr
+      - traefik.http.routers.radarr.rule=Host(`radarr.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.radarr.entrypoints=secureweb
+      - traefik.http.routers.radarr.middlewares=radarr-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.radarr.loadbalancer.server.scheme=http
+      - traefik.http.services.radarr.loadbalancer.server.port=7878
+      # MIDDLEWARES
+      - traefik.http.middlewares.radarr-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Readarr (LinuxServer.io)
+##  Function: Book Library Manager
+##
+##  Documentation: https://docs.linuxserver.io/images/docker-readarr
+##
+###########################################################################
+###########################################################################
+  readarr:
+    image: lscr.io/linuxserver/readarr:develop
+    container_name: readarr
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/readarr:/config
+      - ${FOLDER_FOR_MEDIA:?err}:/data
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - TZ=${TIMEZONE:?err}
+      - DOCKER_MODS=ghcr.io/themepark-dev/theme.park:readarr
+      - TP_THEME=${TP_THEME:?err}
+    network_mode: "service:gluetun"
+#    ports:
+#      - "${WEBUI_PORT_READARR:?err}:8787"             # Configured in Gluetun VPN container
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.readarr.service=readarr
+      - traefik.http.routers.readarr.rule=Host(`readarr.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.readarr.entrypoints=secureweb
+      - traefik.http.routers.readarr.middlewares=readarr-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.readarr.loadbalancer.server.scheme=http
+      - traefik.http.services.readarr.loadbalancer.server.port=8787
+      # MIDDLEWARES
+      - traefik.http.middlewares.readarr-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: SABnzbd (LinuxServer.io)
+##  Function: Usenet Download Client
+##
+##  Documentation: https://docs.linuxserver.io/images/docker-sabnzbd
+##
+###########################################################################
+###########################################################################
+  sabnzbd:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/sabnzbd:/config
+      - ${FOLDER_FOR_MEDIA:?err}:/data
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - TZ=${TIMEZONE:?err}
+      - DOCKER_MODS=ghcr.io/themepark-dev/theme.park:sabnzbd
+      - TP_THEME=${TP_THEME:?err}
+    network_mode: "service:gluetun"
+#    ports:
+#      - "${WEBUI_PORT_SABNZBD:?err}:8080"             # Configured in Gluetun VPN container
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.sabnzbd.service=sabnzbd
+      - traefik.http.routers.sabnzbd.rule=Host(`sabnzbd.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.sabnzbd.entrypoints=secureweb
+      - traefik.http.routers.sabnzbd.middlewares=sabnzbd-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.sabnzbd.loadbalancer.server.scheme=http
+      - traefik.http.services.sabnzbd.loadbalancer.server.port=8080
+      # MIDDLEWARES
+      - traefik.http.middlewares.sabnzbd-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Sonarr (LinuxServer.io)
+##  Function: Series Library Manager (TV Shows)
+##
+##  Documentation: https://docs.linuxserver.io/images/docker-sonarr
+##
+###########################################################################
+###########################################################################
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/sonarr:/config
+      - ${FOLDER_FOR_MEDIA:?err}:/data
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - TZ=${TIMEZONE:?err}
+      - DOCKER_MODS=ghcr.io/themepark-dev/theme.park:sonarr
+      - TP_THEME=${TP_THEME:?err}
+    network_mode: "service:gluetun"
+#    ports:
+#      - "${WEBUI_PORT_SONARR:?err}:8989"             # Configured in Gluetun VPN container
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.sonarr.service=sonarr
+      - traefik.http.routers.sonarr.rule=Host(`sonarr.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.sonarr.entrypoints=secureweb
+      - traefik.http.routers.sonarr.middlewares=sonarr-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.sonarr.loadbalancer.server.scheme=http
+      - traefik.http.services.sonarr.loadbalancer.server.port=8989
+      # MIDDLEWARES
+      - traefik.http.middlewares.sonarr-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Tdarr V2 (haveagitgat/tdarr)
+##  Function: Tdarr V2 - Audio/Video library transcoding automation
+##            (Contains Tdarr_Server and WebUI ) 
+##
+##  Documentation: https://docs.tdarr.io/docs/installation/docker/run-compose/
+##  https://docs.tdarr.io/docs/installation/docker/hardware-transcoding
+##
+###########################################################################
+###########################################################################
+  tdarr:
+    image: ghcr.io/haveagitgat/tdarr:latest
+    container_name: tdarr
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/tdarr/server:/app/server
+      - ${FOLDER_FOR_DATA:?err}/tdarr/configs:/app/configs
+      - ${FOLDER_FOR_DATA:?err}/tdarr/logs:/app/logs
+      - ${FOLDER_FOR_DATA:?err}/tdarr_transcode_cache:/temp
+      - ${FOLDER_FOR_MEDIA:?err}/media:/data
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - UMASK=${UMASK:?err}
+      - TZ=${TIMEZONE:?err}
+      - serverIP=0.0.0.0
+      - serverPort=${TDARR_SERVER_PORT:?err}
+      - webUIPort=${WEBUI_PORT_TDARR:?err}
+      - internalNode=true
+      - nodeID=Tdarr_Server
+    network_mode: "service:gluetun"
+#    ports:
+#      - "${TDARR_SERVER_PORT:?err}:${TDARR_SERVER_PORT:?err}"      # Configured in Gluetun VPN container
+#      - "${WEBUI_PORT_TDARR:?err}:${WEBUI_PORT_TDARR:?err}"        # Configured in Gluetun VPN container
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.tdarr.service=tdarr
+      - traefik.http.routers.tdarr.rule=Host(`tdarr.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.tdarr.entrypoints=secureweb
+      - traefik.http.routers.tdarr.middlewares=tdarr-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.tdarr.loadbalancer.server.scheme=http
+      - traefik.http.services.tdarr.loadbalancer.server.port=${WEBUI_PORT_TDARR:?err}
+      # MIDDLEWARES
+      - traefik.http.middlewares.tdarr-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+  tdarr-node:
+    image: ghcr.io/haveagitgat/tdarr_node:latest
+    container_name: tdarr-node
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/tdarr/configs:/app/configs
+      - ${FOLDER_FOR_DATA:?err}/tdarr/logs:/app/logs
+      - ${FOLDER_FOR_DATA:?err}/tdarr_transcode_cache:/temp
+      - ${FOLDER_FOR_MEDIA:?err}/media:/data
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - UMASK=${UMASK:?err}
+      - TZ=${TIMEZONE:?err}
+      - nodeID=Tdarr_Node_1
+      - serverIP=0.0.0.0
+      - serverPort=${TDARR_SERVER_PORT:?err}
+    network_mode: "service:gluetun"
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Unpackerr (Hotio.Dev)
+##  Function: Archive Media Extraction
+##
+##  Documentation: https://github.com/davidnewhall/unpackerr
+##  https://github.com/davidnewhall/unpackerr/blob/master/examples/docker-compose.yml
+##
+###########################################################################
+###########################################################################
+  unpackerr:
+    image: ghcr.io/hotio/unpackerr:latest
+    container_name: unpackerr
+    restart: unless-stopped
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/unpackerr:/config
+      - ${FOLDER_FOR_MEDIA:?err}:/data
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - UMASK=${UMASK:?err}
+      - TZ=${TIMEZONE:?err}
+# Documentation on all Environment Variables can be found at:
+# https://github.com/davidnewhall/unpackerr#docker-env-variables
+      - UN_DEBUG=false
+      - UN_LOG_FILE=
+      - UN_LOG_FILES=10
+      - UN_LOG_FILE_MB=10
+      - UN_INTERVAL=2m
+      - UN_START_DELAY=1m
+      - UN_RETRY_DELAY=5m
+      - UN_MAX_RETRIES=3
+      - UN_PARALLEL=1
+      - UN_FILE_MODE=0664
+      - UN_DIR_MODE=0775
+      # Sonarr Config - Copy API Key from: http://sonarr:8989/general/settings
+      - UN_SONARR_0_URL=http://sonarr:8989
+      - UN_SONARR_0_API_KEY=
+      - UN_SONARR_0_PATHS_0=/data/torrents/anime
+      - UN_SONARR_0_PATHS_1=/data/torrents/tv
+      - UN_SONARR_0_PROTOCOLS=torrent
+      - UN_SONARR_0_TIMEOUT=10s
+      - UN_SONARR_0_DELETE_ORIG=false
+      - UN_SONARR_0_DELETE_DELAY=5m
+      # Radarr Config - Copy API Key from: http://radarr:7878/general/settings
+      - UN_RADARR_0_URL=http://radarr:7878
+      - UN_RADARR_0_API_KEY=
+      - UN_RADARR_0_PATHS_0=/data/torrents/movies
+      - UN_RADARR_0_PROTOCOLS=torrent
+      - UN_RADARR_0_TIMEOUT=10s
+      - UN_RADARR_0_DELETE_ORIG=false
+      - UN_RADARR_0_DELETE_DELAY=5m
+      # Lidarr Config - Copy API Key from: http://lidarr:8686/general/settings
+      - UN_LIDARR_0_URL=http://lidarr:8686
+      - UN_LIDARR_0_API_KEY=
+      - UN_LIDARR_0_PATHS_0=/data/torrents/music
+      - UN_LIDARR_0_PROTOCOLS=torrent
+      - UN_LIDARR_0_TIMEOUT=10s
+      - UN_LIDARR_0_DELETE_ORIG=false
+      - UN_LIDARR_0_DELETE_DELAY=5m
+      # Readarr Config - Copy API Key from: http://readarr:8787/general/settings
+      - UN_READARR_0_URL=http://readarr:8787
+      - UN_READARR_0_API_KEY=
+      - UN_READARR_0_PATHS_0=/data/torrents/books
+      - UN_READARR_0_PROTOCOLS=torrent
+      - UN_READARR_0_TIMEOUT=10s
+      - UN_READARR_0_DELETE_ORIG=false
+      - UN_READARR_0_DELETE_DELAY=5m
+      # Folder Config
+      - UN_FOLDER_0_PATH=
+      - UN_FOLDER_0_EXTRACT_PATH=
+      - UN_FOLDER_0_DELETE_AFTER=10m
+      - UN_FOLDER_0_DELETE_ORIGINAL=false
+      - UN_FOLDER_0_DELETE_FILES=false
+      - UN_FOLDER_0_MOVE_BACK=false
+      # Webhook Config
+      - UN_WEBHOOK_0_URL=
+      - UN_WEBHOOK_0_NAME=
+      - UN_WEBHOOK_0_NICKNAME=Unpackerr
+      - UN_WEBHOOK_0_CHANNEL=
+      - UN_WEBHOOK_0_TIMEOUT=10s
+      - UN_WEBHOOK_0_SILENT=false
+      - UN_WEBHOOK_0_IGNORE_SSL=false
+      - UN_WEBHOOK_0_EXCLUDE_0=
+      - UN_WEBHOOK_0_EVENTS_0=0
+      - UN_WEBHOOK_0_TEMPLATE_PATH=
+      - UN_WEBHOOK_0_CONTENT_TYPE=application/json
+      # Command Hook Config
+      - UN_CMDHOOK_0_COMMAND=
+      - UN_CMDHOOK_0_NAME=
+      - UN_CMDHOOK_0_TIMEOUT=10s
+      - UN_CMDHOOK_0_SILENT=false
+      - UN_CMDHOOK_0_SHELL=false
+      - UN_CMDHOOK_0_EXCLUDE_0=
+      - UN_CMDHOOK_0_EVENTS_0=0
+    security_opt:
+      - no-new-privileges:true
+    network_mode: none
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Whisparr (Hotio.Dev)
+##  Function: Adult Media Library Manager
+##
+##  Documentation: https://wiki.servarr.com/whisparr
+##
+###########################################################################
+###########################################################################
+  whisparr:
+    image: hotio/whisparr:nightly
+    container_name: whisparr
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/whisparr:/config
+      - ${FOLDER_FOR_MEDIA:?err}:/data
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - UMASK=${UMASK:?err}
+      - TZ=${TIMEZONE:?err}
+    network_mode: "service:gluetun"
+#    ports:
+#      - "${WEBUI_PORT_WHISPARR:?err}:6969"             # Configured in Gluetun VPN container
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.whisparr.service=whisparr
+      - traefik.http.routers.whisparr.rule=Host(`whisparr.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.whisparr.entrypoints=secureweb
+      - traefik.http.routers.whisparr.middlewares=whisparr-auth@docker,security-headers@file
+      # SERVICES
+      - traefik.http.services.whisparr.loadbalancer.server.scheme=http
+      - traefik.http.services.whisparr.loadbalancer.server.port=6969
+      # MIDDLEWARES
+      - traefik.http.middlewares.whisparr-auth.basicauth.users=${BASIC_WEB_AUTH:?err}

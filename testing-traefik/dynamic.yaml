@@ -1,0 +1,67 @@
+#########################################################################
+#########################################################################
+#
+# Filename: dynamic.yaml        Traefik Dynamic Configuration File
+#
+# Replace all "YOUR_DOMAIN_NAME" values with your top level domain name
+#
+#  i.e.   - main: example.com
+#           sans:
+#             - "*.example.com"
+#
+#########################################################################
+#########################################################################
+
+tls:
+  stores:
+    default:
+      defaultGeneratedCert:
+        resolver: letsencrypt
+        domain:
+          main: YOUR_DOMAIN_NAME
+          sans:
+            - "*.YOUR_DOMAIN_NAME"
+  options:
+    default:
+      minVersion: VersionTLS12
+      cipherSuites:
+        - TLS_AES_256_GCM_SHA384
+        - TLS_CHACHA20_POLY1305_SHA256
+        - TLS_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      curvePreferences:
+        - CurveP521
+        - CurveP384
+      sniStrict: true
+
+http:
+  middlewares:
+    security-headers:
+      headers:
+        accessControlAllowCredentials: true
+        accessControlAllowHeaders: "*"
+        accessControlAllowMethods:
+          - GET
+          - OPTIONS
+          - PUT
+        accessControlAllowOriginList:
+          - https://YOUR_DOMAIN_NAME
+          - https://*.YOUR_DOMAIN_NAME
+        accessControlMaxAge: 100
+        addVaryHeader: true
+        browserXssFilter: true
+        stsSeconds: 63072000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
+        customFrameOptionsValue: SAMEORIGIN
+        contentTypeNosniff: true
+#        contentSecurityPolicy: default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'
+        referrerPolicy: strict-origin-when-cross-origin
+        permissionsPolicy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()
+
