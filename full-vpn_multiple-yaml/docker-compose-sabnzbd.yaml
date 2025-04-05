@@ -13,10 +13,6 @@ services:
     image: lscr.io/linuxserver/sabnzbd:latest
     container_name: sabnzbd
     restart: unless-stopped
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
     volumes:
       - ${FOLDER_FOR_DATA:?err}/sabnzbd:/config
       - ${FOLDER_FOR_MEDIA:?err}:/data

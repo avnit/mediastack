@@ -13,10 +13,6 @@ services:
     image: lscr.io/linuxserver/bazarr:latest
     container_name: bazarr
     restart: unless-stopped
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
     volumes:
       - ${FOLDER_FOR_DATA:?err}/bazarr:/config
       - ${FOLDER_FOR_MEDIA:?err}:/data

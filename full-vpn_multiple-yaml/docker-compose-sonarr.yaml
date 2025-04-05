@@ -13,10 +13,6 @@ services:
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
     restart: unless-stopped
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
     volumes:
       - ${FOLDER_FOR_DATA:?err}/sonarr:/config
       - ${FOLDER_FOR_MEDIA:?err}:/data

@@ -13,10 +13,6 @@ services:
     image: lscr.io/linuxserver/plex:latest
     container_name: plex
     restart: unless-stopped
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
 # Add Configurations for GPU Hardware Rendering Here:
 #    devices:
 #      - /dev/dri/renderD128:/dev/dri/renderD128

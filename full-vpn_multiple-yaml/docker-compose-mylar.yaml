@@ -13,10 +13,6 @@ services:
     image: lscr.io/linuxserver/mylar3:latest
     container_name: mylar
     restart: unless-stopped
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
     volumes:
       - ${FOLDER_FOR_DATA:?err}/mylar:/config
       - ${FOLDER_FOR_MEDIA:?err}:/data

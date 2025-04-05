@@ -937,6 +937,10 @@ services:
     image: hotio/whisparr:nightly
     container_name: whisparr
     restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
     volumes:
       - ${FOLDER_FOR_DATA:?err}/whisparr:/config
       - ${FOLDER_FOR_MEDIA:?err}:/data

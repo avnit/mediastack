@@ -13,10 +13,6 @@ services:
     image: fallenbagel/jellyseerr:latest
     container_name: jellyseerr
     restart: unless-stopped
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
     volumes:
       - ${FOLDER_FOR_DATA:?err}/jellyseerr:/app/config
     environment:

@@ -13,10 +13,6 @@ services:
     image: ghcr.io/flaresolverr/flaresolverr:latest
     container_name: flaresolverr
     restart: unless-stopped
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
     environment:
       - LOG_LEVEL=info
       - LOG_HTML=false
