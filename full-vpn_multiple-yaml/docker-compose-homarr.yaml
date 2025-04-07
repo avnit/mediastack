@@ -25,7 +25,6 @@ services:
       - PGID=${PGID:?err}
       - UMASK=${UMASK:?err}
       - TZ=${TIMEZONE:?err}
-    network_mode: "container:gluetun"
 
 # NOTE: Homepage MUST NOT connect to the Gluetun VPN container
 
