@@ -20,13 +20,16 @@ So we've removed the SWAG and Authelia containers, and added the Traefik contain
 
 In order to deploy / test Traefik:  
 
-- Download all of the files in the folder  
+- Download all of the files in the this GitHub folder  
+- Copy `headscale-config.yaml` file to `FOLDER_FOR_DATA/headscale` and rename it to `config.yaml`  
+- Copy `headplane-config.yaml` file to `FOLDER_FOR_DATA/headplane` and rename it to `config.yaml`  
 - Copy `dynamic.yaml` file to `FOLDER_FOR_DATA/traefik`  
 - Copy `traefik.yaml` file to `FOLDER_FOR_DATA/traefik`  
 - Create empty file called `FOLDER_FOR_DATA/traefik/letsencrypt/acme.json`  
 - Change permissions to `600` on `acme.json` file  
 - Update the `.env` file with all your settings / values from your existing `docker-compose.env` file - if you have an earlier version of MediaStack running  
-- Replace `YOUR_DOMAIN_NAME` with your Internet domain (i.e. example.com) in the `dynamic.yaml` and `traefik.yaml` files
+- Replace `example.com` with your Internet domain in the `dynamic.yaml` and `traefik.yaml` files
+- Set cookie_secret in `headplane.yaml` using 32 random characters
 
 Start:     `sudo docker compose up -d`  
 Stop:      `sudo docker compose down`  
@@ -35,6 +38,121 @@ The upgrade all running containers:
 
 - `sudo docker compose pull`  
 - `sudo docker compose up -d --force-recreate`  
+
+## Configure Headscale / Tailscale / Headplane
+
+Replace all instances of `example.com` in the configuration files with your own domain name.
+
+> NOTE: Tailscale Authkey can't be set in `.env` file until the Headscale container has been deployed
+
+### Register Tailscale Exit Node with Headscale
+
+Execute these commands once Headscale has been deployed:
+
+``` bash
+sudo docker exec -it headscale headscale users create exit-node
+sudo docker exec -it headscale headscale --user exit-node preauthkeys create
+```
+
+Add the authkey to `TAILSCALE_AUTHKEY` in the `.env` file.
+
+Restart the Tailscale container:
+
+``` bash
+sudo docker compose restart tailscale
+```
+
+Check Tailscale exit node has connected and registered with Headscale:
+
+``` bash
+sudo docker exec -it headscale headscale nodes list
+```
+
+Check to see if the Tailscale exit node has registered the local / home subnet addresses with the Headscale server:
+
+``` bash
+sudo docker exec -it headscale headscale routes list
+```
+
+The Headscale routing table will look like this:
+
+``` bash
+ID | Node      | Prefix         | Advertised | Enabled | Primary
+1  | exit-node | 0.0.0.0/0      | true       | false   | -      
+2  | exit-node | ::/0           | true       | false   | -      
+3  | exit-node | 192.168.1.0/24 | true       | false   | false  
+4  | exit-node | 172.28.10.0/24 | true       | false   | false  
+```
+
+Enable IP routing out of the Tailscale exit node with the following command
+
+``` bash
+sudo docker exec -it headscale headscale routes enable -r 1 
+sudo docker exec -it headscale headscale routes enable -r 2 
+sudo docker exec -it headscale headscale routes enable -r 3 
+sudo docker exec -it headscale headscale routes enable -r 4 
+sudo docker exec -it headscale headscale routes list
+```
+The IP routes will now be enabled and look like this:
+
+``` bash
+ID | Node      | Prefix         | Advertised | Enabled | Primary
+1  | exit-node | 0.0.0.0/0      | true       | true    | -      
+2  | exit-node | ::/0           | true       | true    | -      
+3  | exit-node | 192.168.1.0/24 | true       | true    | true   
+4  | exit-node | 172.28.10.0/24 | true       | true    | true   
+```
+
+### Register Mobile Tailscale Application with Headscale
+
+You can now download the official Tailscale application, and when prompted to login, select a custom URL.
+
+Enter your home Headscale URL: https://headscale.example.com
+
+When you select connect, it will ask if you want to go to the URL, select Yes, then it will show a connection string like
+
+``` bash
+headscale nodes register --user USERNAME --key 64LErdY2YcnMdNLNYc6wJJzE
+```
+
+We need to first create a user account, then register the Tailscale node against that account:
+
+``` bash
+sudo docker exec -it headscale headscale users create alice
+sudo docker exec -it headscale headscale nodes register --user alice --key 64LErdY2YcnMdNLNYc6wJJzE
+```
+
+The Tailscale will now automatically connect with the Headscale server, which can be checked with commands:
+
+``` bash
+sudo docker exec -it headscale headscale users list
+sudo docker exec -it headscale headscale nodes list
+sudo docker exec -it headscale headscale routes list
+```
+
+You can now go to the Tailscale application on your phone, and select `Exit Node` --> `exit-node` and turn on `Allow Local Network Access`.
+
+You can also go into the Tailscale application settings on your phone, and turn on `VPN On Demand`, so you always have remote access when away from home.
+
+### WebUI Managed with Headplane
+
+Headplane is a WebUI control for Headscale and is accessible at https://headscale.example.com
+
+You can generate an API key to connect Headplane to Headscale with:
+
+``` bash
+sudo docker exec -it headscale headscale apikeys list
+```
+
+### Additional Support for Headscale / Tailscale / Headplane
+
+You can head over to any of the websites for futher configuration details, or connect to the Discord server and discuss issues with other users:
+
+Headscale: [https://headscale.net/stable](https://headscale.net/stable)
+Tailscale: [https://tailscale.com](https://tailscale.com)
+Headplane: [https://github.com/tale/headplane](https://github.com/tale/headplane)
+
+Support Discord: [https://discord.gg/c84AZQhmpx](https://discord.gg/c84AZQhmpx)
 
 ## Internal Container Access (From Home)  
 

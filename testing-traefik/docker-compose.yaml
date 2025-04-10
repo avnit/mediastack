@@ -40,6 +40,83 @@ services:
       - ${FOLDER_FOR_DATA:?err}/traefik:/etc/traefik:ro
       - ${FOLDER_FOR_DATA:?err}/traefik/letsencrypt:/letsencrypt:rw
 
+  headscale:
+    image: headscale/headscale:latest
+    container_name: headscale
+    restart: unless-stopped
+    networks:
+      - mediastack
+    command: serve
+    ports:
+      - ${HEADSCALE_CONNECT_PORT:?err}:8080
+      - ${HEADSCALE_METRICS_PORT:?err}:9090
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/headscale:/etc/headscale:ro
+      - ${FOLDER_FOR_DATA:?err}/headscale/data:/var/lib/headscale:rw
+    environment:
+      - TZ=${TIMEZONE:?err}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.headscale.service=headscale
+      - traefik.http.routers.headscale.rule=Host(`headscale.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.headscale.entrypoints=secureweb
+      - traefik.http.routers.headscale.middlewares=security-headers@file
+      # SERVICES
+      - traefik.http.services.headscale.loadbalancer.server.scheme=http
+      - traefik.http.services.headscale.loadbalancer.server.port=8080
+      # MIDDLEWARES
+      # No Auth Here
+
+  tailscale:
+    image: tailscale/tailscale:latest
+    hostname: tailscale
+    container_name: tailscale
+    restart: unless-stopped
+    networks:
+      - mediastack
+    cap_add:
+      - net_admin
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/tailscale:/var/lib/tailscale:rw
+    environment:
+      - TS_USERSPACE=false
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTHKEY=${TAILSCALE_AUTHKEY:?err}
+      - TS_EXTRA_ARGS=--hostname=exit-node --advertise-exit-node --advertise-routes=${LOCAL_SUBNET:?err},${DOCKER_SUBNET:?err} --login-server=https://headscale.${CLOUDFLARE_DNS_ZONE:?err}
+
+  headplane:
+    image: ghcr.io/tale/headplane:latest
+    container_name: headplane
+    restart: unless-stopped
+    networks:
+      - mediastack
+    ports:
+      - ${WEBUI_PORT_HEADPLANE:?err}:3000
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/headscale:/etc/headscale:ro
+      - ${FOLDER_FOR_DATA:?err}/headplane:/etc/headplane:ro
+      - ${FOLDER_FOR_DATA:?err}/headplane/data:/var/lib/headplane:rw
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - TZ=${TIMEZONE:?err}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.headplane.service=headplane
+      - traefik.http.routers.headplane.rule=Host(`headplane.${CLOUDFLARE_DNS_ZONE:?err}`) && PathPrefix(`/admin`)
+      - traefik.http.routers.headplane.entrypoints=secureweb
+      - traefik.http.routers.headplane.middlewares=security-headers@file,headplane-auth@file
+      # SERVICES
+      - traefik.http.services.headplane.loadbalancer.server.scheme=http
+      - traefik.http.services.headplane.loadbalancer.server.port=3000
+      # MIDDLEWARES
+      - traefik.http.middlewares.headplane-auth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
 ###########################################################################
 ###########################################################################
 ##
