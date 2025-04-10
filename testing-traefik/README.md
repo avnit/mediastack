@@ -136,12 +136,12 @@ You can also go into the Tailscale application settings on your phone, and turn 
 
 ### WebUI Managed with Headplane
 
-Headplane is a WebUI control for Headscale and is accessible at https://headscale.example.com
+Headplane is a WebUI control for Headscale and is accessible at [https://headplane.example.com/admin/](https://headplane.example.com/admin/)    NOTE: "/" is needed at the end.
 
 You can generate an API key to connect Headplane to Headscale with:
 
 ``` bash
-sudo docker exec -it headscale headscale apikeys list
+sudo docker exec -it headscale headscale apikeys create
 ```
 
 ### Additional Support for Headscale / Tailscale / Headplane

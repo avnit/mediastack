@@ -37,8 +37,8 @@ services:
       - ${WEBUI_PORT_TRAEFIK:?err}:8080
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ${FOLDER_FOR_DATA:?err}/traefik:/etc/traefik:ro
-      - ${FOLDER_FOR_DATA:?err}/traefik/letsencrypt:/letsencrypt:rw
+      - ${FOLDER_FOR_DATA:?err}/traefik:/etc/traefik
+      - ${FOLDER_FOR_DATA:?err}/traefik/letsencrypt:/letsencrypt
 
   headscale:
     image: headscale/headscale:latest
@@ -51,8 +51,8 @@ services:
       - ${HEADSCALE_CONNECT_PORT:?err}:8080
       - ${HEADSCALE_METRICS_PORT:?err}:9090
     volumes:
-      - ${FOLDER_FOR_DATA:?err}/headscale:/etc/headscale:ro
-      - ${FOLDER_FOR_DATA:?err}/headscale/data:/var/lib/headscale:rw
+      - ${FOLDER_FOR_DATA:?err}/headscale:/etc/headscale
+      - ${FOLDER_FOR_DATA:?err}/headscale/data:/var/lib/headscale
     environment:
       - TZ=${TIMEZONE:?err}
     labels:
@@ -81,7 +81,7 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     volumes:
-      - ${FOLDER_FOR_DATA:?err}/tailscale:/var/lib/tailscale:rw
+      - ${FOLDER_FOR_DATA:?err}/tailscale:/var/lib/tailscale
     environment:
       - TS_USERSPACE=false
       - TS_STATE_DIR=/var/lib/tailscale
@@ -97,9 +97,9 @@ services:
     ports:
       - ${WEBUI_PORT_HEADPLANE:?err}:3000
     volumes:
-      - ${FOLDER_FOR_DATA:?err}/headscale:/etc/headscale:ro
-      - ${FOLDER_FOR_DATA:?err}/headplane:/etc/headplane:ro
-      - ${FOLDER_FOR_DATA:?err}/headplane/data:/var/lib/headplane:rw
+      - ${FOLDER_FOR_DATA:?err}/headscale:/etc/headscale
+      - ${FOLDER_FOR_DATA:?err}/headplane:/etc/headplane
+      - ${FOLDER_FOR_DATA:?err}/headplane/data:/var/lib/headplane
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - TZ=${TIMEZONE:?err}
@@ -110,7 +110,7 @@ services:
       - traefik.http.routers.headplane.service=headplane
       - traefik.http.routers.headplane.rule=Host(`headplane.${CLOUDFLARE_DNS_ZONE:?err}`) && PathPrefix(`/admin`)
       - traefik.http.routers.headplane.entrypoints=secureweb
-      - traefik.http.routers.headplane.middlewares=security-headers@file,headplane-auth@file
+      - traefik.http.routers.headplane.middlewares=headplane-auth@docker,security-headers@file
       # SERVICES
       - traefik.http.services.headplane.loadbalancer.server.scheme=http
       - traefik.http.services.headplane.loadbalancer.server.port=3000
