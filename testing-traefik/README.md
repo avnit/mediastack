@@ -28,8 +28,8 @@ In order to deploy / test Traefik:
 - Create empty file called `FOLDER_FOR_DATA/traefik/letsencrypt/acme.json`  
 - Change permissions to `600` on `acme.json` file  
 - Update the `.env` file with all your settings / values from your existing `docker-compose.env` file - if you have an earlier version of MediaStack running  
-- Replace `example.com` with your Internet domain in the `dynamic.yaml` and `traefik.yaml` files
-- Set cookie_secret in `headplane.yaml` using 32 random characters
+- Replace `example.com` with your Internet domain in the `headscale/config.yaml`, `headplane/config.yaml`, `traefik/dynamic.yaml` and `traefik/traefik.yaml` files
+- Set cookie_secret in `headplane/config.yaml` using 32 random characters
 
 Start:     `sudo docker compose up -d`  
 Stop:      `sudo docker compose down`  
