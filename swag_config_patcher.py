@@ -43,7 +43,7 @@ for container in stack_full:
     text = file.read_text()
 
     # Patch ports
-    if port:
+    if port and not container in stack_network:
         text = re.sub(r'set \$upstream_port \d{2,5};', f'set $upstream_port {port};', text)
     # Activate authelia
     if use_authelia:
