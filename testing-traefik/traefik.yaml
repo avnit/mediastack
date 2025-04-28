@@ -17,8 +17,7 @@ global:
   sendAnonymousUsage: true
 
 log:
-  level: ERROR
-#  level: DEBUG
+  level: ERROR    # Options are:  TRACE , DEBUG , INFO , WARN , ERROR , FATAL , and PANIC
 
 accessLog:
   filePath: /letsencrypt/access.log
@@ -68,3 +67,9 @@ certificatesResolvers:
           - 1.0.0.1:53
         propagation:
           delayBeforeChecks: 2s
+
+experimental:
+  plugins:
+    crowdsec-bouncer-traefik-plugin:
+      moduleName: github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
+      version: v1.4.2

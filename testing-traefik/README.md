@@ -24,17 +24,18 @@ In order to deploy / test Traefik:
 - Copy `headscale-config.yaml` file to `FOLDER_FOR_DATA/headscale` and rename it to `config.yaml`  
 - Copy `headplane-config.yaml` file to `FOLDER_FOR_DATA/headplane` and rename it to `config.yaml`  
 - Copy `dynamic.yaml` file to `FOLDER_FOR_DATA/traefik`  
+- Copy `internal.yaml` file to `FOLDER_FOR_DATA/traefik`  
 - Copy `traefik.yaml` file to `FOLDER_FOR_DATA/traefik`  
 - Create empty file called `FOLDER_FOR_DATA/traefik/letsencrypt/acme.json`  
 - Change permissions to `600` on `acme.json` file  
 - Update the `.env` file with all your settings / values from your existing `docker-compose.env` file - if you have an earlier version of MediaStack running  
-- Replace `example.com` with your Internet domain in the `headscale/config.yaml`, `headplane/config.yaml`, `traefik/dynamic.yaml` and `traefik/traefik.yaml` files
+- Replace `example.com` with your Internet domain in the `headscale/config.yaml`, `headplane/config.yaml`, `traefik/dynamic.yaml`, `traefik/dynamic.yaml` and `traefik/traefik.yaml` files
 - Set cookie_secret in `headplane/config.yaml` using 32 random characters
 
 Start:     `sudo docker compose up -d`  
 Stop:      `sudo docker compose down`  
 
-The upgrade all running containers:  
+To upgrade all running containers:  
 
 - `sudo docker compose pull`  
 - `sudo docker compose up -d --force-recreate`  
@@ -193,6 +194,160 @@ BASIC_WEB_AUTH=alice:$$apr1$$JZIddfg47kO46PfZ$$Z1pqZ1QejEL1xMWSW5yW0:bob:$$apr1$
 > NOTE: The Basic Web Auth is just that, a simple way to add username / password credentials to your web services; however you will need to log into each service with the same credentials - we will look at introducing SSO authentication soon, so you only need to log into one of your services remotely, then SSO will handle the continued authentication across all other services. But this is a good start.
 
 </br>
+
+## Configure CrowdSec  
+
+Create a Crowdsec account, and obtain your Crowdsec security engine enrolement key from:  
+
+- https://app.crowdsec.net/security-engines  
+
+``` bash
+sudo docker exec crowdsec cscli console enroll cm1yipaufk0021g1u01fq27s3
+sudo docker exec crowdsec cscli collections install crowdsecurity/base-http-scenarios crowdsecurity/http-cve crowdsecurity/linux crowdsecurity/sshd crowdsecurity/traefik
+sudo docker exec crowdsec cscli parsers install crowdsecurity/traefik-logs crowdsecurity/docker-logs
+sudo docker exec crowdsec cscli console enable console_management
+sudo docker exec crowdsec cscli bouncers add crowdsecBouncer
+```
+
+Crowdsec will output the API Key for the bouncer:  
+
+``` bash
+API key for 'crowdsecBouncer':
+
+   8andilX0JKYIu8z+R4imPkIgG+TMdCttAuMaHrsV7ZU
+
+Please keep this key since you will not be able to retrieve it!
+```
+
+Check the status of Crowdsec components:  
+
+``` bash
+sudo docker exec crowdsec cscli console status
+sudo docker exec crowdsec cscli collections list
+sudo docker exec crowdsec cscli parsers list
+sudo docker exec crowdsec cscli bouncers list
+```
+
+Crowdsec will display the following output:  
+
+``` bash
++--------------------+-----------+------------------------------------------------------+
+| Option Name        | Activated | Description                                          |
++--------------------+-----------+------------------------------------------------------+
+| custom             | ✅        | Forward alerts from custom scenarios to the console  |
+| manual             | ✅        | Forward manual decisions to the console              |
+| tainted            | ✅        | Forward alerts from tainted scenarios to the console |
+| context            | ✅        | Forward context with alerts to the console           |
+| console_management | ✅        | Receive decisions from console                       |
++--------------------+-----------+------------------------------------------------------+
+-------------------------------------------------------------------------------------------------------------
+ COLLECTIONS                                                                                                 
+-------------------------------------------------------------------------------------------------------------
+ Name                               📦 Status    Version  Local Path                                         
+-------------------------------------------------------------------------------------------------------------
+ crowdsecurity/base-http-scenarios  ✔️  enabled  1.0      /etc/crowdsec/collections/base-http-scenarios.yaml 
+ crowdsecurity/http-cve             ✔️  enabled  2.9      /etc/crowdsec/collections/http-cve.yaml            
+ crowdsecurity/linux                ✔️  enabled  0.2      /etc/crowdsec/collections/linux.yaml               
+ crowdsecurity/sshd                 ✔️  enabled  0.5      /etc/crowdsec/collections/sshd.yaml                
+ crowdsecurity/traefik              ✔️  enabled  0.1      /etc/crowdsec/collections/traefik.yaml             
+-------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
+ PARSERS                                                                                                      
+--------------------------------------------------------------------------------------------------------------
+ Name                            📦 Status    Version  Local Path                                             
+--------------------------------------------------------------------------------------------------------------
+ crowdsecurity/cri-logs          ✔️  enabled  0.1      /etc/crowdsec/parsers/s00-raw/cri-logs.yaml            
+ crowdsecurity/dateparse-enrich  ✔️  enabled  0.2      /etc/crowdsec/parsers/s02-enrich/dateparse-enrich.yaml 
+ crowdsecurity/docker-logs       ✔️  enabled  0.1      /etc/crowdsec/parsers/s00-raw/docker-logs.yaml         
+ crowdsecurity/geoip-enrich      ✔️  enabled  0.5      /etc/crowdsec/parsers/s02-enrich/geoip-enrich.yaml     
+ crowdsecurity/http-logs         ✔️  enabled  1.3      /etc/crowdsec/parsers/s02-enrich/http-logs.yaml        
+ crowdsecurity/sshd-logs         ✔️  enabled  2.9      /etc/crowdsec/parsers/s01-parse/sshd-logs.yaml         
+ crowdsecurity/syslog-logs       ✔️  enabled  0.8      /etc/crowdsec/parsers/s00-raw/syslog-logs.yaml         
+ crowdsecurity/traefik-logs      ✔️  enabled  0.9      /etc/crowdsec/parsers/s01-parse/traefik-logs.yaml      
+ crowdsecurity/whitelists        ✔️  enabled  0.3      /etc/crowdsec/parsers/s02-enrich/whitelists.yaml       
+--------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+ Name             IP Address  Valid  Last API pull  Type  Version  Auth Type 
+-----------------------------------------------------------------------------
+ crowdsecBouncer              ✔️                                   api-key   
+-----------------------------------------------------------------------------
+```
+
+
+
+# Configure Authentik
+
+Adjust Authentik brand:
+    Admin Interface --> System --> Brands --> Edit "authentik-default"
+    Title: MediaStack - Authentik
+    Select "Update"
+
+
+Force MFA for all users:
+    Admin Interface --> Flows and Stages --> Stages --> Edit "default-authentication-mfa-validation"
+    Not configured action: Force the user to configure an authenticator
+    Select "Update"
+
+
+## Add Application in Authentik
+
+Create Authentik Application:
+    Admin Interface --> Applications --> Create with Provider
+    Name: Authentik
+    Slug: authentik
+    Select "Next"
+    Choose A Provider: Proxy Provider
+    Select "Next"
+    Name: Provider for Authentik
+    Authorization flow: default-provider-authorization-explicit-consent (Authorize Application)
+    Select "Forward auth (domain level)"
+    Authentication URL: https://auth.example.com    <-- change to your domain
+    Cookie domain: example.com                      <-- change to your domain
+    Advanced flow settings:
+    Authentication flow: default-authentication-flow (Welcome to authentik!)
+    Select "Next"
+    Configure Bindings - skip this step
+    Select "Next"
+    Select "Submit"
+    
+    
+Add application to outposts:
+    Admin Interface --> Applications --> Outposts
+    Edit: "authentik Embedded Outpost"
+    Update Outpost:
+    Select "Authentik" application in "Available Applications" and move across to "Selected Applications"
+    Advanced settings:
+        Under "Configuration", ensure authentik_host is http://authentik:6080
+    Select "Update"
+
+Edit `docker-compose.yaml` and make the following adjustments:
+
+#      - traefik.http.routers.headplane.middlewares=headplane-basicauth@docker,security-headers@file
+      - traefik.http.routers.headplane.middlewares=authentik-forwardauth@file,security-headers@file
+      # SERVICES
+      - traefik.http.services.headplane.loadbalancer.server.scheme=http
+      - traefik.http.services.headplane.loadbalancer.server.port=3000
+      # MIDDLEWARES
+#      - traefik.http.middlewares.headplane-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+
+Restart docker stack:
+
+```
+sudo docker compose down
+sudo docker compose up -d
+```
+
+Goto: https://auth.example.com <-- change to your domain
+
+
+
+</br>
+
+
+
+
+
 
 ---
 

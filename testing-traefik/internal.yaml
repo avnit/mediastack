@@ -1,0 +1,50 @@
+#########################################################################
+#########################################################################
+#
+# Filename: internal.yaml        Traefik Internal Web Services Configuration File
+#
+# Replace all "example.com" values with your domain name
+#
+#  i.e.   - main: example.com
+#           sans:
+#             - "*.example.com"
+#
+#########################################################################
+#########################################################################
+
+http:
+  routers:
+    synology:                                # Synology DSM
+      rule: "Host(`synology.example.com`)"
+      service: synology
+      entryPoints:
+        - secureweb
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+
+    gateway:                                 # Ubiquiti Dream Machine
+      rule: "Host(`gateway.example.com`)"
+      service: gateway
+      entryPoints:
+        - secureweb
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+
+  services:
+    synology:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.1.8:5000"   # Synology Web UI - HTTP (Insecure)
+        passHostHeader: true
+
+    gateway:
+      loadBalancer:
+        servers:
+          - url: "https://192.168.1.1"       # Ubiquiti Web UI - HTTPS
+        passHostHeader: true
