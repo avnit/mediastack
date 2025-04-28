@@ -94,6 +94,7 @@ sudo docker exec -it headscale headscale routes enable -r 3
 sudo docker exec -it headscale headscale routes enable -r 4 
 sudo docker exec -it headscale headscale routes list
 ```
+
 The IP routes will now be enabled and look like this:
 
 ``` bash
@@ -275,53 +276,53 @@ Crowdsec will display the following output:
 
 
 
-# Configure Authentik
+# Configure Authentik  
 
-Adjust Authentik brand:
-    Admin Interface --> System --> Brands --> Edit "authentik-default"
-    Title: MediaStack - Authentik
-    Select "Update"
-
-
-Force MFA for all users:
-    Admin Interface --> Flows and Stages --> Stages --> Edit "default-authentication-mfa-validation"
-    Not configured action: Force the user to configure an authenticator
-    Select "Update"
+Adjust Authentik brand:  
+    Admin Interface --> System --> Brands --> Edit "authentik-default"  
+    Title: MediaStack - Authentik  
+    Select "Update"  
 
 
-## Add Application in Authentik
+Force MFA for all users:  
+    Admin Interface --> Flows and Stages --> Stages --> Edit "default-authentication-mfa-validation"  
+    Not configured action: Force the user to configure an authenticator  
+    Select "Update"  
 
-Create Authentik Application:
-    Admin Interface --> Applications --> Create with Provider
-    Name: Authentik
-    Slug: authentik
-    Select "Next"
-    Choose A Provider: Proxy Provider
-    Select "Next"
-    Name: Provider for Authentik
-    Authorization flow: default-provider-authorization-explicit-consent (Authorize Application)
-    Select "Forward auth (domain level)"
-    Authentication URL: https://auth.example.com    <-- change to your domain
-    Cookie domain: example.com                      <-- change to your domain
-    Advanced flow settings:
-    Authentication flow: default-authentication-flow (Welcome to authentik!)
-    Select "Next"
-    Configure Bindings - skip this step
-    Select "Next"
-    Select "Submit"
-    
-    
-Add application to outposts:
-    Admin Interface --> Applications --> Outposts
-    Edit: "authentik Embedded Outpost"
-    Update Outpost:
-    Select "Authentik" application in "Available Applications" and move across to "Selected Applications"
-    Advanced settings:
-        Under "Configuration", ensure authentik_host is http://authentik:6080
-    Select "Update"
 
-Edit `docker-compose.yaml` and make the following adjustments:
+## Add Application in Authentik  
 
+Create Authentik Application:  
+    Admin Interface --> Applications --> Create with Provider  
+    Name: Authentik  
+    Slug: authentik  
+    Select "Next"  
+    Choose A Provider: Proxy Provider  
+    Select "Next"  
+    Name: Provider for Authentik  
+    Authorization flow: default-provider-authorization-explicit-consent (Authorize Application)  
+    Select "Forward auth (domain level)"  
+    Authentication URL: https://auth.example.com    <-- change to your domain  
+    Cookie domain: example.com                      <-- change to your domain  
+    Advanced flow settings:  
+    Authentication flow: default-authentication-flow (Welcome to authentik!)  
+    Select "Next"  
+    Configure Bindings - skip this step  
+    Select "Next"  
+    Select "Submit"  
+
+Add application to outposts:  
+    Admin Interface --> Applications --> Outposts  
+    Edit: "authentik Embedded Outpost"  
+    Update Outpost:  
+    Select "Authentik" application in "Available Applications" and move across to "Selected Applications"  
+    Advanced settings:  
+        Under "Configuration", ensure authentik_host is http://authentik:6080  
+    Select "Update"  
+
+Edit `docker-compose.yaml` and make the following adjustments:  
+
+``` yaml
 #      - traefik.http.routers.headplane.middlewares=headplane-basicauth@docker,security-headers@file
       - traefik.http.routers.headplane.middlewares=authentik-forwardauth@file,security-headers@file
       # SERVICES
@@ -329,9 +330,9 @@ Edit `docker-compose.yaml` and make the following adjustments:
       - traefik.http.services.headplane.loadbalancer.server.port=3000
       # MIDDLEWARES
 #      - traefik.http.middlewares.headplane-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
+```
 
-
-Restart docker stack:
+Restart docker stack:  
 
 ```
 sudo docker compose down
