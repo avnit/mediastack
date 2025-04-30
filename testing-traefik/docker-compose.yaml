@@ -49,32 +49,32 @@ services:
 
 ###########################################################################
 ###########################################################################
+##    
+##  Docker Compose File: Valkey
+##  Function: High Performance Data Structure Server
 ##
-##  Docker Compose File: Redis
-##  Function: Real-time Data Platform
-##
-##  Documentation: https://hub.docker.com/_/redis
-##
+##  Documentation: https://hub.docker.com/r/valkey/valkey
+##    
 ###########################################################################
 ###########################################################################
-  redis:
-    image: docker.io/library/redis:alpine
-    container_name: redis
+  valkey:
+    image: valkey/valkey:alpine
+    container_name: valkey
     command: --save 60 1 --loglevel warning
     restart: unless-stopped
     networks:
       - mediastack
     user: ${PUID:?err}:${PGID:?err}
     ports:
-      - ${REDIS_PORT:?err}:6379
+      - ${VALKEY_PORT:?err}:6379
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      test: ["CMD-SHELL", "valkey-cli ping | grep PONG"]
       start_period: 20s
       interval: 30s
       retries: 5
       timeout: 3s
     volumes:
-      - ${FOLDER_FOR_DATA:?err}/redis:/data
+      - ${FOLDER_FOR_DATA:?err}/valkey:/data
 
 ###########################################################################
 ###########################################################################
@@ -98,7 +98,7 @@ services:
       - TZ=${TIMEZONE:?err}
       - AUTHENTIK_LOG_LEVEL=info    # Options are:         # info, warning, error, debug and trace
       - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY:?err}
-      - AUTHENTIK_REDIS__HOST=redis
+      - AUTHENTIK_REDIS__HOST=valkey
       - AUTHENTIK_POSTGRESQL__HOST=postgresql
       - AUTHENTIK_POSTGRESQL__USER=${PG_USER:?err}
       - AUTHENTIK_POSTGRESQL__NAME=${PG_DB:?err}
@@ -121,7 +121,7 @@ services:
       postgresql:
         condition: service_healthy
         restart: true
-      redis:
+      valkey:
         condition: service_healthy
         restart: true
     labels:
@@ -148,7 +148,7 @@ services:
     environment:
       - TZ=${TIMEZONE:?err}
       - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY:?err}
-      - AUTHENTIK_REDIS__HOST=redis
+      - AUTHENTIK_REDIS__HOST=valkey
       - AUTHENTIK_POSTGRESQL__HOST=postgresql
       - AUTHENTIK_POSTGRESQL__USER=${PG_USER:?err}
       - AUTHENTIK_POSTGRESQL__NAME=${PG_DB:?err}
@@ -163,7 +163,7 @@ services:
       postgresql:
         condition: service_healthy
         restart: true
-      redis:
+      valkey:
         condition: service_healthy
         restart: true
 
@@ -372,6 +372,7 @@ services:
 # Comment out lines below if they are not going to use Gluetun VPN for Internet connection:
 
       - "${WEBUI_PORT_BAZARR:?err}:6767"        # WebUI Portal: Bazarr
+      - ${WEBUI_PORT_HUNTARR:?err}:9705         # WebUI Portal: Huntarr
       - "${WEBUI_PORT_JELLYFIN:?err}:8096"      # WebUI Portal: Jellyfin
       - "${WEBUI_PORT_JELLYSEERR:?err}:5055"    # WebUI Portal: Jellyseerr
       - "${WEBUI_PORT_LIDARR:?err}:8686"        # WebUI Portal: Lidarr
@@ -739,6 +740,47 @@ services:
       - traefik.http.services.homepage.loadbalancer.server.port=3000
       # MIDDLEWARES
       - traefik.http.middlewares.homepage-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Huntarr
+##  Function: ARR Missing Content Manager
+##
+##  Documentation: https://github.com/plexguide/Huntarr.io
+##
+###########################################################################
+###########################################################################
+  huntarr:
+    image: huntarr/huntarr:latest
+    container_name: huntarr
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/huntarr:/config
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - TZ=${TIMEZONE:?err}
+    network_mode: "service:gluetun"
+#    ports:
+#      - ${WEBUI_PORT_HUNTARR:?err}:9705                # Configured in Gluetun VPN container
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=mediastack
+      # ROUTERS
+      - traefik.http.routers.huntarr.service=huntarr
+      - traefik.http.routers.huntarr.rule=Host(`huntarr.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.huntarr.entrypoints=secureweb
+      - traefik.http.routers.huntarr.middlewares=huntarr-basicauth@docker,security-headers@file
+#      - traefik.http.routers.huntarr.middlewares=authentik-forwardauth@file,security-headers@file
+      # SERVICES
+      - traefik.http.services.huntarr.loadbalancer.server.scheme=http
+      - traefik.http.services.huntarr.loadbalancer.server.port=9705
+      # MIDDLEWARES
+      - traefik.http.middlewares.huntarr-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################

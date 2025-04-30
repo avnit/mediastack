@@ -109,7 +109,7 @@ ID | Node      | Prefix         | Advertised | Enabled | Primary
 
 You can now download the official Tailscale application, and when prompted to login, select a custom URL.
 
-Enter your home Headscale URL: https://headscale.example.com
+Enter your home Headscale URL: [https://headscale.example.com](https://headscale.example.com)  
 
 When you select connect, it will ask if you want to go to the URL, select Yes, then it will show a connection string like
 
@@ -200,7 +200,7 @@ BASIC_WEB_AUTH=alice:$$apr1$$JZIddfg47kO46PfZ$$Z1pqZ1QejEL1xMWSW5yW0:bob:$$apr1$
 
 Create a Crowdsec account, and obtain your Crowdsec security engine enrolement key from:  
 
-- https://app.crowdsec.net/security-engines  
+- [https://app.crowdsec.net/security-engines](https://app.crowdsec.net/security-engines)  
 
 ``` bash
 sudo docker exec crowdsec cscli console enroll cm1yipaufk0021g1u01fq27s3
@@ -274,21 +274,17 @@ Crowdsec will display the following output:
 -----------------------------------------------------------------------------
 ```
 
-
-
-# Configure Authentik  
+## Configure Authentik  
 
 Adjust Authentik brand:  
     Admin Interface --> System --> Brands --> Edit "authentik-default"  
     Title: MediaStack - Authentik  
     Select "Update"  
 
-
 Force MFA for all users:  
     Admin Interface --> Flows and Stages --> Stages --> Edit "default-authentication-mfa-validation"  
     Not configured action: Force the user to configure an authenticator  
     Select "Update"  
-
 
 ## Add Application in Authentik  
 
@@ -334,21 +330,14 @@ Edit `docker-compose.yaml` and make the following adjustments:
 
 Restart docker stack:  
 
-```
+``` bash
 sudo docker compose down
 sudo docker compose up -d
 ```
 
-Goto: https://auth.example.com <-- change to your domain
-
-
+Goto: [https://auth.example.com](https://auth.example.com) <-- change to your domain
 
 </br>
-
-
-
-
-
 
 ---
 
