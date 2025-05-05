@@ -20,7 +20,7 @@ log:
   level: ERROR    # Options are:  TRACE , DEBUG , INFO , WARN , ERROR , FATAL , and PANIC
 
 accessLog:
-  filePath: /letsencrypt/access.log
+  filePath: /var/log/access.log
   format: json
 
 api:

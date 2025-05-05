@@ -24,6 +24,7 @@ http:
       middlewares:
         - authentik-forwardauth@file
         - security-headers@file
+        - traefik-bouncer@file
 
     gateway:                                 # Ubiquiti Dream Machine
       rule: "Host(`gateway.example.com`)"
@@ -35,6 +36,7 @@ http:
       middlewares:
         - authentik-forwardauth@file
         - security-headers@file
+        - traefik-bouncer@file
 
   services:
     synology:

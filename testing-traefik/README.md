@@ -204,21 +204,23 @@ Create a Crowdsec account, and obtain your Crowdsec security engine enrolement k
 
 ``` bash
 sudo docker exec crowdsec cscli console enroll cm1yipaufk0021g1u01fq27s3
-sudo docker exec crowdsec cscli collections install crowdsecurity/base-http-scenarios crowdsecurity/http-cve crowdsecurity/linux crowdsecurity/sshd crowdsecurity/traefik
-sudo docker exec crowdsec cscli parsers install crowdsecurity/traefik-logs crowdsecurity/docker-logs
+sudo docker exec crowdsec cscli collections install crowdsecurity/base-http-scenarios crowdsecurity/http-cve crowdsecurity/linux crowdsecurity/iptables crowdsecurity/sshd crowdsecurity/traefik
+sudo docker exec crowdsec cscli parsers install crowdsecurity/syslog-logs crowdsecurity/iptables-logs crowdsecurity/sshd-logs crowdsecurity/traefik-logs
 sudo docker exec crowdsec cscli console enable console_management
-sudo docker exec crowdsec cscli bouncers add crowdsecBouncer
+sudo docker exec crowdsec cscli bouncers add traefik-bouncer
 ```
 
 Crowdsec will output the API Key for the bouncer:  
 
 ``` bash
-API key for 'crowdsecBouncer':
+API key for 'traefik-bouncer':
 
    8andilX0JKYIu8z+R4imPkIgG+TMdCttAuMaHrsV7ZU
 
 Please keep this key since you will not be able to retrieve it!
 ```
+
+You must go back to [https://app.crowdsec.net/security-engines](https://app.crowdsec.net/security-engines) and approve registration of the new CrowdSec docker engine into the online portal.  
 
 Check the status of Crowdsec components:  
 
@@ -270,7 +272,7 @@ Crowdsec will display the following output:
 -----------------------------------------------------------------------------
  Name             IP Address  Valid  Last API pull  Type  Version  Auth Type 
 -----------------------------------------------------------------------------
- crowdsecBouncer              ✔️                                   api-key   
+ traefik-bouncer              ✔️                                   api-key   
 -----------------------------------------------------------------------------
 ```
 
@@ -298,7 +300,7 @@ Create Authentik Application:
     Name: Provider for Authentik  
     Authorization flow: default-provider-authorization-explicit-consent (Authorize Application)  
     Select "Forward auth (domain level)"  
-    Authentication URL: https://auth.example.com    <-- change to your domain  
+    Authentication URL: <https://auth.example.com>    <-- change to your domain  
     Cookie domain: example.com                      <-- change to your domain  
     Advanced flow settings:  
     Authentication flow: default-authentication-flow (Welcome to authentik!)  
@@ -313,7 +315,7 @@ Add application to outposts:
     Update Outpost:  
     Select "Authentik" application in "Available Applications" and move across to "Selected Applications"  
     Advanced settings:  
-        Under "Configuration", ensure authentik_host is http://authentik:6080  
+        Under "Configuration", ensure authentik_host is <http://authentik:6080>  
     Select "Update"  
 
 Edit `docker-compose.yaml` and make the following adjustments:  
