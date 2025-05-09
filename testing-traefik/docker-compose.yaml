@@ -41,7 +41,6 @@ services:
       timeout: 5s
     volumes:
       - ${FOLDER_FOR_DATA:?err}/postgresql:/var/lib/postgresql/data
-      - ${FOLDER_FOR_DATA:?err}/logs/postgresql:/var/log
     environment:
       - TZ=${TIMEZONE:?err}
       - POSTGRES_PASSWORD=${PG_PASS:?err}
@@ -76,7 +75,6 @@ services:
       timeout: 3s
     volumes:
       - ${FOLDER_FOR_DATA:?err}/valkey:/data
-      - ${FOLDER_FOR_DATA:?err}/logs/valkey:/var/log
 
 ###########################################################################
 ###########################################################################
@@ -117,7 +115,6 @@ services:
     volumes:
       - ${FOLDER_FOR_DATA:?err}/authentik/media:/media
       - ${FOLDER_FOR_DATA:?err}/authentik/templates:/templates
-      - ${FOLDER_FOR_DATA:?err}/logs/authentik:/var/log
     ports:
       - ${WEBUI_PORT_AUTHENTIK:?err}:9000
     depends_on:
@@ -164,7 +161,6 @@ services:
       - ${FOLDER_FOR_DATA:?err}/authentik/certs:/certs
       - ${FOLDER_FOR_DATA:?err}/authentik/media:/media
       - ${FOLDER_FOR_DATA:?err}/authentik/templates:/templates
-      - ${FOLDER_FOR_DATA:?err}/logs/authentik-worker:/var/log
     depends_on:
       postgresql:
         condition: service_healthy
@@ -189,6 +185,7 @@ services:
     restart: unless-stopped
     networks:
       - mediastack
+    user: ${PUID:?err}:${PGID:?err}
     environment:
       - TZ=${TIMEZONE:?err}
       - CF_DNS_API_TOKEN=${CLOUDFLARE_DNS_API_TOKEN:?err}
@@ -200,7 +197,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${FOLDER_FOR_DATA:?err}/traefik:/etc/traefik
       - ${FOLDER_FOR_DATA:?err}/traefik/letsencrypt:/letsencrypt
-      - ${FOLDER_FOR_DATA:?err}/logs/traefik:/var/log
     labels:
       - traefik.enable=true
       - traefik.docker.network=mediastack
@@ -232,6 +228,7 @@ services:
     restart: always
     networks:
       - mediastack
+    user: ${PUID:?err}:${PGID:?err}
     environment:
       - TZ=${TIMEZONE:?err}
     ports:
@@ -244,14 +241,28 @@ services:
       - ${FOLDER_FOR_DATA:?err}/crowdsec:/etc/crowdsec
       - ${FOLDER_FOR_DATA:?err}/crowdsec/data:/var/lib/crowdsec/data/
       - ${FOLDER_FOR_DATA:?err}/traefik/letsencrypt:/traefik:ro
-      - ${FOLDER_FOR_DATA:?err}/logs/crowdsec:/var/log
-      - ${FOLDER_FOR_DATA:?err}/logs:/var/mediastack:ro
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: unless-stopped
+    user: ${PUID:?err}:${PGID:?err}
+    networks:
+      - mediastack
+    depends_on:
+      - crowdsec
+    ports:
+      - 127.0.0.1:${PROMETHEUS_PORT:?err}:9090
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/prometheus:/prometheus
+    environment:
+      - TZ=${TIMEZONE:?err}
 
   grafana:
     image: grafana/grafana-enterprise
     container_name: grafana
     restart: unless-stopped
-    user: root
+    user: ${PUID:?err}:${PGID:?err}
     depends_on:
       - crowdsec
     networks:
@@ -261,8 +272,6 @@ services:
     volumes:
       - /var/log:/var/dockerhost:ro
       - ${FOLDER_FOR_DATA:?err}/grafana:/var/lib/grafana
-      - ${FOLDER_FOR_DATA:?err}/logs/grafana:/var/log
-      - ${FOLDER_FOR_DATA:?err}/logs:/var/mediastack:ro
     environment:
       - TZ=${TIMEZONE:?err}
     labels:
@@ -293,7 +302,6 @@ services:
     volumes:
       - ${FOLDER_FOR_DATA:?err}/headscale:/etc/headscale
       - ${FOLDER_FOR_DATA:?err}/headscale/data:/var/lib/headscale
-      - ${FOLDER_FOR_DATA:?err}/logs/headscale:/var/log
     environment:
       - TZ=${TIMEZONE:?err}
     labels:
@@ -323,7 +331,6 @@ services:
       - /dev/net/tun:/dev/net/tun
     volumes:
       - ${FOLDER_FOR_DATA:?err}/tailscale:/var/lib/tailscale
-      - ${FOLDER_FOR_DATA:?err}/logs/tailscale:/var/log
     environment:
       - TS_USERSPACE=false
       - TS_STATE_DIR=/var/lib/tailscale
@@ -343,7 +350,6 @@ services:
       - ${FOLDER_FOR_DATA:?err}/headscale:/etc/headscale
       - ${FOLDER_FOR_DATA:?err}/headplane:/etc/headplane
       - ${FOLDER_FOR_DATA:?err}/headplane/data:/var/lib/headplane
-      - ${FOLDER_FOR_DATA:?err}/logs/headplane:/var/log
     environment:
       - TZ=${TIMEZONE:?err}
     labels:
@@ -421,7 +427,6 @@ services:
 
     volumes:
       - ${FOLDER_FOR_DATA:?err}/gluetun:/gluetun
-      - ${FOLDER_FOR_DATA:?err}/logs/gluetun:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -471,7 +476,6 @@ services:
     volumes:
       - ${FOLDER_FOR_MEDIA:?err}:/data
       - ${FOLDER_FOR_DATA:?err}/bazarr:/config
-      - ${FOLDER_FOR_DATA:?err}/logs/bazarr:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -513,7 +517,6 @@ services:
     user: ${PUID:?err}:${PGID:?err}
     volumes:
       - ${FOLDER_FOR_DATA:?err}/ddns-updater:/updater/data
-      - ${FOLDER_FOR_DATA:?err}/logs/ddns-updater:/var/log
     ports:
       - ${WEBUI_PORT_DDNS_UPDATER:?err}:${WEBUI_PORT_DDNS_UPDATER:?err}/tcp
     environment:
@@ -580,7 +583,6 @@ services:
     volumes:
       - ${FOLDER_FOR_MEDIA:?err}/filebot:/filebot
       - ${FOLDER_FOR_DATA:?err}/filebot:/data/filebot
-      - ${FOLDER_FOR_DATA:?err}/logs/filebot:/var/log
     environment:
 #      - XPRA_AUTH=password:value=YOUR_PASSWORD
       - PUID=${PUID:?err}
@@ -650,7 +652,6 @@ services:
     restart: unless-stopped
     volumes:
       - ${FOLDER_FOR_DATA:?err}/heimdall:/config
-      - ${FOLDER_FOR_DATA:?err}/logs/heimdall:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -695,7 +696,6 @@ services:
       - ${FOLDER_FOR_DATA:?err}/homarr/configs:/app/data/configs
       - ${FOLDER_FOR_DATA:?err}/homarr/icons:/app/public/icons
       - ${FOLDER_FOR_DATA:?err}/homarr/data:/data
-      - ${FOLDER_FOR_DATA:?err}/logs/homarr:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -740,7 +740,6 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${FOLDER_FOR_DATA:?err}/homepage:/app/config
-      - ${FOLDER_FOR_DATA:?err}/logs/homepage:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -783,7 +782,6 @@ services:
         restart: true
     volumes:
       - ${FOLDER_FOR_DATA:?err}/huntarr:/config
-      - ${FOLDER_FOR_DATA:?err}/logs/huntarr:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -832,7 +830,6 @@ services:
     volumes:
       - ${FOLDER_FOR_MEDIA:?err}/media:/data/media
       - ${FOLDER_FOR_DATA:?err}/jellyfin:/config
-      - ${FOLDER_FOR_DATA:?err}/logs/jellyfin:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -879,7 +876,6 @@ services:
         restart: true
     volumes:
       - ${FOLDER_FOR_DATA:?err}/jellyseerr:/app/config
-      - ${FOLDER_FOR_DATA:?err}/logs/jellyseerr:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -924,7 +920,6 @@ services:
     volumes:
       - ${FOLDER_FOR_MEDIA:?err}:/data
       - ${FOLDER_FOR_DATA:?err}/lidarr:/config
-      - ${FOLDER_FOR_DATA:?err}/logs/lidarr:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -970,7 +965,6 @@ services:
     volumes:
       - ${FOLDER_FOR_MEDIA:?err}:/data
       - ${FOLDER_FOR_DATA:?err}/mylar:/config
-      - ${FOLDER_FOR_DATA:?err}/logs/mylar:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -1020,7 +1014,6 @@ services:
     volumes:
       - ${FOLDER_FOR_MEDIA:?err}/media:/data/media
       - ${FOLDER_FOR_DATA:?err}/plex:/config
-      - ${FOLDER_FOR_DATA:?err}/logs/plex:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -1074,7 +1067,6 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${FOLDER_FOR_DATA:?err}/portainer:/data
-      - ${FOLDER_FOR_DATA:?err}/logs/portainer:/var/log
     ports:
       - "${WEBUI_PORT_PORTAINER:?err}:9000"
 # NOTE: Portainer MUST NOT connect to the Gluetun VPN container
@@ -1115,7 +1107,6 @@ services:
         restart: true
     volumes:
       - ${FOLDER_FOR_DATA:?err}/prowlarr:/config
-      - ${FOLDER_FOR_DATA:?err}/logs/prowlarr:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -1161,7 +1152,6 @@ services:
     volumes:
       - ${FOLDER_FOR_MEDIA:?err}:/data
       - ${FOLDER_FOR_DATA:?err}/qbittorrent:/config
-      - ${FOLDER_FOR_DATA:?err}/logs/qbittorrent:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -1209,7 +1199,6 @@ services:
     volumes:
       - ${FOLDER_FOR_MEDIA:?err}:/data
       - ${FOLDER_FOR_DATA:?err}/radarr:/config
-      - ${FOLDER_FOR_DATA:?err}/logs/radarr:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -1255,7 +1244,6 @@ services:
     volumes:
       - ${FOLDER_FOR_MEDIA:?err}:/data
       - ${FOLDER_FOR_DATA:?err}/readarr:/config
-      - ${FOLDER_FOR_DATA:?err}/logs/readarr:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -1301,7 +1289,6 @@ services:
     volumes:
       - ${FOLDER_FOR_MEDIA:?err}:/data
       - ${FOLDER_FOR_DATA:?err}/sabnzbd:/config
-      - ${FOLDER_FOR_DATA:?err}/logs/sabnzbd:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -1347,7 +1334,6 @@ services:
     volumes:
       - ${FOLDER_FOR_MEDIA:?err}:/data
       - ${FOLDER_FOR_DATA:?err}/sonarr:/config
-      - ${FOLDER_FOR_DATA:?err}/logs/sonarr:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -1398,7 +1384,6 @@ services:
       - ${FOLDER_FOR_DATA:?err}/tdarr/configs:/app/configs
       - ${FOLDER_FOR_DATA:?err}/tdarr/logs:/app/logs
       - ${FOLDER_FOR_DATA:?err}/tdarr-node:/temp
-      - ${FOLDER_FOR_DATA:?err}/logs/tdarr:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -1441,7 +1426,6 @@ services:
       - ${FOLDER_FOR_DATA:?err}/tdarr/configs:/app/configs
       - ${FOLDER_FOR_DATA:?err}/tdarr/logs:/app/logs
       - ${FOLDER_FOR_DATA:?err}/tdarr-node:/temp
-      - ${FOLDER_FOR_DATA:?err}/logs/tdarr-node:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -1473,7 +1457,6 @@ services:
     volumes:
       - ${FOLDER_FOR_MEDIA:?err}:/data
       - ${FOLDER_FOR_DATA:?err}/unpackerr:/config
-      - ${FOLDER_FOR_DATA:?err}/logs/unpackerr:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
@@ -1574,7 +1557,6 @@ services:
     volumes:
       - ${FOLDER_FOR_MEDIA:?err}:/data
       - ${FOLDER_FOR_DATA:?err}/whisparr:/config
-      - ${FOLDER_FOR_DATA:?err}/logs/whisparr:/var/log
     environment:
       - PUID=${PUID:?err}
       - PGID=${PGID:?err}
