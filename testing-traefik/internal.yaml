@@ -42,11 +42,17 @@ http:
     synology:
       loadBalancer:
         servers:
-          - url: "http://192.168.1.8:5000"   # Synology Web UI - HTTP (Insecure)
+          - url: "https://192.168.1.8:5001"   # Synology Web UI - HTTP (Insecure)
         passHostHeader: true
+        serversTransport: insecure-no-verify          
 
     gateway:
       loadBalancer:
         servers:
-          - url: "https://192.168.1.1"       # Ubiquiti Web UI - HTTPS
+          - url: "https://192.168.1.1"        # Ubiquiti Web UI - HTTPS
         passHostHeader: true
+        serversTransport: insecure-no-verify
+
+  serversTransports:
+    insecure-no-verify:
+      insecureSkipVerify: true

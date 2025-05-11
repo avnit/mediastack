@@ -217,6 +217,32 @@ services:
 ###########################################################################
 ###########################################################################
 ##
+##  Docker Compose File: Traefik Certificate Dumper
+##  Function: Dump SSL / TLS Certificates from Traefik
+##
+##  Documentation: https://hub.docker.com/r/ldez/traefik-certs-dumper
+##
+###########################################################################
+###########################################################################
+  traefik-certs-dumper:
+    image: ldez/traefik-certs-dumper:latest
+    container_name: traefik-certs-dumper
+    restart: always
+    user: ${PUID:?err}:${PGID:?err}
+    entrypoint: sh -c '
+      while ! [ -e /data/acme.json ]
+      || ! [ `jq ".[] | .Certificates | length" /data/acme.json | jq -s "add" ` != 0 ]; do
+      sleep 1
+      ; done
+      && traefik-certs-dumper file --version v2 --watch
+      --source /data/acme.json --dest /certs'
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/traefik/letsencrypt:/data:ro
+      - ${FOLDER_FOR_DATA:?err}/traefik-certs-dumper:/certs
+
+###########################################################################
+###########################################################################
+##
 ##  Docker Compose File: CrowdSec Security Engine
 ##  Function: Cyber Security Threat Intelligence
 ##
