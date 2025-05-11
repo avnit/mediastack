@@ -1,0 +1,98 @@
+#!/usr/bin/bash
+
+export FOLDER_FOR_YAMLS=/docker             # <-- Folder where the yaml and .env files are located
+export FOLDER_FOR_MEDIA=/docker/media       # <-- Folder where your media is locate
+export FOLDER_FOR_DATA=/docker/appdata      # <-- Folder where MediaStack stores persistent data and configurations
+
+export PUID=1000
+export PGID=1000
+
+echo 
+echo Creating folders and setting permissions...
+echo 
+
+cd $FOLDER_FOR_YAMLS
+sudo -E mkdir -p $FOLDER_FOR_DATA/{authentik/{certs,media,templates},bazarr,crowdsec,ddns-updater,filebot,gluetun,grafana,headplane,headscale,heimdall,homarr/{configs,data,icons},homepage,huntarr,jellyfin,jellyseerr,lidarr,mylar,plex,portainer,postgresql,prometheus,prowlarr,qbittorrent,radarr,readarr,sabnzbd,sonarr,tailscale,tdarr/{server,configs,logs},tdarr-node,traefik/letsencrypt,unpackerr,valkey,whisparr}
+sudo -E mkdir -p $FOLDER_FOR_MEDIA/media/{anime,audio,books,comics,movies,music,photos,tv,xxx}
+sudo -E mkdir -p $FOLDER_FOR_MEDIA/usenet/{anime,audio,books,comics,complete,console,incomplete,movies,music,prowlarr,software,tv,xxx}
+sudo -E mkdir -p $FOLDER_FOR_MEDIA/torrents/{anime,audio,books,comics,complete,console,incomplete,movies,music,prowlarr,software,tv,xxx}
+sudo -E mkdir -p $FOLDER_FOR_MEDIA/watch
+sudo -E mkdir -p $FOLDER_FOR_MEDIA/filebot/{input,output}
+sudo -E chmod -R 2775 $FOLDER_FOR_MEDIA $FOLDER_FOR_DATA            # $FOLDER_FOR_YAMLS     # <-- Enable if you need to set permissions on YAML files / folder
+sudo -E chown -R $PUID:$PGID $FOLDER_FOR_MEDIA $FOLDER_FOR_DATA     # $FOLDER_FOR_YAMLS     # <-- Enable if you need to set permissions on YAML files / folder
+
+echo 
+echo Validating Docker Compose configuration...
+echo 
+
+# This checks for missing variables and invalid docker compose configuration
+if ! docker compose config > /dev/null; then
+    echo 
+    echo Docker Compose configuration is invalid or missing required variables...
+    echo 
+    exit 1
+fi
+
+# Download all Docker images - will also pull newer / updated images if they exist
+echo 
+echo Pulling new / updated Docker images...
+echo 
+sudo docker compose pull
+
+echo 
+echo Removing all non-persistent Docker containers, volumes, and networks...
+echo 
+sudo docker stop $(sudo docker ps -a -q)      # Stop all active Docker containers
+sudo docker rm   $(sudo docker ps -a -q)      # Remove all active Docker containers
+sudo docker container  prune -f               # Force-remove all Docker containers
+#sudo docker image      prune -a -f           # Force-remove all Docker images - THIS WILL FORCE ALL DOCKER IMAGES TO BE DOWNLOADED AGAIN
+sudo docker volume     prune -f               # Force-remove all non-persistent Docker volumes
+sudo docker network    prune -f               # Force-remove all Docker networks
+
+echo 
+echo Moving configuration files into application folders...
+echo 
+sudo chmod 664                *yaml .env
+sudo chown $PUID:$PGID        *yaml .env
+sudo touch                    $FOLDER_FOR_DATA/traefik/letsencrypt/acme.json
+sudo chmod 600                $FOLDER_FOR_DATA/traefik/letsencrypt/acme.json
+sudo cp headplane-config.yaml $FOLDER_FOR_DATA/headplane/config.yaml
+sudo cp headscale-config.yaml $FOLDER_FOR_DATA/headscale/config.yaml
+sudo cp traefik.yaml          $FOLDER_FOR_DATA/traefik
+sudo cp dynamic.yaml          $FOLDER_FOR_DATA/traefik
+sudo cp internal.yaml         $FOLDER_FOR_DATA/traefik
+sudo cp acquis.yaml           $FOLDER_FOR_DATA/crowdsec
+
+# Subroutine below will check if Docker successully started all containers, before pruning un-used images from Docker
+echo 
+echo Recreating all Docker containers, volumes, and networks...
+echo 
+if ! docker compose up -d; then
+    echo Command "'"docker compose up -d"'" failed to start containers... exiting!
+    exit 1
+fi
+
+EXPECTED_SERVICES=$(docker compose config --services)
+FAILED=0
+
+for SERVICE in $EXPECTED_SERVICES; do
+    STATUS=$(docker inspect --format='{{.State.Running}}' "$(docker compose ps -q $SERVICE)")
+    if [[ "$STATUS" != "true" ]]; then
+        echo 
+        echo "Docker container $SERVICE is not running..."
+        echo 
+        FAILED=1
+    fi
+done
+
+if [[ $FAILED -eq 0 ]]; then
+    echo 
+    echo "All Docker containers are running... Removing all outdated Docker images that are not being used..."
+    echo 
+    sudo docker image prune -a -f
+else
+    echo 
+    echo "One or more Docker services failed to start, unused Docker images will not be deleted..."
+    echo 
+    exit 1
+fi

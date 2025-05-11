@@ -46,6 +46,20 @@ entryPoints:
           - main: example.com
             sans:
               - "*.example.com"
+  metrics:
+    address: :8082
+
+metrics:
+  prometheus:
+    entryPoint: metrics
+    manualRouting: true
+    headerLabels:
+      useragent: User-Agent
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0
 
 providers:
   docker:

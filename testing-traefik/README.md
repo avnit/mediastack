@@ -209,6 +209,7 @@ sudo docker exec crowdsec cscli parsers install crowdsecurity/syslog-logs crowds
 sudo docker exec crowdsec cscli appsec-configs install crowdsecurity/appsec-default crowdsecurity/generic-rules
 sudo docker exec crowdsec cscli appsec-rules install crowdsecurity/base-config
 sudo docker exec crowdsec cscli console enable console_management
+sudo docker exec crowdsec cscli capi register
 sudo docker exec crowdsec cscli bouncers add traefik-bouncer
 ```
 
