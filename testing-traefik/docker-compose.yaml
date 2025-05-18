@@ -25,7 +25,7 @@ services:
 ###########################################################################
 ###########################################################################
   postgresql:
-    image: docker.io/library/postgres:17.4-alpine
+    image: docker.io/library/postgres:latest
     container_name: postgresql
     restart: unless-stopped
     networks:
@@ -43,18 +43,83 @@ services:
       - ${FOLDER_FOR_DATA:?err}/postgresql:/var/lib/postgresql/data
     environment:
       - TZ=${TIMEZONE:?err}
-      - POSTGRES_PASSWORD=${PG_PASS:?err}
-      - POSTGRES_USER=${PG_USER:?err}
-      - POSTGRES_DB=${PG_DB:?err}
+      - POSTGRES_DB=${AUTHENTIK_DATABASE:?err}
+      - POSTGRES_USER=${POSTGRESQL_USERNAME:?err}
+      - POSTGRES_PASSWORD=${POSTGRESQL_PASSWORD:?err}
 
 ###########################################################################
 ###########################################################################
-##    
-##  Docker Compose File: Valkey
+##
+##  Docker Compose File: Guacamole / Guacd
+##  Function: Clientless Remote Desktop Gateway
+##
+##  Documentation: https://hub.docker.com/r/guacamole/guacamole
+##
+###########################################################################
+###########################################################################
+  guacamole:
+    image: guacamole/guacamole
+    container_name: guacamole
+    restart: unless-stopped
+    user: ${PUID:?err}:${PGID:?err}
+    depends_on:
+      postgresql:
+        condition: service_healthy
+        restart: true
+    networks:
+      - mediastack
+    ports:
+      - ${WEBUI_PORT_GUACAMOLE:?err}:8080
+    environment:
+      - TZ=${TIMEZONE:?err}
+      - WEBAPP_CONTEXT=ROOT
+      - GUACD_HOSTNAME=guacd
+      - POSTGRESQL_HOSTNAME=postgresql
+      - POSTGRESQL_PORT=${POSTGRESQL_PORT:?err}
+      - POSTGRESQL_DATABASE=${GUACAMOLE_DATABASE:?err}
+      - POSTGRESQL_USER=${POSTGRESQL_USERNAME:?err}
+      - POSTGRESQL_PASSWORD=${POSTGRESQL_PASSWORD:?err}
+    labels:
+      - traefik.enable=true
+    # ROUTERS
+      - traefik.http.routers.guacamole.service=guacamole
+      - traefik.http.routers.guacamole.rule=Host(`guacamole.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.guacamole.entrypoints=secureweb
+      - traefik.http.routers.guacamole.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+    # SERVICES
+      - traefik.http.services.guacamole.loadbalancer.server.scheme=http
+      - traefik.http.services.guacamole.loadbalancer.server.port=8080
+    # MIDDLEWARES
+
+  guacd:
+    image: guacamole/guacd
+    container_name: guacd
+    restart: unless-stopped
+    user: ${PUID:?err}:${PGID:?err}
+    depends_on:
+      postgresql:
+        condition: service_healthy
+        restart: true
+    networks:
+      - mediastack
+    ports:
+      - ${GUACD_PORT:?err}:4822
+    environment:
+      - TZ=${TIMEZONE:?err}
+      - POSTGRESQL_HOSTNAME=postgresql
+      - POSTGRESQL_PORT=${POSTGRESQL_PORT:?err}
+      - POSTGRESQL_DATABASE=${GUACAMOLE_DATABASE:?err}
+      - POSTGRESQL_USER=${POSTGRESQL_USERNAME:?err}
+      - POSTGRESQL_PASSWORD=${POSTGRESQL_PASSWORD:?err}
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Valkey (same as Redis)
 ##  Function: High Performance Data Structure Server
 ##
 ##  Documentation: https://hub.docker.com/r/valkey/valkey
-##    
+##
 ###########################################################################
 ###########################################################################
   valkey:
@@ -79,7 +144,7 @@ services:
 ###########################################################################
 ###########################################################################
 ##
-##  Docker Compose File: Authentik
+##  Docker Compose File: Authentik Server & Worker
 ##  Function: Authentication & Authorisation Identity Manager
 ##
 ##  Documentation: https://docs.goauthentik.io/docs/install-config/install/docker-compose
@@ -100,9 +165,9 @@ services:
       - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY:?err}
       - AUTHENTIK_REDIS__HOST=valkey
       - AUTHENTIK_POSTGRESQL__HOST=postgresql
-      - AUTHENTIK_POSTGRESQL__USER=${PG_USER:?err}
-      - AUTHENTIK_POSTGRESQL__NAME=${PG_DB:?err}
-      - AUTHENTIK_POSTGRESQL__PASSWORD=${PG_PASS:?err}
+      - AUTHENTIK_POSTGRESQL__NAME=${AUTHENTIK_DATABASE:?err}
+      - AUTHENTIK_POSTGRESQL__USER=${POSTGRESQL_USERNAME:?err}
+      - AUTHENTIK_POSTGRESQL__PASSWORD=${POSTGRESQL_PASSWORD:?err}
       - AUTHENTIK_ERROR_REPORTING__ENABLED=${AUTHENTIK_ERROR_REPORTING__ENABLED:?err}
       - AUTHENTIK_EMAIL__HOST=${EMAIL_SERVER_HOST}
       - AUTHENTIK_EMAIL__PORT=${EMAIL_SERVER_PORT}
@@ -126,18 +191,16 @@ services:
         restart: true
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.authentik.service=authentik
       - traefik.http.routers.authentik.rule=Host(`auth.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.authentik.entrypoints=secureweb
-      - traefik.http.routers.authentik.middlewares=traefik-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.authentik.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.authentik.middlewares=security-headers@file,traefik-bouncer@file
+      # Do not add authentik-forwardauth@file to middlewares, otherwise other applications can't authenticate
     # SERVICES
       - traefik.http.services.authentik.loadbalancer.server.scheme=http
       - traefik.http.services.authentik.loadbalancer.server.port=9000
     # MIDDLEWARES
-      - traefik.http.middlewares.authentik-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
   authentic-worker:
     image: ghcr.io/goauthentik/server:${AUTHENTIK_VERSION:?err}
@@ -152,9 +215,9 @@ services:
       - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY:?err}
       - AUTHENTIK_REDIS__HOST=valkey
       - AUTHENTIK_POSTGRESQL__HOST=postgresql
-      - AUTHENTIK_POSTGRESQL__USER=${PG_USER:?err}
-      - AUTHENTIK_POSTGRESQL__NAME=${PG_DB:?err}
-      - AUTHENTIK_POSTGRESQL__PASSWORD=${PG_PASS:?err}
+      - AUTHENTIK_POSTGRESQL__NAME=${AUTHENTIK_DATABASE:?err}
+      - AUTHENTIK_POSTGRESQL__USER=${POSTGRESQL_USERNAME:?err}
+      - AUTHENTIK_POSTGRESQL__PASSWORD=${POSTGRESQL_PASSWORD:?err}
       - AUTHENTIK_ERROR_REPORTING__ENABLED=${AUTHENTIK_ERROR_REPORTING__ENABLED:?err}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -193,7 +256,7 @@ services:
       - ${REVERSE_PROXY_PORT_HTTP:?err}:80
       - ${REVERSE_PROXY_PORT_HTTPS:?err}:443
       - ${WEBUI_PORT_TRAEFIK:?err}:8080
-      - ${TRAEFIK_METRICS_PORT:?err}:8082
+      - ${METRICS_PORT_TRAEFIK:?err}:8082
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${FOLDER_FOR_DATA:?err}/logs/traefik:/var/log
@@ -201,18 +264,15 @@ services:
       - ${FOLDER_FOR_DATA:?err}/traefik/letsencrypt:/letsencrypt
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.traefik.service=api@internal
       - traefik.http.routers.traefik.rule=Host(`traefik.${CLOUDFLARE_DNS_ZONE:?err}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
       - traefik.http.routers.traefik.entrypoints=secureweb
-      - traefik.http.routers.traefik.middlewares=traefik-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.traefik.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.traefik.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.traefik.loadbalancer.server.scheme=http
       - traefik.http.services.traefik.loadbalancer.server.port=8080
     # MIDDLEWARES
-      - traefik.http.middlewares.traefik-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -228,6 +288,8 @@ services:
     image: ldez/traefik-certs-dumper:latest
     container_name: traefik-certs-dumper
     restart: always
+    networks:
+      - mediastack
     user: ${PUID:?err}:${PGID:?err}
     entrypoint: sh -c '
       while ! [ -e /data/acme.json ]
@@ -270,6 +332,16 @@ services:
       - ${FOLDER_FOR_DATA:?err}/crowdsec/data:/var/lib/crowdsec/data/
       - ${FOLDER_FOR_DATA:?err}/logs:/logs:ro
 
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Prometheus
+##  Function: Systems and Service Monitoring
+##
+##  Documentation: https://prometheus.io/docs/introduction/overview/
+##
+###########################################################################
+###########################################################################
   prometheus:
     image: prom/prometheus
     container_name: prometheus
@@ -280,12 +352,33 @@ services:
     depends_on:
       - crowdsec
     ports:
-      - 127.0.0.1:${PROMETHEUS_PORT:?err}:9090
+      - 127.0.0.1:${WEBUI_PORT_PROMETHEUS:?err}:9090
     volumes:
       - ${FOLDER_FOR_DATA:?err}/prometheus:/prometheus
     environment:
       - TZ=${TIMEZONE:?err}
+    labels:
+      - traefik.enable=true
+    # ROUTERS
+      - traefik.http.routers.prometheus.service=prometheus
+      - traefik.http.routers.prometheus.rule=Host(`prometheus.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.prometheus.entrypoints=secureweb
+      - traefik.http.routers.prometheus.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+    # SERVICES
+      - traefik.http.services.prometheus.loadbalancer.server.scheme=http
+      - traefik.http.services.prometheus.loadbalancer.server.port=9090
+    # MIDDLEWARES
 
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Grafana
+##  Function: Visual Monitoring Dashboard
+##
+##  Documentation: http://docs.grafana.org/installation/docker/
+##
+###########################################################################
+###########################################################################
   grafana:
     image: grafana/grafana-enterprise
     container_name: grafana
@@ -304,19 +397,26 @@ services:
       - TZ=${TIMEZONE:?err}
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.grafana.service=grafana
       - traefik.http.routers.grafana.rule=Host(`grafana.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.grafana.entrypoints=secureweb
-      - traefik.http.routers.grafana.middlewares=grafana-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.grafana.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.grafana.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.grafana.loadbalancer.server.scheme=http
       - traefik.http.services.grafana.loadbalancer.server.port=3000
     # MIDDLEWARES
-      - traefik.http.middlewares.grafana-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Headscale
+##  Function: OpenSource Tailscale Coordination Server
+##
+##  Documentation: https://headscale.net/stable/
+##
+###########################################################################
+###########################################################################
   headscale:
     image: headscale/headscale:latest
     container_name: headscale
@@ -325,8 +425,8 @@ services:
       - mediastack
     command: serve
     ports:
-      - ${HEADSCALE_CONNECT_PORT:?err}:8080
-      - ${HEADSCALE_METRICS_PORT:?err}:9090
+      - ${CONNECT_PORT_HEADSCALE:?err}:8080
+      - ${METRICS_PORT_HEADSCALE:?err}:9090
     volumes:
       - ${FOLDER_FOR_DATA:?err}/headscale:/etc/headscale
       - ${FOLDER_FOR_DATA:?err}/headscale/data:/var/lib/headscale
@@ -334,18 +434,27 @@ services:
       - TZ=${TIMEZONE:?err}
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.headscale.service=headscale
       - traefik.http.routers.headscale.rule=Host(`headscale.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.headscale.entrypoints=secureweb
       - traefik.http.routers.headscale.middlewares=security-headers@file,traefik-bouncer@file
+      # Do not add authentik-forwardauth@file to middlewares, otherwise Tailscale clients can't authenticate and connect
     # SERVICES
       - traefik.http.services.headscale.loadbalancer.server.scheme=http
       - traefik.http.services.headscale.loadbalancer.server.port=8080
     # MIDDLEWARES
-      # No Auth Here
 
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Tailscale
+##  Function: Tailscale Client - Operating as Tailnet Exit-Node
+##
+##  Documentation: https://headscale.net/stable/
+##
+###########################################################################
+###########################################################################
   tailscale:
     image: tailscale/tailscale:latest
     hostname: tailscale
@@ -365,6 +474,16 @@ services:
       - TS_AUTHKEY=${TAILSCALE_AUTHKEY:?err}
       - TS_EXTRA_ARGS=--hostname=exit-node --advertise-exit-node --advertise-routes=${LOCAL_SUBNET:?err},${DOCKER_SUBNET:?err} --login-server=https://headscale.${CLOUDFLARE_DNS_ZONE:?err}
 
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Headplane
+##  Function: WebUI Management for Headscale Coordination Server
+##
+##  Documentation: https://github.com/tale/headplane
+##
+###########################################################################
+###########################################################################
   headplane:
     image: ghcr.io/tale/headplane:latest
     container_name: headplane
@@ -382,18 +501,15 @@ services:
       - TZ=${TIMEZONE:?err}
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.headplane.service=headplane
       - traefik.http.routers.headplane.rule=Host(`headplane.${CLOUDFLARE_DNS_ZONE:?err}`) && PathPrefix(`/admin/`)
       - traefik.http.routers.headplane.entrypoints=secureweb
-      - traefik.http.routers.headplane.middlewares=headplane-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.headplane.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.headplane.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.headplane.loadbalancer.server.scheme=http
       - traefik.http.services.headplane.loadbalancer.server.port=3000
     # MIDDLEWARES
-      - traefik.http.middlewares.headplane-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -515,18 +631,15 @@ services:
 #      - ${WEBUI_PORT_BAZARR:?err}:6767             # Configured in Gluetun VPN container
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.bazarr.service=bazarr
       - traefik.http.routers.bazarr.rule=Host(`bazarr.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.bazarr.entrypoints=secureweb
-      - traefik.http.routers.bazarr.middlewares=bazarr-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.bazarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.bazarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.bazarr.loadbalancer.server.scheme=http
       - traefik.http.services.bazarr.loadbalancer.server.port=6767
     # MIDDLEWARES
-      - traefik.http.middlewares.bazarr-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -575,18 +688,15 @@ services:
       - mediastack
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.ddns-updater.service=ddns-updater
       - traefik.http.routers.ddns-updater.rule=Host(`ddns-updater.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.ddns-updater.entrypoints=secureweb
-      - traefik.http.routers.ddns-updater.middlewares=ddns-updater-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.ddns-updater.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.ddns-updater.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.ddns-updater.loadbalancer.server.scheme=http
       - traefik.http.services.ddns-updater.loadbalancer.server.port=${WEBUI_PORT_DDNS_UPDATER:?err}
     # MIDDLEWARES
-      - traefik.http.middlewares.ddns-updater-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -623,18 +733,15 @@ services:
 #      - ${WEBUI_PORT_FILEBOT:?err}:5454             # Configured in Gluetun VPN service
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.filebot.service=filebot
       - traefik.http.routers.filebot.rule=Host(`filebot.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.filebot.entrypoints=secureweb
-      - traefik.http.routers.filebot.middlewares=filebot-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.filebot.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.filebot.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.filebot.loadbalancer.server.scheme=http
       - traefik.http.services.filebot.loadbalancer.server.port=5454
     # MIDDLEWARES
-      - traefik.http.middlewares.filebot-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -664,18 +771,15 @@ services:
 #      - ${FLARESOLVERR_PORT:?err}:8191             # Configured in Gluetun VPN container
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.flaresolverr.service=flaresolverr
       - traefik.http.routers.flaresolverr.rule=Host(`flaresolverr.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.flaresolverr.entrypoints=secureweb
-      - traefik.http.routers.flaresolverr.middlewares=flaresolverr-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.flaresolverr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.flaresolverr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.flaresolverr.loadbalancer.server.scheme=http
       - traefik.http.services.flaresolverr.loadbalancer.server.port=8191
     # MIDDLEWARES
-      - traefik.http.middlewares.flaresolverr-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -706,18 +810,15 @@ services:
       - mediastack
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.heimdall.service=heimdall
       - traefik.http.routers.heimdall.rule=Host(`heimdall.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.heimdall.entrypoints=secureweb
-      - traefik.http.routers.heimdall.middlewares=heimdall-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.heimdall.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.heimdall.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.heimdall.loadbalancer.server.scheme=http
       - traefik.http.services.heimdall.loadbalancer.server.port=80
     # MIDDLEWARES
-      - traefik.http.middlewares.heimdall-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
       
 ###########################################################################
 ###########################################################################
@@ -750,18 +851,15 @@ services:
       - mediastack
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.homarr.service=homarr
       - traefik.http.routers.homarr.rule=Host(`homarr.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.homarr.entrypoints=secureweb
-      - traefik.http.routers.homarr.middlewares=homarr-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.homarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.homarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.homarr.loadbalancer.server.scheme=http
       - traefik.http.services.homarr.loadbalancer.server.port=7575
     # MIDDLEWARES
-      - traefik.http.middlewares.homarr-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -783,27 +881,23 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${FOLDER_FOR_DATA:?err}/homepage:/app/config
     environment:
-      - PUID=${PUID:?err}
-      - PGID=${PGID:?err}
       - UMASK=${UMASK:?err}
       - TZ=${TIMEZONE:?err}
+      - HOMEPAGE_ALLOWED_HOSTS=homepage,homepage.${CLOUDFLARE_DNS_ZONE:?err},${CLOUDFLARE_DNS_ZONE:?err},localhost,${LOCAL_DOCKER_IP:?err}
 # NOTE: Homepage MUST NOT connect to the Gluetun VPN container
     networks:
       - mediastack
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.homepage.service=homepage
       - traefik.http.routers.homepage.rule=Host(`homepage.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.homepage.entrypoints=secureweb
-      - traefik.http.routers.homepage.middlewares=homepage-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.homepage.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.homepage.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.homepage.loadbalancer.server.scheme=http
       - traefik.http.services.homepage.loadbalancer.server.port=3000
     # MIDDLEWARES
-      - traefik.http.middlewares.homepage-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -833,18 +927,15 @@ services:
 #      - ${WEBUI_PORT_HUNTARR:?err}:9705                # Configured in Gluetun VPN container
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.huntarr.service=huntarr
       - traefik.http.routers.huntarr.rule=Host(`huntarr.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.huntarr.entrypoints=secureweb
-      - traefik.http.routers.huntarr.middlewares=huntarr-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.huntarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.huntarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.huntarr.loadbalancer.server.scheme=http
       - traefik.http.services.huntarr.loadbalancer.server.port=9705
     # MIDDLEWARES
-      - traefik.http.middlewares.huntarr-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -885,18 +976,15 @@ services:
 #      - 1900:1900/udp                 # Enable for DLNA - Only works on HOST Network Mode
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.jellyfin.service=jellyfin
       - traefik.http.routers.jellyfin.rule=Host(`jellyfin.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.jellyfin.entrypoints=secureweb
-      - traefik.http.routers.jellyfin.middlewares=jellyfin-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.jellyfin.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.jellyfin.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.jellyfin.loadbalancer.server.scheme=http
       - traefik.http.services.jellyfin.loadbalancer.server.port=8096
     # MIDDLEWARES
-      - traefik.http.middlewares.jellyfin-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -928,18 +1016,15 @@ services:
 #      - ${WEBUI_PORT_JELLYSEERR:?err}:5055             # Configured in Gluetun VPN container
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.jellyseerr.service=jellyseerr
       - traefik.http.routers.jellyseerr.rule=Host(`jellyseerr.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.jellyseerr.entrypoints=secureweb
-      - traefik.http.routers.jellyseerr.middlewares=jellyseerr-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.jellyseerr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.jellyseerr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.jellyseerr.loadbalancer.server.scheme=http
       - traefik.http.services.jellyseerr.loadbalancer.server.port=5055
     # MIDDLEWARES
-      - traefik.http.middlewares.jellyseerr-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -973,18 +1058,15 @@ services:
 #      - ${WEBUI_PORT_LIDARR:?err}:8686             # Configured in Gluetun VPN container
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.lidarr.service=lidarr
       - traefik.http.routers.lidarr.rule=Host(`lidarr.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.lidarr.entrypoints=secureweb
-      - traefik.http.routers.lidarr.middlewares=lidarr-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.lidarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.lidarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.lidarr.loadbalancer.server.scheme=http
       - traefik.http.services.lidarr.loadbalancer.server.port=8686
     # MIDDLEWARES
-      - traefik.http.middlewares.lidarr-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -1018,18 +1100,15 @@ services:
 #      - ${WEBUI_PORT_MYLAR:?err}:8090             # Configured in Gluetun VPN container
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.mylar.service=mylar
       - traefik.http.routers.mylar.rule=Host(`mylar.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.mylar.entrypoints=secureweb
-      - traefik.http.routers.mylar.middlewares=mylar-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.mylar.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.mylar.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.mylar.loadbalancer.server.scheme=http
       - traefik.http.services.mylar.loadbalancer.server.port=8090
     # MIDDLEWARES
-      - traefik.http.middlewares.mylar-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -1079,18 +1158,15 @@ services:
 #      - 32469:32469
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.plex.service=plex
-      - traefik.http.routers.plex.rule=Host(`plex.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.plex.rule=Host(`plex.${CLOUDFLARE_DNS_ZONE:?err}`) && PathPrefix(`/web/`)
       - traefik.http.routers.plex.entrypoints=secureweb
-      - traefik.http.routers.plex.middlewares=plex-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.plex.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.plex.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.plex.loadbalancer.server.scheme=http
       - traefik.http.services.plex.loadbalancer.server.port=32400
     # MIDDLEWARES
-      - traefik.http.middlewares.plex-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -1116,18 +1192,15 @@ services:
       - mediastack
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.portainer.service=portainer
       - traefik.http.routers.portainer.rule=Host(`portainer.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.portainer.entrypoints=secureweb
-      - traefik.http.routers.portainer.middlewares=portainer-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.portainer.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.portainer.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.portainer.loadbalancer.server.scheme=http
       - traefik.http.services.portainer.loadbalancer.server.port=9000
     # MIDDLEWARES
-      - traefik.http.middlewares.portainer-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -1160,18 +1233,15 @@ services:
 #      - ${WEBUI_PORT_PROWLARR:?err}:9696             # Configured in Gluetun VPN container
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.prowlarr.service=prowlarr
       - traefik.http.routers.prowlarr.rule=Host(`prowlarr.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.prowlarr.entrypoints=secureweb
-      - traefik.http.routers.prowlarr.middlewares=prowlarr-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.prowlarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.prowlarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.prowlarr.loadbalancer.server.scheme=http
       - traefik.http.services.prowlarr.loadbalancer.server.port=9696
     # MIDDLEWARES
-      - traefik.http.middlewares.prowlarr-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -1207,18 +1277,15 @@ services:
     network_mode: "service:gluetun"
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.qbittorrent.service=qbittorrent
       - traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.qbittorrent.entrypoints=secureweb
-      - traefik.http.routers.qbittorrent.middlewares=qbittorrent-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.qbittorrent.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.qbittorrent.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.qbittorrent.loadbalancer.server.scheme=http
       - traefik.http.services.qbittorrent.loadbalancer.server.port=${WEBUI_PORT_QBITTORRENT:?err}
     # MIDDLEWARES
-      - traefik.http.middlewares.qbittorrent-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -1252,18 +1319,15 @@ services:
 #      - ${WEBUI_PORT_RADARR:?err}:7878             # Configured in Gluetun VPN container
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.radarr.service=radarr
       - traefik.http.routers.radarr.rule=Host(`radarr.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.radarr.entrypoints=secureweb
-      - traefik.http.routers.radarr.middlewares=radarr-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.radarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.radarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.radarr.loadbalancer.server.scheme=http
       - traefik.http.services.radarr.loadbalancer.server.port=7878
     # MIDDLEWARES
-      - traefik.http.middlewares.radarr-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -1297,18 +1361,15 @@ services:
 #      - ${WEBUI_PORT_READARR:?err}:8787             # Configured in Gluetun VPN container
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.readarr.service=readarr
       - traefik.http.routers.readarr.rule=Host(`readarr.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.readarr.entrypoints=secureweb
-      - traefik.http.routers.readarr.middlewares=readarr-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.readarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.readarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.readarr.loadbalancer.server.scheme=http
       - traefik.http.services.readarr.loadbalancer.server.port=8787
     # MIDDLEWARES
-      - traefik.http.middlewares.readarr-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -1342,18 +1403,15 @@ services:
 #      - ${WEBUI_PORT_SABNZBD:?err}:8080             # Configured in Gluetun VPN container
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.sabnzbd.service=sabnzbd
       - traefik.http.routers.sabnzbd.rule=Host(`sabnzbd.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.sabnzbd.entrypoints=secureweb
-      - traefik.http.routers.sabnzbd.middlewares=sabnzbd-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.sabnzbd.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.sabnzbd.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.sabnzbd.loadbalancer.server.scheme=http
       - traefik.http.services.sabnzbd.loadbalancer.server.port=8080
     # MIDDLEWARES
-      - traefik.http.middlewares.sabnzbd-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -1387,18 +1445,15 @@ services:
 #      - ${WEBUI_PORT_SONARR:?err}:8989             # Configured in Gluetun VPN container
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.sonarr.service=sonarr
       - traefik.http.routers.sonarr.rule=Host(`sonarr.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.sonarr.entrypoints=secureweb
-      - traefik.http.routers.sonarr.middlewares=sonarr-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.sonarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.sonarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.sonarr.loadbalancer.server.scheme=http
       - traefik.http.services.sonarr.loadbalancer.server.port=8989
     # MIDDLEWARES
-      - traefik.http.middlewares.sonarr-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
 ###########################################################################
 ###########################################################################
@@ -1442,18 +1497,15 @@ services:
 #      - ${WEBUI_PORT_TDARR:?err}:${WEBUI_PORT_TDARR:?err}        # Configured in Gluetun VPN container
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.tdarr.service=tdarr
       - traefik.http.routers.tdarr.rule=Host(`tdarr.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.tdarr.entrypoints=secureweb
-      - traefik.http.routers.tdarr.middlewares=tdarr-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.tdarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.tdarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.tdarr.loadbalancer.server.scheme=http
       - traefik.http.services.tdarr.loadbalancer.server.port=${WEBUI_PORT_TDARR:?err}
     # MIDDLEWARES
-      - traefik.http.middlewares.tdarr-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}
 
   tdarr-node:
     image: ghcr.io/haveagitgat/tdarr_node:latest
@@ -1501,7 +1553,7 @@ services:
     networks:
       - mediastack
     ports:
-      - ${UNPACKERR_METRICS_PORT:?err}:5656             # Configured in Gluetun VPN container
+      - ${METRICS_PORT_UNPACKERR:?err}:5656
     environment:
       - UMASK=${UMASK:?err}
       - TZ=${TIMEZONE:?err}
@@ -1526,7 +1578,7 @@ services:
       ## Web Server
       - UN_WEBSERVER_METRICS=true
       - UN_WEBSERVER_LISTEN_ADDR=0.0.0.0:5656
-      - UN_WEBSERVER_LOG_FILE=/var/log/webserver.log
+      - UN_WEBSERVER_LOG_FILE=/var/log/server.log
       - UN_WEBSERVER_LOG_FILES=10
       - UN_WEBSERVER_LOG_FILE_MB=10
       - UN_WEBSERVER_SSL_CERT_FILE=
@@ -1666,15 +1718,12 @@ services:
 #      - ${WEBUI_PORT_WHISPARR:?err}:6969             # Configured in Gluetun VPN container
     labels:
       - traefik.enable=true
-      - traefik.docker.network=mediastack
     # ROUTERS
       - traefik.http.routers.whisparr.service=whisparr
       - traefik.http.routers.whisparr.rule=Host(`whisparr.${CLOUDFLARE_DNS_ZONE:?err}`)
       - traefik.http.routers.whisparr.entrypoints=secureweb
-      - traefik.http.routers.whisparr.middlewares=whisparr-basicauth@docker,security-headers@file,traefik-bouncer@file
-#      - traefik.http.routers.whisparr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      - traefik.http.routers.whisparr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
       - traefik.http.services.whisparr.loadbalancer.server.scheme=http
       - traefik.http.services.whisparr.loadbalancer.server.port=6969
     # MIDDLEWARES
-      - traefik.http.middlewares.whisparr-basicauth.basicauth.users=${BASIC_WEB_AUTH:?err}

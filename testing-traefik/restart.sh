@@ -21,11 +21,10 @@ sudo -E mkdir -p $FOLDER_FOR_MEDIA/filebot/{input,output}
 sudo -E chmod -R 2775 $FOLDER_FOR_MEDIA $FOLDER_FOR_DATA            # $FOLDER_FOR_YAMLS     # <-- Enable if you need to set permissions on YAML files / folder
 sudo -E chown -R $PUID:$PGID $FOLDER_FOR_MEDIA $FOLDER_FOR_DATA     # $FOLDER_FOR_YAMLS     # <-- Enable if you need to set permissions on YAML files / folder
 
+# This checks for missing variables and invalid docker compose configuration
 echo 
 echo Validating Docker Compose configuration...
 echo 
-
-# This checks for missing variables and invalid docker compose configuration
 if ! docker compose config > /dev/null; then
     echo 
     echo Docker Compose configuration is invalid or missing required variables...
@@ -45,23 +44,23 @@ echo
 sudo docker stop $(sudo docker ps -a -q)      # Stop all active Docker containers
 sudo docker rm   $(sudo docker ps -a -q)      # Remove all active Docker containers
 sudo docker container  prune -f               # Force-remove all Docker containers
-#sudo docker image      prune -a -f           # Force-remove all Docker images - THIS WILL FORCE ALL DOCKER IMAGES TO BE DOWNLOADED AGAIN
+#sudo docker image      prune -a -f           # Force-remove all Docker images                   <-- THIS WILL FORCE ALL DOCKER IMAGES TO BE DOWNLOADED AGAIN
 sudo docker volume     prune -f               # Force-remove all non-persistent Docker volumes
 sudo docker network    prune -f               # Force-remove all Docker networks
 
 echo 
 echo Moving configuration files into application folders...
 echo 
-sudo chmod 664                *yaml .env
-sudo chown $PUID:$PGID        *yaml .env
+sudo chmod 664                .env *yaml
+sudo chown $PUID:$PGID        .env *yaml *sh
 sudo touch                    $FOLDER_FOR_DATA/traefik/letsencrypt/acme.json
-sudo chmod 600                $FOLDER_FOR_DATA/traefik/letsencrypt/acme.json
-sudo cp headplane-config.yaml $FOLDER_FOR_DATA/headplane/config.yaml
-sudo cp headscale-config.yaml $FOLDER_FOR_DATA/headscale/config.yaml
-sudo cp traefik.yaml          $FOLDER_FOR_DATA/traefik
-sudo cp dynamic.yaml          $FOLDER_FOR_DATA/traefik
-sudo cp internal.yaml         $FOLDER_FOR_DATA/traefik
-sudo cp acquis.yaml           $FOLDER_FOR_DATA/crowdsec
+sudo chmod 600                $FOLDER_FOR_DATA/traefik/letsencrypt/acme.json && echo "Permissions set to 600 on certs file $FOLDER_FOR_DATA/traefik/letsencrypt/acme.json"
+sudo cp headplane-config.yaml $FOLDER_FOR_DATA/headplane/config.yaml         && echo "File headplane-config.yaml copied to $FOLDER_FOR_DATA/headplane/config.yaml"
+sudo cp headscale-config.yaml $FOLDER_FOR_DATA/headscale/config.yaml         && echo "File headscale-config.yaml copied to $FOLDER_FOR_DATA/headscale/config.yaml"
+sudo cp traefik-static.yaml   $FOLDER_FOR_DATA/traefik/traefik.yaml          && echo "File traefik-static.yaml   copied to $FOLDER_FOR_DATA/traefik/traefik.yaml"
+sudo cp traefik-dynamic.yaml  $FOLDER_FOR_DATA/traefik/dynamic.yaml          && echo "File traefik-dynamic.yaml  copied to $FOLDER_FOR_DATA/traefik/dynamic.yaml"
+sudo cp traefik-internal.yaml $FOLDER_FOR_DATA/traefik/internal.yaml         && echo "File traefik-internal.yaml copied to $FOLDER_FOR_DATA/traefik/internal.yaml"
+sudo cp crowdsec-acquis.yaml  $FOLDER_FOR_DATA/crowdsec/acquis.yaml          && echo "File crowdsec-acquis.yaml  copied to $FOLDER_FOR_DATA/crowdsec/acquis.yaml"
 
 # Subroutine below will check if Docker successully started all containers, before pruning un-used images from Docker
 echo 

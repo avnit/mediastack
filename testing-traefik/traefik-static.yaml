@@ -17,7 +17,7 @@ global:
   sendAnonymousUsage: true
 
 log:
-  level: ERROR    # Options are:  TRACE , DEBUG , INFO , WARN , ERROR , FATAL , and PANIC
+  level: INFO    # Options are:  TRACE , DEBUG , INFO , WARN , ERROR , FATAL , and PANIC
 
 accessLog:
   filePath: /var/log/access.log
