@@ -1,11 +1,44 @@
 #!/usr/bin/bash
+set -e
 
-export FOLDER_FOR_YAMLS=/docker             # <-- Folder where the yaml and .env files are located
-export FOLDER_FOR_MEDIA=/docker/media       # <-- Folder where your media is locate
-export FOLDER_FOR_DATA=/docker/appdata      # <-- Folder where MediaStack stores persistent data and configurations
+FOLDER_FOR_YAMLS=/docker             # <-- Folder where the yaml and .env files are located
 
-export PUID=1000
-export PGID=1000
+# Check if .env exists
+cd $FOLDER_FOR_YAMLS
+
+ENV_FILE=".env"
+if [ ! -f "$ENV_FILE" ]; then
+    echo "❌ Error: .env file not found in $(pwd)"
+    echo "Please update the FOLDER_FOR_YAMLS=/docker location inside the restart.sh script"
+    exit 1
+fi
+
+# Read values from .env and clean them
+FOLDER_FOR_MEDIA=$(grep -E '^FOLDER_FOR_MEDIA=' "$ENV_FILE" | cut -d '=' -f2- | xargs | tr -d '\r')
+FOLDER_FOR_DATA=$(grep  -E '^FOLDER_FOR_DATA='  "$ENV_FILE" | cut -d '=' -f2- | xargs | tr -d '\r')
+PUID=$(grep -E '^PUID=' "$ENV_FILE" | cut -d '=' -f2- | xargs | tr -d '\r')
+PGID=$(grep -E '^PGID=' "$ENV_FILE" | cut -d '=' -f2- | xargs | tr -d '\r')
+
+echo && echo "✅ Found the following variables / values in your $ENV_FILE file:"
+echo "   - FOLDER_FOR_MEDIA=$FOLDER_FOR_MEDIA"
+echo "   - FOLDER_FOR_DATA=$FOLDER_FOR_DATA"
+echo "   - PUID=$PUID"
+echo "   - PGID=$PGID"
+
+# Validate required vars
+MISSING_VARS=()
+[ -z "$FOLDER_FOR_MEDIA" ] && MISSING_VARS+=("FOLDER_FOR_MEDIA")
+[ -z "$FOLDER_FOR_DATA" ]  && MISSING_VARS+=("FOLDER_FOR_DATA")
+[ -z "$PUID" ] && MISSING_VARS+=("PUID")
+[ -z "$PGID" ] && MISSING_VARS+=("PGID")
+
+if [ ${#MISSING_VARS[@]} -ne 0 ]; then
+    echo "❌ Error: The following required variables are missing or empty in $ENV_FILE:"
+    for var in "${MISSING_VARS[@]}"; do
+        echo "   - $var"
+    done
+    exit 1
+fi
 
 echo 
 echo Creating folders and setting permissions...

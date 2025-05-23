@@ -644,10 +644,10 @@ services:
 ###########################################################################
 ###########################################################################
 ##
-##    Docker Compose File: DDNS-Updater (qmcgaw)
-##    Function: Update Dynamic IP addresses for DNS A and/or AAAA records
+##  Docker Compose File: DDNS-Updater (qmcgaw)
+##  Function: Update Dynamic IP addresses for DNS A and/or AAAA records
 ##
-##    Documentation: https://hub.docker.com/r/qmcgaw/ddns-updater
+##  Documentation: https://hub.docker.com/r/qmcgaw/ddns-updater
 ##
 ###########################################################################
 ###########################################################################
@@ -784,11 +784,10 @@ services:
 ###########################################################################
 ###########################################################################
 ##
-##    Docker Compose File: Heimdall (LinuxServer.io)
-##    Function: Organise links to web sites and web applications
+##  Docker Compose File: Heimdall (LinuxServer.io)
+##  Function: Organise links to web sites and web applications
 ##
-##    Documentation: https://docs.linuxserver.io/images/docker-heimdall
-##    https://docs.linuxserver.io/general/swag#using-heimdall-as-the-home-page-at-domain-root
+##  Documentation: https://docs.linuxserver.io/images/docker-heimdall
 ##
 ###########################################################################
 ###########################################################################
@@ -1132,17 +1131,6 @@ services:
 #    devices:
 #      - /dev/dri/renderD128:/dev/dri/renderD128
 #      - /dev/dri/card0:/dev/dri/card0
-    volumes:
-      - ${FOLDER_FOR_MEDIA:?err}/media:/data/media
-      - ${FOLDER_FOR_DATA:?err}/plex:/config
-    environment:
-      - PUID=${PUID:?err}
-      - PGID=${PGID:?err}
-      - UMASK=${UMASK:?err}
-      - TZ=${TIMEZONE:?err}
-      - VERSION=docker
-      - PLEX_CLAIM=${PLEX_CLAIM}
-      - ADVERTISE_IP=https://plex.${CLOUDFLARE_DNS_ZONE:?err}:443/
     network_mode: "service:gluetun"
 # Ports are disabled in containers when they are connected to VPN, as the
 # Gluetun container manages the ports for containers that connect via VPN
@@ -1156,6 +1144,17 @@ services:
 #      - 32413:32413/udp
 #      - 32414:32414/udp
 #      - 32469:32469
+    volumes:
+      - ${FOLDER_FOR_MEDIA:?err}/media:/data/media
+      - ${FOLDER_FOR_DATA:?err}/plex:/config
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - UMASK=${UMASK:?err}
+      - TZ=${TIMEZONE:?err}
+      - VERSION=docker
+      - PLEX_CLAIM=${PLEX_CLAIM}
+      - ADVERTISE_IP=https://plex.${CLOUDFLARE_DNS_ZONE:?err}:443/
     labels:
       - traefik.enable=true
     # ROUTERS
