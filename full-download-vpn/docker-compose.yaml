@@ -644,6 +644,46 @@ services:
 ###########################################################################
 ###########################################################################
 ##
+##  Docker Compose File: Chromium (LinuxServer.io)
+##  Function: OpenSource Web Browser
+##
+##  Documentation: https://docs.linuxserver.io/images/docker-chromium/
+##
+###########################################################################
+###########################################################################
+  chromium:
+    image: lscr.io/linuxserver/chromium:latest
+    container_name: chromium
+    restart: unless-stopped
+    shm_size: 1gb
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/chromium:/config
+    environment:
+      - PUID=${PUID:?err}
+      - PGID=${PGID:?err}
+      - TZ=${TIMEZONE:?err}
+      - TITLE=MediaStack Chromium
+      - CUSTOM_PORT=${WEBUI_PORT_CHROMIUM:?err}
+      - CHROME_CLI=${CHROMIUM_START_PAGE:?err}
+    ports:
+      - ${WEBUI_PORT_CHROMIUM:?err}:${WEBUI_PORT_CHROMIUM:?err}
+    networks:
+      - mediastack
+    labels:
+      - traefik.enable=true
+    # ROUTERS
+      - traefik.http.routers.chromium.service=chromium
+      - traefik.http.routers.chromium.rule=Host(`chromium.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.chromium.entrypoints=secureweb
+      - traefik.http.routers.chromium.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+    # SERVICES
+      - traefik.http.services.chromium.loadbalancer.server.scheme=http
+      - traefik.http.services.chromium.loadbalancer.server.port=${WEBUI_PORT_CHROMIUM:?err}
+    # MIDDLEWARES
+
+###########################################################################
+###########################################################################
+##
 ##  Docker Compose File: DDNS-Updater (qmcgaw)
 ##  Function: Update Dynamic IP addresses for DNS A and/or AAAA records
 ##
