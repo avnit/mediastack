@@ -116,48 +116,107 @@ However, this heightened security method comes with trade-offs. Encrypting and d
 <center>
 
 ``` mermaid
-graph TD
-    subgraph DockerNet[<center>Docker Networking - 172.28.10.0/24</center>]
-        Jellyfin ---- Gluetun
-        Plex --- Gluetun
-        Jellyseerr ---- Gluetun
-        Prowlarr --- Gluetun
-        Radarr ---- Gluetun
-        Readarr --- Gluetun
-        Sonarr ---- Gluetun
-        Mylar --- Gluetun
-        Whisparr ---- Gluetun
-        Bazarr --- Gluetun
-        Lidarr ---- Gluetun
-        Tdarr --- Gluetun
-        Huntarr ---- Gluetun
-        SABnzbd --- Gluetun
-        qBittorrent ---- Gluetun
-        NIC[Docker Host</br>Network Bridge]
-    end
-    Gluetun ==>| Secure VPN | NIC
-    NIC ==>| Secure VPN | Gateway[<center>Home</br>Gateway</center>]
-    Gateway ==>|Secure VPN |VPN{<center>VPN Server</br>Anchor Point</center>}
-    
-    style Bazarr      stroke:green,stroke-width:2px
-    style Lidarr      stroke:green,stroke-width:2px
-    style Mylar      stroke:green,stroke-width:2px
-    style Prowlarr    stroke:green,stroke-width:2px
-    style Radarr      stroke:green,stroke-width:2px
-    style Readarr     stroke:green,stroke-width:2px
-    style Sonarr      stroke:green,stroke-width:2px
-    style Tdarr       stroke:green,stroke-width:2px
-    style Whisparr    stroke:green,stroke-width:2px
-    style Jellyfin    stroke:green,stroke-width:2px
-    style Plex        stroke:green,stroke-width:2px
-    style qBittorrent stroke:green,stroke-width:2px
-    style Jellyseerr  stroke:green,stroke-width:2px
-    style Huntarr     stroke:green,stroke-width:2px
-    style SABnzbd     stroke:green,stroke-width:2px
-    style Gluetun     stroke:green,stroke-width:2px
-    style NIC         stroke:green,stroke-width:2px
-    style Gateway     stroke:green,stroke-width:2px
-    style VPN         stroke:green,stroke-width:2px
+flowchart TD
+  subgraph DockerNet["Full Download VPN"]
+    Gluetun
+    Jellyfin
+    Plex
+    Jellyseerr
+    Prowlarr
+    Radarr
+    Readarr
+    Sonarr
+    Mylar
+    Whisparr
+    Bazarr
+    Lidarr
+    Tdarr
+    Huntarr
+    SABnzbd
+    qBittorrent
+    Label@{ label: "<div style=\"color:\"><span style=\"color:\">IP Subnet: 172.28.10.0/24</span></div>" }
+    NIC["Network Adapter"]
+  end
+
+  Jellyfin     Jellyfin_Gluetun@    ---- Gluetun
+  Plex         Plex_Gluetun@        ---  Gluetun
+  Jellyseerr   Jellyseerr_Gluetun@  ---- Gluetun
+  Prowlarr     Prowlarr_Gluetun@    ---  Gluetun
+  Radarr       Radarr_Gluetun@      ---- Gluetun
+  Readarr      Readarr_Gluetun@     ---  Gluetun
+  Sonarr       Sonarr_Gluetun@      ---- Gluetun
+  Mylar        Mylar_Gluetun@       ---  Gluetun
+  Whisparr     Whisparr_Gluetun@    ---- Gluetun
+  Bazarr       Bazarr_Gluetun@      ---  Gluetun
+  Lidarr       Lidarr_Gluetun@      ---- Gluetun
+  Tdarr        Tdarr_Gluetun@       ---  Gluetun
+  Huntarr      Huntarr_Gluetun@     ---- Gluetun
+  SABnzbd      SABnzbd_Gluetun@     ---  Gluetun
+  qBittorrent  qBittorrent_Gluetun@ ---- Gluetun
+  Gluetun      Gluetun_NIC@         ==> NIC
+  NIC          NIC_Gateway@         ==> Gateway
+  Gateway      Gateway_VPN@         ==> VPN
+  Gateway["Home Gateway"]
+  VPN{"VPN Server<br>Anchor Point"}
+
+  style Gluetun      stroke:#2962FF
+  style Jellyfin     stroke:#2962FF
+  style Plex         stroke:#2962FF
+  style Jellyseerr   stroke:#2962FF
+  style Prowlarr     stroke:#2962FF
+  style Radarr       stroke:#2962FF
+  style Readarr      stroke:#2962FF
+  style Sonarr       stroke:#2962FF
+  style Mylar        stroke:#2962FF
+  style Whisparr     stroke:#2962FF
+  style Bazarr       stroke:#2962FF
+  style Lidarr       stroke:#2962FF
+  style Tdarr        stroke:#2962FF
+  style Huntarr      stroke:#2962FF
+  style SABnzbd      stroke:#2962FF
+  style qBittorrent  stroke:#2962FF
+  style Label        stroke:none
+  style NIC          stroke:green,    stroke-width:2px
+  style Gateway      stroke:green,    stroke-width:2px
+  style VPN          stroke:green,    stroke-width:2px
+
+  linkStyle 0        stroke:orange
+  linkStyle 1        stroke:orange
+  linkStyle 2        stroke:orange
+  linkStyle 3        stroke:orange
+  linkStyle 4        stroke:orange
+  linkStyle 5        stroke:orange
+  linkStyle 6        stroke:orange
+  linkStyle 7        stroke:orange
+  linkStyle 8        stroke:orange
+  linkStyle 9        stroke:orange
+  linkStyle 10       stroke:orange
+  linkStyle 11       stroke:orange
+  linkStyle 12       stroke:orange
+  linkStyle 13       stroke:orange
+  linkStyle 14       stroke:orange
+  linkStyle 15       stroke:green
+  linkStyle 16       stroke:green
+  linkStyle 17       stroke:green
+
+  Jellyfin_Gluetun@{     animation: fast }
+  Plex_Gluetun@{         animation: fast }
+  Jellyseerr_Gluetun@{   animation: fast }
+  Prowlarr_Gluetun@{     animation: fast }
+  Radarr_Gluetun@{       animation: fast }
+  Readarr_Gluetun@{      animation: fast }
+  Sonarr_Gluetun@{       animation: fast }
+  Mylar_Gluetun@{        animation: fast }
+  Whisparr_Gluetun@{     animation: fast }
+  Bazarr_Gluetun@{       animation: fast }
+  Lidarr_Gluetun@{       animation: fast }
+  Tdarr_Gluetun@{        animation: fast }
+  Huntarr_Gluetun@{      animation: fast }
+  SABnzbd_Gluetun@{      animation: fast }
+  qBittorrent_Gluetun@{  animation: fast }
+  Gluetun_NIC@{          animation: slow }
+  NIC_Gateway@{          animation: slow }
+  Gateway_VPN@{          animation: slow }
 ```
 
 </center>
@@ -177,51 +236,115 @@ However, this comes at the cost of leaving some network traffic potentially expo
 <center>
 
 ``` mermaid
-graph TD
-    subgraph DockerNet[<center>Docker Networking - 172.28.10.0/24</center>]
-        Jellyfin -..-> NIC
-        Plex -.-> NIC
-        Jellyseerr -..-> NIC
-        Prowlarr -.-> NIC
-        Radarr -..-> NIC
-        Readarr -.-> NIC
-        Sonarr -..-> NIC
-        Mylar -.-> NIC
-        Whisparr -..-> NIC
-        Bazarr -.-> NIC
-        Lidarr -..-> NIC
-        Tdarr -.-> NIC
-        Huntarr -..-> NIC
-        SABnzbd === Gluetun
-        qBittorrent === Gluetun
-        NIC[Docker Host</br>Network Bridge]
-    end
-    Gluetun ==>| Secure</br>VPN | NIC
-    NIC -.->| Insecure</br>Data | Gateway[<center>Home</br>Gateway</center>]
-    NIC ==>| Secure</br>VPN | Gateway[<center>Home</br>Gateway</center>]
-    Gateway -.->| Insecure</br>Data |Internet{<center>General</br>Internet</center>}
-    Gateway ==>|Secure</br>VPN |VPN{<center>VPN Server</br>Anchor Point</center>}
-    
-    style Bazarr      stroke:orange,stroke-width:2px
-    style Lidarr      stroke:orange,stroke-width:2px
-    style Mylar      stroke:orange,stroke-width:2px
-    style Prowlarr    stroke:orange,stroke-width:2px
-    style Radarr      stroke:orange,stroke-width:2px
-    style Readarr     stroke:orange,stroke-width:2px
-    style Sonarr      stroke:orange,stroke-width:2px
-    style Tdarr       stroke:orange,stroke-width:2px
-    style Whisparr    stroke:orange,stroke-width:2px
-    style Jellyfin    stroke:orange,stroke-width:2px
-    style Plex        stroke:orange,stroke-width:2px
-    style qBittorrent stroke:green,stroke-width:2px
-    style Jellyseerr  stroke:orange,stroke-width:2px
-    style Huntarr     stroke:orange,stroke-width:2px
-    style SABnzbd     stroke:green,stroke-width:2px
-    style Gluetun     stroke:green,stroke-width:2px
-    style VPN         stroke:green,stroke-width:2px
-    style NIC         stroke:blue,stroke-width:2px
-    style Gateway     stroke:blue,stroke-width:2px
-    style Internet    stroke:orange,stroke-width:2px
+flowchart TD
+  subgraph DockerNet["Mini Download VPN"]
+    Gluetun
+    Jellyfin
+    Plex
+    Jellyseerr
+    Prowlarr
+    Radarr
+    Readarr
+    Sonarr
+    Mylar
+    Whisparr
+    Bazarr
+    Lidarr
+    Tdarr
+    Huntarr
+    SABnzbd
+    qBittorrent
+    Label@{ label: "<div style=\"color:\"><span style=\"color:\">IP Subnet: 172.28.10.0/24</span></div>" }
+    NIC["Network Adapter"]
+  end
+
+  Jellyfin     Jellyfin_NIC@        ---- NIC
+  Plex         Plex_NIC@            ---  NIC
+  Jellyseerr   Jellyseerr_NIC@      ---- NIC
+  Prowlarr     Prowlarr_NIC@        ---  NIC
+  Radarr       Radarr_NIC@          ---- NIC
+  Readarr      Readarr_NIC@         ---  NIC
+  Sonarr       Sonarr_NIC@          ---- NIC
+  Mylar        Mylar_NIC@           ---  NIC
+  Whisparr     Whisparr_NIC@        ---- NIC
+  Bazarr       Bazarr_NIC@          ---  NIC
+  Lidarr       Lidarr_NIC@          ---- NIC
+  Tdarr        Tdarr_NIC@           ---  NIC
+  Huntarr      Huntarr_NIC@         ---- NIC
+  SABnzbd      SABnzbd_Gluetun@     ---  Gluetun
+  qBittorrent  qBittorrent_Gluetun@ ---  Gluetun
+  Gluetun      Gluetun_NIC@         ==>  NIC
+  NIC          NIC_Gateway_0@       ==>  Gateway
+  NIC          NIC_Gateway_1@       ==>  Gateway
+  Gateway      Gateway_VPN_1@       ==>  Internet
+  Gateway      Gateway_VPN_0@       ==>  VPN
+  Gateway["Home Gateway"]
+  Internet{"🔥Insecure🔥<br>🔥Internet🔥"}
+  VPN{"VPN Server<br>Anchor Point"}
+
+  style Gluetun      stroke:#2962FF
+  style Jellyfin     stroke:#2962FF
+  style Plex         stroke:#2962FF
+  style Jellyseerr   stroke:#2962FF
+  style Prowlarr     stroke:#2962FF
+  style Radarr       stroke:#2962FF
+  style Readarr      stroke:#2962FF
+  style Sonarr       stroke:#2962FF
+  style Mylar        stroke:#2962FF
+  style Whisparr     stroke:#2962FF
+  style Bazarr       stroke:#2962FF
+  style Lidarr       stroke:#2962FF
+  style Tdarr        stroke:#2962FF
+  style Huntarr      stroke:#2962FF
+  style SABnzbd      stroke:#2962FF
+  style qBittorrent  stroke:#2962FF
+  style Label        stroke:none
+  style NIC          stroke:green,    stroke-width:2px
+  style Gateway      stroke:green,    stroke-width:2px
+  style Internet     stroke:red,      stroke-width:2px
+  style VPN          stroke:green,    stroke-width:2px
+
+  linkStyle 0        stroke:orange
+  linkStyle 1        stroke:orange
+  linkStyle 2        stroke:orange
+  linkStyle 3        stroke:orange
+  linkStyle 4        stroke:orange
+  linkStyle 5        stroke:orange
+  linkStyle 6        stroke:orange
+  linkStyle 7        stroke:orange
+  linkStyle 8        stroke:orange
+  linkStyle 9        stroke:orange
+  linkStyle 10       stroke:orange
+  linkStyle 11       stroke:orange
+  linkStyle 12       stroke:orange
+  linkStyle 13       stroke:orange
+  linkStyle 14       stroke:orange
+  linkStyle 15       stroke:green
+  linkStyle 16       stroke:red
+  linkStyle 17       stroke:green
+  linkStyle 18       stroke:red
+  linkStyle 19       stroke:green
+
+  Jellyfin_NIC@{         animation: fast }
+  Plex_NIC@{             animation: fast }
+  Jellyseerr_NIC@{       animation: fast }
+  Prowlarr_NIC@{         animation: fast }
+  Radarr_NIC@{           animation: fast }
+  Readarr_NIC@{          animation: fast }
+  Sonarr_NIC@{           animation: fast }
+  Mylar_NIC@{            animation: fast }
+  Whisparr_NIC@{         animation: fast }
+  Bazarr_NIC@{           animation: fast }
+  Lidarr_NIC@{           animation: fast }
+  Tdarr_NIC@{            animation: fast }
+  Huntarr_NIC@{          animation: fast }
+  SABnzbd_Gluetun@{      animation: fast }
+  qBittorrent_Gluetun@{  animation: fast }
+  Gluetun_NIC@{          animation: slow }
+  NIC_Gateway_0@{        animation: slow }
+  NIC_Gateway_1@{        animation: slow }
+  Gateway_VPN_0@{        animation: slow }
+  Gateway_VPN_1@{        animation: slow }
 ```
 
 </center>
@@ -235,46 +358,102 @@ The Gluetun VPN container has been removed from this network architecture / desi
 <center>
 
 ``` mermaid
-graph TD
-    subgraph DockerNet[<center>Docker Networking - 172.28.10.0/24</center>]
-        Jellyfin -..-> NIC
-        Plex -.-> NIC
-        Jellyseerr -..-> NIC
-        Prowlarr -.-> NIC
-        Radarr -..-> NIC
-        Readarr -.-> NIC
-        Sonarr -..-> NIC
-        Mylar -.-> NIC
-        Whisparr -..-> NIC
-        Bazarr -.-> NIC
-        Lidarr -..-> NIC
-        Tdarr -.-> NIC
-        Huntarr -..-> NIC
-        SABnzbd -.-> NIC
-        qBittorrent -..-> NIC
-        NIC[Docker Host</br>Network Bridge]
-    end
-    NIC -.->| Insecure</br>Data | Gateway[<center>Home</br>Gateway</center>]
-    Gateway -.->| Insecure</br>Data |Internet{<center>General</br>Internet</center>}
-    
-    style Bazarr      stroke:orange,stroke-width:2px
-    style Lidarr      stroke:orange,stroke-width:2px
-    style Mylar       stroke:orange,stroke-width:2px
-    style Prowlarr    stroke:orange,stroke-width:2px
-    style Radarr      stroke:orange,stroke-width:2px
-    style Readarr     stroke:orange,stroke-width:2px
-    style Sonarr      stroke:orange,stroke-width:2px
-    style Tdarr       stroke:orange,stroke-width:2px
-    style Whisparr    stroke:orange,stroke-width:2px
-    style Jellyfin    stroke:orange,stroke-width:2px
-    style Plex        stroke:orange,stroke-width:2px
-    style qBittorrent stroke:orange,stroke-width:2px
-    style Jellyseerr  stroke:orange,stroke-width:2px
-    style Huntarr     stroke:orange,stroke-width:2px
-    style SABnzbd     stroke:orange,stroke-width:2px
-    style NIC         stroke:orange,stroke-width:2px
-    style Gateway     stroke:orange,stroke-width:2px
-    style Internet    stroke:orange,stroke-width:2px
+flowchart TD
+  subgraph DockerNet["No Download VPN"]
+    Jellyfin
+    Plex
+    Jellyseerr
+    Prowlarr
+    Radarr
+    Readarr
+    Sonarr
+    Mylar
+    Whisparr
+    Bazarr
+    Lidarr
+    Tdarr
+    Huntarr
+    SABnzbd
+    qBittorrent
+    Label@{ label: "<div style=\"color:\"><span style=\"color:\">IP Subnet: 172.28.10.0/24</span></div>" }
+    NIC["Network Adapter"]
+  end
+
+  Jellyfin     Jellyfin_NIC@     ---- NIC
+  Plex         Plex_NIC@         ---  NIC
+  Jellyseerr   Jellyseerr_NIC@   ---- NIC
+  Prowlarr     Prowlarr_NIC@     ---  NIC
+  Radarr       Radarr_NIC@       ---- NIC
+  Readarr      Readarr_NIC@      ---  NIC
+  Sonarr       Sonarr_NIC@       ---- NIC
+  Mylar        Mylar_NIC@        ---  NIC
+  Whisparr     Whisparr_NIC@     ---- NIC
+  Bazarr       Bazarr_NIC@       ---  NIC
+  Lidarr       Lidarr_NIC@       ---- NIC
+  Tdarr        Tdarr_NIC@        ---  NIC
+  Huntarr      Huntarr_NIC@      ---- NIC
+  SABnzbd      SABnzbd_NIC@      ---  NIC
+  qBittorrent  qBittorrent_NIC@  ---- NIC
+  NIC          NIC_Gateway@      ==>  Gateway
+  Gateway      Gateway_VPN@      ==>  Internet
+  Gateway["Home Gateway"]
+  Internet{"🔥Insecure🔥<br>🔥Internet🔥"}
+  
+  style Jellyfin     stroke:#2962FF
+  style Plex         stroke:#2962FF
+  style Jellyseerr   stroke:#2962FF
+  style Prowlarr     stroke:#2962FF
+  style Radarr       stroke:#2962FF
+  style Readarr      stroke:#2962FF
+  style Sonarr       stroke:#2962FF
+  style Mylar        stroke:#2962FF
+  style Whisparr     stroke:#2962FF
+  style Bazarr       stroke:#2962FF
+  style Lidarr       stroke:#2962FF
+  style Tdarr        stroke:#2962FF
+  style Huntarr      stroke:#2962FF
+  style SABnzbd      stroke:#2962FF
+  style qBittorrent  stroke:#2962FF
+  style Label        stroke:none
+  style NIC          stroke:green,    stroke-width:2px
+  style Gateway      stroke:green,    stroke-width:2px
+  style Internet     stroke:red,      stroke-width:2px
+  
+  linkStyle 0       stroke:orange
+  linkStyle 1       stroke:orange
+  linkStyle 2       stroke:orange
+  linkStyle 3       stroke:orange
+  linkStyle 4       stroke:orange
+  linkStyle 5       stroke:orange
+  linkStyle 6       stroke:orange
+  linkStyle 7       stroke:orange
+  linkStyle 8       stroke:orange
+  linkStyle 9       stroke:orange
+  linkStyle 10      stroke:orange
+  linkStyle 11      stroke:orange
+  linkStyle 12      stroke:orange
+  linkStyle 13      stroke:orange
+  linkStyle 14      stroke:orange
+  linkStyle 15      stroke:red
+  linkStyle 16      stroke:red
+
+  Jellyfin_NIC@{         animation: fast }
+  Plex_NIC@{             animation: fast }
+  Jellyseerr_NIC@{       animation: fast }
+  Prowlarr_NIC@{         animation: fast }
+  Radarr_NIC@{           animation: fast }
+  Readarr_NIC@{          animation: fast }
+  Sonarr_NIC@{           animation: fast }
+  Mylar_NIC@{            animation: fast }
+  Whisparr_NIC@{         animation: fast }
+  Bazarr_NIC@{           animation: fast }
+  Lidarr_NIC@{           animation: fast }
+  Tdarr_NIC@{            animation: fast }
+  Huntarr_NIC@{          animation: fast }
+  SABnzbd_NIC@{          animation: fast }
+  qBittorrent_NIC@{      animation: fast }
+  NIC_Gateway@{          animation: slow }
+  Gateway_VPN@{          animation: slow }
 ```
 
 </center>
@@ -414,25 +593,48 @@ The YAML configuration files are already set up to do all the network firewallin
 <center>
 
 ``` mermaid
-graph TB
-    subgraph HomeNet[<center>Home Network - 192.168.1.0/24</center>]
-        1[<center>User 1</center>]-.-> | Port</br>8096 | NIC
-        2[<center>User 2</center>]-->| Port</br>8096 | NIC
-        NIC -.-> | Port</br>8096 | Jellyfin
-        NIC[<center>Docker Host</br>Network Bridge</br>192.168.1.10</center>] --> | Port</br>8096 | Gluetun
-
-        subgraph DockerNet[<center>Docker Network - 172.28.10.0/24</center>]
-            Gluetun
-            Jellyfin[<center>Jellyfin</br>HTTP:8096</center>]
-        end
-    Gluetun --> | Port</br>8096 | Jellyfin
+flowchart TB
+  subgraph HomeNet["Home Network"]
+    user1
+    user2
+    NIC
+    subgraph DockerNet["Docker Network"]
+      Gluetun
+      Jellyfin
+      Label@{ label: "<div style=\"color:\"><span style=\"color:\">IP Subnet: 172.28.10.0/24</span></div>" }
     end
+  Gluetun
+  end
 
-style 1 stroke:green,stroke-width:2px
-style 2 stroke:green,stroke-width:2px
-style NIC stroke:green,stroke-width:2px
-style Gluetun stroke:green,stroke-width:2px
-style Jellyfin stroke:green,stroke-width:2px
+  user1     user1_NIC@         -- Port</br>8096 --- NIC
+  user2     user2_NIC@         -- Port</br>8096 --- NIC
+  NIC       NIC_Jellyfin@      --- Jellyfin
+  NIC       NIC_Gluetun@       --- Gluetun
+  Gluetun   Gluetun_Jellyfin@  --- Jellyfin
+
+  user1["😊 User 1"]
+  user2["😊 User 2"]
+  NIC["Network Adapter<p>192.168.1.10"]
+  Gluetun["Gluetun HTTP:8096"]
+  Jellyfin["Jellyfin HTTP:8096"]
+  
+  style user1     stroke:#2962FF,   stroke-width:2px
+  style user2     stroke:#2962FF,   stroke-width:2px
+  style NIC       stroke:#2962FF,   stroke-width:2px
+  style Gluetun   stroke:#2962FF,   stroke-width:2px
+  style Jellyfin  stroke:#2962FF,   stroke-width:2px
+
+  linkStyle 0     stroke:red,       stroke-width:2px,  stroke-dasharray:5
+  linkStyle 1     stroke:green,     stroke-width:2px,  stroke-dasharray:5
+  linkStyle 2     stroke:red,       stroke-width:2px,  stroke-dasharray:5
+  linkStyle 3     stroke:green,     stroke-width:2px,  stroke-dasharray:5
+  linkStyle 4     stroke:green,     stroke-width:2px,  stroke-dasharray:5
+
+  user1_NIC@{        animation: slow }
+  user2_NIC@{        animation: fast }
+  NIC_Jellyfin@{     animation: slow }
+  NIC_Gluetun@{      animation: fast }
+  Gluetun_Jellyfin@{ animation: fast }
 ```
 
 </center>
@@ -531,56 +733,73 @@ This architecture provides a secure, scalable, and manageable solution for remot
 ``` mermaid
 flowchart LR
   subgraph subGraph0["Internet Zone"]
-    goodguy["&#128522 Good Guys"]
-    badguy["&#128373 Bad Guys"]
+    goodguy["😊 Good Guys"]
+    badguy["🕵 Bad Guys"]
   end
   subgraph subGraph1["Reverse Proxy Layer"]
-    traefik["Traefik"]
-    crowdsec["CrowdSec"]
+    traefik["🛡️Traefik"]
+    crowdsec["🔍 CrowdSec"]
   end
   subgraph subGraph2["Auth Layer"]
-    auth["Authentik"]
+    auth["🛂 Authentik"]
   end
-  subgraph subGraph3["Docker Web Applications"]
-    webauth["Web Apps<p>Auth / SSO / MFA"]
-    webapp["Web Apps"]
+  subgraph subGraph3["Internal Web Applications"]
+    webauth["👮‍♂️ Web Apps<p>Auth / SSO / MFA</p>"]
+    webapp["🖥️ Web Apps"]
   end
-    block["Access Blocked"]
-    goodguy -- 1 ---> traefik
-    badguy -- 1 ---> traefik
-    traefik -- 2 ---> crowdsec & crowdsec
-    crowdsec -- 3 ---> traefik
-    crowdsec -. 3 .-> traefik
-    traefik -. 4 -.-> block
-    traefik -- 4 --> webauth
-    webauth -- 5 ---> auth
-    auth -- 6 ---> webauth
-    auth -. 6 .-> webauth
-    webauth -- 7 --> webapp
-    webauth -. 7 .-> block
-    crowdsec --- auth
-    style goodguy  fill:green,       stroke:white,      stroke-width:2px
-    style badguy   fill:brown,       stroke:white,      stroke-width:2px
-    style traefik  fill:blue,        stroke:white,      stroke-width:2px
-    style crowdsec fill:blue,        stroke:white,      stroke-width:2px
-    style webauth  fill:black,       stroke:white,      stroke-width:2px
-    style auth     fill:black,       stroke:white,      stroke-width:2px
-    style block    fill:brown,       stroke:white,      stroke-width:2px
-    style webapp   fill:green,       stroke:white,      stroke-width:2px
-    linkStyle 0 stroke:green,        stroke-width:2px,  fill:none
-    linkStyle 1 stroke:red,          stroke-width:2px,  fill:none,   stroke-dasharray:5,5
-    linkStyle 2 stroke:green,        stroke-width:2px,  fill:none
-    linkStyle 3 stroke:red,          stroke-width:2px,  fill:none,   stroke-dasharray:5,5
-    linkStyle 4 stroke:green,        stroke-width:2px,  fill:none
-    linkStyle 5 stroke:red,          stroke-width:2px,  fill:none,   stroke-dasharray:5,5
-    linkStyle 6 stroke:red,          stroke-width:2px,  fill:none,   stroke-dasharray:5,5
-    linkStyle 7 stroke:green,        stroke-width:2px,  fill:none
-    linkStyle 8 stroke:green,        stroke-width:2px,  fill:none
-    linkStyle 9 stroke:green,        stroke-width:2px,  fill:none
-    linkStyle 10 stroke:red,         stroke-width:2px,  fill:none,   stroke-dasharray:5,5
-    linkStyle 11 stroke:green,       stroke-width:2px,  fill:none
-    linkStyle 12 stroke:red,         stroke-width:2px,  fill:none,   stroke-dasharray:5,5
-    linkStyle 13 stroke:transparent, stroke-width:0, fill:none
+
+  block["💥 Access Blocked"]
+  goodguy  goodguy_traefik@     -- 1 ---> traefik
+  badguy   badguy_traefik@      -- 1 ---> traefik
+  traefik  traefik_crowdsec_0@  -- 2 ---> crowdsec
+  traefik  traefik_crowdsec_1@  -- 2 ---> crowdsec
+  crowdsec crowdsec_traefik_0@  -- 3 ---> traefik
+  crowdsec crowdsec_traefik_1@  -- 3 ---> traefik
+  traefik  traefik_block@       -- 4 ---> block
+  traefik  traefik_webauth@     -- 4 ---> webauth
+  webauth  webauth_auth@        -- 5 ---> auth
+  auth     auth_webauth_0@      -- 6 ---> webauth
+  auth     auth_webauth_1@      -- 6 ---> webauth
+  webauth  webauth_webapp@      -- 7 ---> webapp
+  webauth  webauth_block@       -- 7 -->  block
+  crowdsec ~~~~ auth
+
+  style goodguy   stroke:green,        stroke-width:2px
+  style badguy    stroke:brown,        stroke-width:2px
+  style traefik   stroke:blue,         stroke-width:2px
+  style crowdsec  stroke:blue,         stroke-width:2px
+  style auth      stroke:orange,       stroke-width:2px
+  style webauth   stroke:orange,       stroke-width:2px
+  style webapp    stroke:green,        stroke-width:2px
+  style block     stroke:brown,        stroke-width:2px
+  linkStyle 0     stroke:green,        stroke-width:2px
+  linkStyle 1     stroke:red,          stroke-width:2px,  stroke-dasharray:5
+  linkStyle 2     stroke:green,        stroke-width:2px
+  linkStyle 3     stroke:red,          stroke-width:2px,  stroke-dasharray:5
+  linkStyle 4     stroke:green,        stroke-width:2px
+  linkStyle 5     stroke:red,          stroke-width:2px,  stroke-dasharray:5
+  linkStyle 6     stroke:red,          stroke-width:2px,  stroke-dasharray:5
+  linkStyle 7     stroke:green,        stroke-width:2px
+  linkStyle 8     stroke:green,        stroke-width:2px
+  linkStyle 9     stroke:green,        stroke-width:2px
+  linkStyle 10    stroke:red,          stroke-width:2px,  stroke-dasharray:5
+  linkStyle 11    stroke:green,        stroke-width:2px
+  linkStyle 12    stroke:red,          stroke-width:2px,  stroke-dasharray:5
+
+  goodguy_traefik@{    animation: fast }
+  badguy_traefik@{     animation: slow }
+  traefik_crowdsec_0@{ animation: fast }
+  traefik_crowdsec_1@{ animation: slow }
+  crowdsec_traefik_0@{ animation: fast }
+  crowdsec_traefik_1@{ animation: slow }
+  traefik_block@{      animation: slow }
+  traefik_webauth@{    animation: fast }
+  webauth_auth@{       animation: fast }
+  auth_webauth_0@{     animation: fast }
+  auth_webauth_1@{     animation: slow }
+  webauth_webapp@{     animation: fast }
+  webauth_block@{      animation: slow }
+ 
 ```
 
 </br>
@@ -610,55 +829,81 @@ All mesh connections are authenticated and managed through Headscale, ensuring t
 
 ``` mermaid
 flowchart LR
-  %% Subgraph: Internet Zone
   subgraph subGraph0["Internet Zone"]
-    goodguy["😊 Tailscale Client"]
-    exit["🌐 Exit-Node<p>Network Exit"]
+    client["😊 Tailscale Client"]
+    badguy["🕵 Bad Guys"]
+  end
+  subgraph subGraph1["Reverse Proxy Layer"]
+    traefik["🛡️Traefik"]
+    crowdsec["🔍 CrowdSec"]
+  end
+  subgraph subGraph2["Tailscale Meshed Network"]
+    traefik    traefik_headscale@    -- 4 ---  headscale
+    headplane  headplane_headscale@  -- 8 ---  headscale
+    direction TB
+    headplane["✈️ Headplane<br>( Headscale WebUI )"]
+    headscale["🖧 Headscale<br>( Coordination Server )"]
+    tailscale["🛡️ Tailscale<br>( Exit-Node )"]
+  end
+  subgraph subGraph3["Internal Web Applications"]
+    headscale
+    webapp["🖥️ Web Apps"]
   end
 
-  %% Subgraph: Reverse Proxy Layer
-  subgraph subGraph1["Reverse Proxy"]
-    crowdsec["CrowdSec"]
-    traefik["Traefik"]
-  end
+  block["💥 Access Blocked"]
+  exit["🌐 Exit-Node<p>Network Exit"]
+  client     client_traefik@       -- 1 ---  traefik
+  badguy     badguy_traefik@       -- 1 ---  traefik
+  traefik    traefik_crowdsec_0@   -- 2 ---- crowdsec
+  traefik    traefik_crowdsec_1@   -- 2 ---- crowdsec
+  crowdsec   crowdsec_traefik_0@   -- 3 ---- traefik
+  crowdsec   crowdsec_traefik_1@   -- 3 ---- traefik
+  traefik    traefik_block@        -- 4 ---  block
+  headscale  headscale_tailscale@  -- 5 ---  tailscale
+  headscale  headscale_block@      -- 5 ---  block
+  tailscale  tailscale_webapp@     -- 6 ---  webapp
+  tailscale  tailscale_exit@       -- 7 ---  exit
+  crowdsec                         ~~~       headplane
 
-  %% Subgraph: Tailscale Service
-  subgraph subGraph2["Tailscale Service"]
-    headscale["Headscale<br>( Coordination Server )"]
-    headplane["😊 Headplane<br>( Headscale WebUI )"]
-    tailscale["Tailscale<br>( Exit-Node )"]
-  end
+  style client     stroke:green,        stroke-width:2px
+  style badguy     stroke:brown,        stroke-width:2px
+  style traefik    stroke:blue,         stroke-width:2px
+  style crowdsec   stroke:blue,         stroke-width:2px
+  style headplane  stroke:orange,       stroke-width:2px
+  style headscale  stroke:orange,       stroke-width:2px
+  style webapp     stroke:green,        stroke-width:2px
+  style block      stroke:brown,        stroke-width:2px
+  style tailscale  stroke:orange,       stroke-width:2px
+  style exit       stroke:green,        stroke-width:2px
 
-  %% Subgraph: Docker Web Applications
-  subgraph subGraph3["Docker Web Applications"]
-    webapp["Web Apps"]
-  end
+  linkStyle 0      stroke:green,        stroke-width:2px
+  linkStyle 1      stroke:green,        stroke-width:2px
+  linkStyle 2      stroke:green,        stroke-width:2px
+  linkStyle 3      stroke:red,          stroke-width:2px
+  linkStyle 4      stroke:green,        stroke-width:2px
+  linkStyle 5      stroke:red,          stroke-width:2px
+  linkStyle 6      stroke:green,        stroke-width:2px
+  linkStyle 7      stroke:red,          stroke-width:2px
+  linkStyle 8      stroke:red,          stroke-width:2px
+  linkStyle 9      stroke:green,        stroke-width:2px
+  linkStyle 10     stroke:red,          stroke-width:2px
+  linkStyle 11     stroke:green,        stroke-width:2px
+  linkStyle 12     stroke:green,        stroke-width:2px
+  linkStyle 13     stroke:transparent
 
-  goodguy -- 1 --> traefik
-  traefik -- 2 --> crowdsec
-  crowdsec -- 3 --> traefik
-  traefik -- 4 --> headscale
-  headscale -- 5 --> tailscale
-  tailscale -- 6 --> webapp
-  tailscale -- 7 --> exit
-  headplane -- 8 ---> headscale
-
-  style goodguy   fill:green, stroke:white,  stroke-width:2px
-  style traefik   fill:blue,  stroke:white,  stroke-width:2px
-  style crowdsec  fill:blue,  stroke:white,  stroke-width:2px
-  style headplane fill:black, stroke:white,  stroke-width:2px
-  style headscale fill:black, stroke:white,  stroke-width:2px
-  style tailscale fill:black, stroke:white,  stroke-width:2px
-  style webapp    fill:green, stroke:white,  stroke-width:2px
-  style exit      fill:green, stroke:white,  stroke-width:2px
-  linkStyle 0 stroke:green,   stroke-width:2px,  fill:none
-  linkStyle 1 stroke:green,   stroke-width:2px,  fill:none
-  linkStyle 2 stroke:green,   stroke-width:2px,  fill:none
-  linkStyle 3 stroke:green,   stroke-width:2px,  fill:none
-  linkStyle 4 stroke:green,   stroke-width:2px,  fill:none
-  linkStyle 5 stroke:green,   stroke-width:2px,  fill:none
-  linkStyle 6 stroke:green,   stroke-width:2px,  fill:none
-  linkStyle 7 stroke:green,   stroke-width:2px,  fill:none
+  client_traefik@{       animation: fast }
+  badguy_traefik@{       animation: slow }
+  traefik_crowdsec_0@{   animation: fast }
+  traefik_crowdsec_1@{   animation: slow }
+  crowdsec_traefik_0@{   animation: fast }
+  crowdsec_traefik_1@{   animation: slow }
+  traefik_headscale@{    animation: fast }
+  traefik_block@{        animation: slow }
+  headplane_headscale@{  animation: fast }
+  headscale_tailscale@{  animation: fast }
+  headscale_block@{      animation: slow }
+  tailscale_webapp@{     animation: fast }
+  tailscale_exit@{       animation: fast }
 ```
 
 </br></br>
