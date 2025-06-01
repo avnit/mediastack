@@ -74,12 +74,15 @@ sudo docker compose pull
 echo 
 echo Removing all non-persistent Docker containers, volumes, and networks...
 echo 
-sudo docker stop $(sudo docker ps -a -q)      # Stop all active Docker containers
-sudo docker rm   $(sudo docker ps -a -q)      # Remove all active Docker containers
-sudo docker container  prune -f               # Force-remove all Docker containers
-#sudo docker image      prune -a -f           # Force-remove all Docker images                   <-- THIS WILL FORCE ALL DOCKER IMAGES TO BE DOWNLOADED AGAIN
-sudo docker volume     prune -f               # Force-remove all non-persistent Docker volumes
-sudo docker network    prune -f               # Force-remove all Docker networks
+if [ -n "$containers" ]; then
+  sudo docker stop $containers            # Stop all active Docker containers
+  sudo docker rm   $containers            # Remove all active Docker containers
+fi
+
+sudo docker container  prune -f           # Force-remove all Docker containers
+#sudo docker image      prune -a -f       # Force-remove all Docker images                   <-- THIS WILL FORCE ALL DOCKER IMAGES TO BE DOWNLOADED AGAIN
+sudo docker volume     prune -f           # Force-remove all non-persistent Docker volumes
+sudo docker network    prune -f           # Force-remove all Docker networks
 
 echo 
 echo Moving configuration files into application folders...
