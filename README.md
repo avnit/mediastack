@@ -1048,7 +1048,7 @@ xRYtN-G.frqhgHAC3jqLMbBqVTTRwAs2lWxSTeHr
 The API Key can be stored in the Headplane configuration so its always used without prompting:
 
 ``` bash
-vi headscale-config.yaml
+vi headplane-config.yaml
 ```
 
 Update this section:  
