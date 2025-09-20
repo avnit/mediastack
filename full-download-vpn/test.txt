@@ -1,0 +1,36 @@
+
+✅ Found the following variables / values in your .env file:
+   - FOLDER_FOR_MEDIA=/shared/media/md # <-- Update for your folders - Synology Example: /volume1/media
+   - FOLDER_FOR_DATA=/shared/media/data # <-- Update for your folders - Synology Example: /volume1/docker/appdata
+   - PUID=1000
+   - PGID=1000
+
+Creating folders and setting permissions...
+
+
+Validating Docker Compose configuration...
+
+
+Pulling new / updated Docker images...
+
+
+Removing all non-persistent Docker containers, volumes, and networks...
+
+Deleted Containers:
+1c1687bd0e742fa6a4e3e620909ba0de43ca3378f70db79c03c1fef3b3c82d0d
+74f5700f2a640c17133f7976dde257fbd427e6032ba42494216a99eb0da320b1
+58f7f7340e0bdea860babc8a7b23a9330731874064306ffcada63387d183f5bd
+6656affd1898c2c1a2758467e3396f4bee19e725eb2721a558b390210573a462
+
+Total reclaimed space: 0B
+Total reclaimed space: 0B
+
+Moving configuration files into application folders...
+
+Permissions set to 600 on certs file /shared/media/data # <-- Update for your folders - Synology Example: /volume1/docker/appdata/traefik/letsencrypt/acme.json
+
+Recreating all Docker containers, volumes, and networks...
+
+
+All Docker containers are running... Removing all outdated Docker images that are not being used...
+

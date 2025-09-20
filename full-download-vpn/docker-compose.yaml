@@ -1379,7 +1379,7 @@ services:
 ###########################################################################
 ###########################################################################
   readarr:
-    image: lscr.io/linuxserver/readarr:develop
+    image: lscr.io/linuxserver/readarr:0.4.19-nightly
     container_name: readarr
     restart: unless-stopped
     depends_on:
@@ -1737,7 +1737,7 @@ services:
 ###########################################################################
 ###########################################################################
   whisparr:
-    image: hotio/whisparr:nightly
+    image: ghcr.io/hotio/whisparr:latest
     container_name: whisparr
     restart: unless-stopped
     depends_on:
