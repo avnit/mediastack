@@ -81,9 +81,9 @@ fi
 
 sudo docker container  prune -f           # Force-remove all Docker containers
 # sudo docker image      prune -a -f       # Force-remove all Docker images                   <-- THIS WILL FORCE ALL DOCKER IMAGES TO BE DOWNLOADED AGAIN
-sudo docker volume     prune -f           # Force-remove all non-persistent Docker volumes
-sudo docker network    prune -f           # Force-remove all Docker networks
-
+# sudo docker volume     prune -f           # Force-remove all non-persistent Docker volumes
+# sudo docker network    prune -f           # Force-remove all Docker networks
+FOLDER_FOR_DATA=/shared/media/data      # <-- Folder where the persistent data is stored
 echo 
 echo Moving configuration files into application folders...
 echo 
