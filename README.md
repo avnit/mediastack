@@ -1143,8 +1143,7 @@ Goto: [https://auth.example.com](https://auth.example.com) <-- change to your do
 
 Create a Crowdsec account, and obtain your Crowdsec security engine enrolement key from:  
 
-- [https://app.crowdsec.net/security-engines](https://app.crowdsec.net/security-engines)  
-
+- [https://app.  
 ``` bash
 sudo docker exec crowdsec cscli console enroll cm1yipaufk0021g1u01fq27s3
 sudo docker exec crowdsec cscli collections install crowdsecurity/base-http-scenarios crowdsecurity/http-cve crowdsecurity/linux crowdsecurity/iptables crowdsecurity/sshd crowdsecurity/traefik crowdsecurity/plex
