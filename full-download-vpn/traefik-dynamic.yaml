@@ -18,9 +18,9 @@ tls:
       defaultGeneratedCert:
         resolver: letsencrypt
         domain:
-          main: example.com
+          main: asbblog.com
           sans:
-            - "*.example.com"
+            - "*.asbblog.com"
   options:
     default:
       minVersion: VersionTLS12
@@ -50,8 +50,8 @@ http:
           - OPTIONS
           - PUT
         accessControlAllowOriginList:
-          - https://example.com
-          - https://*.example.com
+          - https://asbblog.com
+          - https://*.asbblog.com
         accessControlMaxAge: 100
         addVaryHeader: true
         browserXssFilter: true
