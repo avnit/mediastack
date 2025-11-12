@@ -14,7 +14,7 @@
 
 http:
   routers:
-    synology:                                # Synology DSM
+    synology:                                # Synology DSM (from original file)
       rule: "Host(`synology.asbblog.com`)"
       service: synology
       entryPoints:
@@ -26,7 +26,7 @@ http:
         - security-headers@file
         - traefik-bouncer@file
 
-    gateway:                                 # Ubiquiti Dream Machine
+    gateway:                                 # Ubiquiti Dream Machine (from original file)
       rule: "Host(`gateway.asbblog.com`)"
       service: gateway
       entryPoints:
@@ -38,11 +38,163 @@ http:
         - security-headers@file
         - traefik-bouncer@file
 
+    # --- ADDED SERVICES FROM PI-HOLE ---
+
+    arr:
+      rule: "Host(`arr.asbblog.com`)"
+      service: arr
+      entryPoints: ["secureweb"]
+      tls: { certResolver: letsencrypt }
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+        - traefik-bouncer@file
+
+    deb2:
+      rule: "Host(`deb2.asbblog.com`)"
+      service: deb2
+      entryPoints: ["secureweb"]
+      tls: { certResolver: letsencrypt }
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+        - traefik-bouncer@file
+
+    media:
+      rule: "Host(`media.asbblog.com`)"
+      service: media
+      entryPoints: ["secureweb"]
+      tls: { certResolver: letsencrypt }
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+        - traefik-bouncer@file
+        
+    n8n:
+      rule: "Host(`n8n.asbblog.com`)"
+      service: n8n
+      entryPoints: ["secureweb"]
+      tls: { certResolver: letsencrypt }
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+        - traefik-bouncer@file
+
+    nas:
+      rule: "Host(`nas.asbblog.com`)"
+      service: nas
+      entryPoints: ["secureweb"]
+      tls: { certResolver: letsencrypt }
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+        - traefik-bouncer@file
+
+    orange:
+      rule: "Host(`orange.asbblog.com`)"
+      service: orange
+      entryPoints: ["secureweb"]
+      tls: { certResolver: letsencrypt }
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+        - traefik-bouncer@file
+
+    pbs:
+      rule: "Host(`pbs.asbblog.com`)"
+      service: pbs
+      entryPoints: ["secureweb"]
+      tls: { certResolver: letsencrypt }
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+        - traefik-bouncer@file
+
+    pi2:
+      rule: "Host(`pi2.asbblog.com`)"
+      service: pi2
+      entryPoints: ["secureweb"]
+      tls: { certResolver: letsencrypt }
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+        - traefik-bouncer@file
+        
+    pi3:
+      rule: "Host(`pi3.asbblog.com`)"
+      service: pi3
+      entryPoints: ["secureweb"]
+      tls: { certResolver: letsencrypt }
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+        - traefik-bouncer@file
+        
+    pi4:
+      rule: "Host(`pi4.asbblog.com`)"
+      service: pi4
+      entryPoints: ["secureweb"]
+      tls: { certResolver: letsencrypt }
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+        - traefik-bouncer@file
+
+    portainer:
+      rule: "Host(`portainer.asbblog.com`)"
+      service: portainer
+      entryPoints: ["secureweb"]
+      tls: { certResolver: letsencrypt }
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+        - traefik-bouncer@file
+
+    pve:
+      rule: "Host(`pve.asbblog.com`)"
+      service: pve
+      entryPoints: ["secureweb"]
+      tls: { certResolver: letsencrypt }
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+        - traefik-bouncer@file
+
+    pve2:
+      rule: "Host(`pve2.asbblog.com`)"
+      service: pve2
+      entryPoints: ["secureweb"]
+      tls: { certResolver: letsencrypt }
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+        - traefik-bouncer@file
+        
+    pve3:
+      rule: "Host(`pve3.asbblog.com`)"
+      service: pve3
+      entryPoints: ["secureweb"]
+      tls: { certResolver: letsencrypt }
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+        - traefik-bouncer@file
+        
+    synology-local:
+      rule: "Host(`synology-local.asbblog.com`)"
+      service: synology-local
+      entryPoints: ["secureweb"]
+      tls: { certResolver: letsencrypt }
+      middlewares:
+        - authentik-forwardauth@file
+        - security-headers@file
+        - traefik-bouncer@file
+
   services:
     synology:
       loadBalancer:
         servers:
-          - url: "https://192.168.84.80:5001"   # Synology Web UI - HTTP (Insecure)
+          - url: "https://192.168.0.158:5001"   # Synology Web UI - HTTPS
         passHostHeader: true
         serversTransport: insecure-no-verify          
 
@@ -50,6 +202,104 @@ http:
       loadBalancer:
         servers:
           - url: "https://192.168.0.1"        # Ubiquiti Web UI - HTTPS
+        passHostHeader: true
+        serversTransport: insecure-no-verify
+
+    # --- ADDED SERVICES FROM PI-HOLE ---
+    
+    arr:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.0.45:9000" # <-- VERIFY PORT
+        passHostHeader: true
+
+    deb2:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.0.14" # <-- VERIFY PORT
+        passHostHeader: true
+        
+    media:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.1.37:3000" # <-- VERIFY PORT
+        passHostHeader: true
+        
+    n8n:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.0.42:5678" # Default n8n port
+        passHostHeader: true
+        
+    nas:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.68.79:5001" # <-- VERIFY PORT
+        passHostHeader: true
+        
+    orange:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.0.74:80" # <-- VERIFY PORT (Same IP as Portainer)
+        passHostHeader: true
+        
+    pbs:
+      loadBalancer:
+        servers:
+          - url: "https://192.168.1.45:8007" # Default Proxmox BS port
+        passHostHeader: true
+        serversTransport: insecure-no-verify
+        
+    pi2:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.0.68:80/admin" # <-- VERIFY PORT
+        passHostHeader: true
+        
+    pi3:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.68.133:80/admin" # <-- VERIFY PORT
+        passHostHeader: true
+        
+    pi4:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.68.160:80/admin" # <-- VERIFY PORT
+        passHostHeader: true
+
+    portainer:
+      loadBalancer:
+        servers:
+          - url: "https://192.168.0.74:9443" # Default Portainer HTTPS port
+        passHostHeader: true
+        serversTransport: insecure-no-verify
+        
+    pve:
+      loadBalancer:
+        servers:
+          - url: "https://192.168.68.117:8006" # Default Proxmox VE port
+        passHostHeader: true
+        serversTransport: insecure-no-verify
+
+    pve2:
+      loadBalancer:
+        servers:
+          - url: "https://192.168.74.1:8006" # Default Proxmox VE port
+        passHostHeader: true
+        serversTransport: insecure-no-verify
+        
+    pve3:
+      loadBalancer:
+        servers:
+          - url: "https://192.168.69.112:8006" # Default Proxmox VE port
+        passHostHeader: true
+        serversTransport: insecure-no-verify
+        
+    synology-local:
+      loadBalancer:
+        servers:
+          - url: "https://192.168.96.54:5001" # Default Synology HTTPS port
         passHostHeader: true
         serversTransport: insecure-no-verify
 

@@ -54,7 +54,7 @@ noise:
 # IPv4: https://github.com/tailscale/tailscale/blob/22ebb25e833264f58d7c3f534a8b166894a89536/net/tsaddr/tsaddr.go#L33
 # Any other range is NOT supported, and it will cause unexpected issues.
 prefixes:
-  v4: 100.64.0.0/10
+  v4: 192.168.68.0/24
   v6: fd7a:115c:a1e0::/48
 
   # Strategy used for allocation of IPs to nodes, available options:
@@ -100,7 +100,7 @@ derp:
 
     # For better connection stability (especially when using an Exit-Node and DNS is not working),
     # it is possible to optionally add the public IPv4 and IPv6 address to the Derp-Map using:
-    ipv4: 1.2.3.4
+    ipv4: 192.168.1.37
     ipv6: 2001:db8::1
 
   # List of externally available DERP maps encoded in JSON
@@ -199,7 +199,7 @@ acme_url: https://acme-v02.api.letsencrypt.org/directory
 acme_email: "abambah@gmail.com"
 
 # Domain name to request a TLS certificate for:
-tls_letsencrypt_hostname: "test.asbblog.com"
+tls_letsencrypt_hostname: "media.asbblog.com"
 
 # Path to store certificates and metadata needed by
 # letsencrypt
@@ -272,7 +272,7 @@ dns:
   nameservers:
     global:
       - 1.1.1.1
-      - 1.0.0.1
+      - 192.168.68.160
       - 2606:4700:4700::1111
       - 2606:4700:4700::1001
 

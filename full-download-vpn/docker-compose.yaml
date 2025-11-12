@@ -1,3 +1,24 @@
+#
+# --- FIXES APPLIED ---
+#
+# 1. Corrected all Traefik 'services' labels for containers using 'network_mode: "service:gluetun"'.
+#    - Traefik can't see containers in a different network namespace.
+#    - The fix is to point Traefik to the 'gluetun' container on the 'mediastack' network,
+#      using the port that 'gluetun' exposes for that service.
+#    - Example:
+#      - traefik.http.services.radarr.loadbalancer.server.port=7878
+#      + traefik.http.services.radarr.loadbalancer.server=http://gluetun:7878
+#
+# 2. Corrected 'unpackerr' environment variables.
+#    - 'unpackerr' is on the 'mediastack' network and couldn't see the *arr* services
+#      on the 'gluetun' network.
+#    - The fix is to point 'unpackerr' to the 'gluetun' container's hostname and port.
+#    - Example:
+#      - UN_SONARR_0_URL=http://sonarr:8989
+#      + UN_SONARR_0_URL=http://gluetun:8989
+#
+# 3. Corrected service name 'authentic-worker' to 'authentik-worker' for consistency.
+#
 ###########################################################################
 ###########################################################################
 networks:
@@ -202,7 +223,7 @@ services:
       - traefik.http.services.authentik.loadbalancer.server.port=9000
     # MIDDLEWARES
 
-  authentic-worker:
+  authentik-worker:
     image: ghcr.io/goauthentik/server:${AUTHENTIK_VERSION:?err}
     container_name: authentik-worker
     restart: unless-stopped
@@ -637,8 +658,7 @@ services:
       - traefik.http.routers.bazarr.entrypoints=secureweb
       - traefik.http.routers.bazarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.bazarr.loadbalancer.server.scheme=http
-      - traefik.http.services.bazarr.loadbalancer.server.port=6767
+      - traefik.http.services.bazarr.loadbalancer.server=http://gluetun:6767
     # MIDDLEWARES
 
 ###########################################################################
@@ -779,8 +799,7 @@ services:
       - traefik.http.routers.filebot.entrypoints=secureweb
       - traefik.http.routers.filebot.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.filebot.loadbalancer.server.scheme=http
-      - traefik.http.services.filebot.loadbalancer.server.port=5454
+      - traefik.http.services.filebot.loadbalancer.server=http://gluetun:5454
     # MIDDLEWARES
 
 ###########################################################################
@@ -817,8 +836,7 @@ services:
       - traefik.http.routers.flaresolverr.entrypoints=secureweb
       - traefik.http.routers.flaresolverr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.flaresolverr.loadbalancer.server.scheme=http
-      - traefik.http.services.flaresolverr.loadbalancer.server.port=8191
+      - traefik.http.services.flaresolverr.loadbalancer.server=http://gluetun:8191
     # MIDDLEWARES
 
 ###########################################################################
@@ -919,6 +937,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /root/homepage/config:/app/config
+    # NOTE: Using an absolute path for 'env_file' is fragile.
+    # Consider using a relative path like './homepage.env'
     env_file: /root/homepage/.env
       # - UMASK=${UMASK:?err}
       # - TZ=${TIMEZONE:?err}
@@ -972,8 +992,7 @@ services:
       - traefik.http.routers.huntarr.entrypoints=secureweb
       - traefik.http.routers.huntarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.huntarr.loadbalancer.server.scheme=http
-      - traefik.http.services.huntarr.loadbalancer.server.port=9705
+      - traefik.http.services.huntarr.loadbalancer.server=http://gluetun:9705
     # MIDDLEWARES
 
 ###########################################################################
@@ -1021,8 +1040,7 @@ services:
       - traefik.http.routers.jellyfin.entrypoints=secureweb
       - traefik.http.routers.jellyfin.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.jellyfin.loadbalancer.server.scheme=http
-      - traefik.http.services.jellyfin.loadbalancer.server.port=8096
+      - traefik.http.services.jellyfin.loadbalancer.server=http://gluetun:8096
     # MIDDLEWARES
 
 ###########################################################################
@@ -1061,8 +1079,7 @@ services:
       - traefik.http.routers.jellyseerr.entrypoints=secureweb
       - traefik.http.routers.jellyseerr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.jellyseerr.loadbalancer.server.scheme=http
-      - traefik.http.services.jellyseerr.loadbalancer.server.port=5055
+      - traefik.http.services.jellyseerr.loadbalancer.server=http://gluetun:5055
     # MIDDLEWARES
 
 ###########################################################################
@@ -1103,8 +1120,7 @@ services:
       - traefik.http.routers.lidarr.entrypoints=secureweb
       - traefik.http.routers.lidarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.lidarr.loadbalancer.server.scheme=http
-      - traefik.http.services.lidarr.loadbalancer.server.port=8686
+      - traefik.http.services.lidarr.loadbalancer.server=http://gluetun:8686
     # MIDDLEWARES
 
 ###########################################################################
@@ -1145,8 +1161,7 @@ services:
       - traefik.http.routers.mylar.entrypoints=secureweb
       - traefik.http.routers.mylar.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.mylar.loadbalancer.server.scheme=http
-      - traefik.http.services.mylar.loadbalancer.server.port=8090
+      - traefik.http.services.mylar.loadbalancer.server=http://gluetun:8090
     # MIDDLEWARES
 
 ###########################################################################
@@ -1203,8 +1218,7 @@ services:
       - traefik.http.routers.plex.entrypoints=secureweb
       - traefik.http.routers.plex.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.plex.loadbalancer.server.scheme=http
-      - traefik.http.services.plex.loadbalancer.server.port=32400
+      - traefik.http.services.plex.loadbalancer.server=http://gluetun:32400
     # MIDDLEWARES
 
 ###########################################################################
@@ -1278,8 +1292,7 @@ services:
       - traefik.http.routers.prowlarr.entrypoints=secureweb
       - traefik.http.routers.prowlarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.prowlarr.loadbalancer.server.scheme=http
-      - traefik.http.services.prowlarr.loadbalancer.server.port=9696
+      - traefik.http.services.prowlarr.loadbalancer.server=http://gluetun:9696
     # MIDDLEWARES
 
 ###########################################################################
@@ -1322,8 +1335,7 @@ services:
       - traefik.http.routers.qbittorrent.entrypoints=secureweb
       - traefik.http.routers.qbittorrent.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.qbittorrent.loadbalancer.server.scheme=http
-      - traefik.http.services.qbittorrent.loadbalancer.server.port=${WEBUI_PORT_QBITTORRENT:?err}
+      - traefik.http.services.qbittorrent.loadbalancer.server=http://gluetun:${WEBUI_PORT_QBITTORRENT:?err}
     # MIDDLEWARES
 
 ###########################################################################
@@ -1364,8 +1376,7 @@ services:
       - traefik.http.routers.radarr.entrypoints=secureweb
       - traefik.http.routers.radarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.radarr.loadbalancer.server.scheme=http
-      - traefik.http.services.radarr.loadbalancer.server.port=7878
+      - traefik.http.services.radarr.loadbalancer.server=http://gluetun:7878
     # MIDDLEWARES
 
 ###########################################################################
@@ -1406,8 +1417,7 @@ services:
       - traefik.http.routers.readarr.entrypoints=secureweb
       - traefik.http.routers.readarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.readarr.loadbalancer.server.scheme=http
-      - traefik.http.services.readarr.loadbalancer.server.port=8787
+      - traefik.http.services.readarr.loadbalancer.server=http://gluetun:8787
     # MIDDLEWARES
 
 ###########################################################################
@@ -1448,8 +1458,7 @@ services:
       - traefik.http.routers.sabnzbd.entrypoints=secureweb
       - traefik.http.routers.sabnzbd.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.sabnzbd.loadbalancer.server.scheme=http
-      - traefik.http.services.sabnzbd.loadbalancer.server.port=8080
+      - traefik.http.services.sabnzbd.loadbalancer.server=http://gluetun:8080
     # MIDDLEWARES
 
 ###########################################################################
@@ -1490,8 +1499,7 @@ services:
       - traefik.http.routers.sonarr.entrypoints=secureweb
       - traefik.http.routers.sonarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.sonarr.loadbalancer.server.scheme=http
-      - traefik.http.services.sonarr.loadbalancer.server.port=8989
+      - traefik.http.services.sonarr.loadbalancer.server=http://gluetun:8989
     # MIDDLEWARES
 
 ###########################################################################
@@ -1533,7 +1541,7 @@ services:
     network_mode: "service:gluetun"
 #    ports:
 #      - ${TDARR_SERVER_PORT:?err}:${TDARR_SERVER_PORT:?err}      # Configured in Gluetun VPN container
-#      - ${WEBUI_PORT_TDARR:?err}:${WEBUI_PORT_TDARR:?err}        # Configured in Gluetun VPN container
+#      - ${WEBUI_PORT_TDARR:?err}:${WEBUI_PORT_TDARR:?err}        # ConfigVured in Gluetun VPN container
     labels:
       - traefik.enable=true
     # ROUTERS
@@ -1542,8 +1550,7 @@ services:
       - traefik.http.routers.tdarr.entrypoints=secureweb
       - traefik.http.routers.tdarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.tdarr.loadbalancer.server.scheme=http
-      - traefik.http.services.tdarr.loadbalancer.server.port=${WEBUI_PORT_TDARR:?err}
+      - traefik.http.services.tdarr.loadbalancer.server=http://gluetun:${WEBUI_PORT_TDARR:?err}
     # MIDDLEWARES
 
   tdarr-node:
@@ -1629,7 +1636,7 @@ services:
       - UN_FOLDERS_BUFFER=20000
       ## Mylar Settings
       ## Mylar Config - Copy API Key from: http://mylar:8090/general/settings
-      - UN_MYLAR_0_URL=http://mylar:8090
+      - UN_MYLAR_0_URL=http://gluetun:8090
       - UN_MYLAR_0_API_KEY=0123456789abcdef0123456789abcdef
       - UN_MYLAR_0_PATHS_0=/data/torrents/comics
       - UN_MYLAR_0_PROTOCOLS=torrent
@@ -1639,7 +1646,7 @@ services:
       - UN_MYLAR_0_SYNCTHING=false
       ## Sonarr Settings
       ## Sonarr Config - Copy API Key from: http://sonarr:8989/general/settings
-      - UN_SONARR_0_URL=http://sonarr:8989
+      - UN_SONARR_0_URL=http://gluetun:8989
       - UN_SONARR_0_API_KEY=0123456789abcdef0123456789abcdef
       - UN_SONARR_0_PATHS_0=/data/torrents/anime
       - UN_SONARR_0_PATHS_1=/data/torrents/tv
@@ -1650,7 +1657,7 @@ services:
       - UN_SONARR_0_SYNCTHING=false
       ## Radarr Settings
       ## Radarr Config - Copy API Key from: http://radarr:7878/general/settings
-      - UN_RADARR_0_URL=http://radarr:7878
+      - UN_RADARR_0_URL=http://gluetun:7878
       - UN_RADARR_0_API_KEY=0123456789abcdef0123456789abcdef
       - UN_RADARR_0_PATHS_0=/data/torrents/movies
       - UN_RADARR_0_PROTOCOLS=torrent
@@ -1660,8 +1667,8 @@ services:
       - UN_RADARR_0_SYNCTHING=false
       ## Lidarr Settings
       ## Lidarr Config - Copy API Key from: http://lidarr:8686/general/settings
-      - UN_LIDARR_0_URL=http://lidarr:8686
-      - UN_LIDARR_0_API_KEY=0123456789abcdef0123456789abcdef
+      - UN_LIDARR_0_URL=http://gluetun:8686
+      - UN_LLIDARR_0_API_KEY=0123456789abcdef0123456789abcdef
       - UN_LIDARR_0_PATHS_0=/data/torrents/music
       - UN_LIDARR_0_PROTOCOLS=torrent
       - UN_LIDARR_0_TIMEOUT=10s
@@ -1670,7 +1677,7 @@ services:
       - UN_LIDARR_0_SYNCTHING=false
       ## Readarr Settings
       ## Readarr Config - Copy API Key from: http://readarr:8787/general/settings
-      - UN_READARR_0_URL=http://readarr:8787
+      - UN_READARR_0_URL=http://gluetun:8787
       - UN_READARR_0_API_KEY=0123456789abcdef0123456789abcdef
       - UN_READARR_0_PATHS_0=/data/torrents/books
       - UN_READARR_0_PROTOCOLS=torrent
@@ -1680,7 +1687,7 @@ services:
       - UN_READARR_0_SYNCTHING=false
       ## Whisparr Settings
       ## Whisparr Config - Copy API Key from: http://readarr:6969/general/settings
-      - UN_WHISPARR_0_URL=http://whisparr:6969
+      - UN_WHISPARR_0_URL=http://gluetun:6969
       - UN_WHISPARR_0_API_KEY=0123456789abcdef0123456789abcdef
       - UN_WHISPARR_0_PATHS_0=/data/torrents/xxx
       - UN_WHISPARR_0_PROTOCOLS=torrent
@@ -1763,6 +1770,5 @@ services:
       - traefik.http.routers.whisparr.entrypoints=secureweb
       - traefik.http.routers.whisparr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     # SERVICES
-      - traefik.http.services.whisparr.loadbalancer.server.scheme=http
-      - traefik.http.services.whisparr.loadbalancer.server.port=6969
+      - traefik.http.services.whisparr.loadbalancer.server=http://gluetun:6969
     # MIDDLEWARES
