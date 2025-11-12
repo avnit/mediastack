@@ -15,7 +15,7 @@
 http:
   routers:
     synology:                                # Synology DSM
-      rule: "Host(`synology.example.com`)"
+      rule: "Host(`synology.asbblog.com`)"
       service: synology
       entryPoints:
         - secureweb
@@ -27,7 +27,7 @@ http:
         - traefik-bouncer@file
 
     gateway:                                 # Ubiquiti Dream Machine
-      rule: "Host(`gateway.example.com`)"
+      rule: "Host(`gateway.asbblog.com`)"
       service: gateway
       entryPoints:
         - secureweb
@@ -42,14 +42,14 @@ http:
     synology:
       loadBalancer:
         servers:
-          - url: "https://192.168.1.8:5001"   # Synology Web UI - HTTP (Insecure)
+          - url: "https://192.168.84.80:5001"   # Synology Web UI - HTTP (Insecure)
         passHostHeader: true
         serversTransport: insecure-no-verify          
 
     gateway:
       loadBalancer:
         servers:
-          - url: "https://192.168.1.1"        # Ubiquiti Web UI - HTTPS
+          - url: "https://192.168.0.1"        # Ubiquiti Web UI - HTTPS
         passHostHeader: true
         serversTransport: insecure-no-verify
 

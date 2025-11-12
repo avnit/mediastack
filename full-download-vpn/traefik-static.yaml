@@ -43,9 +43,9 @@ entryPoints:
         options: default
         certResolver: letsencrypt
         domains:
-          - main: example.com
+          - main: asbblog.com
             sans:
-              - "*.example.com"
+              - "*.asbblog.com"
   metrics:
     address: :8082
 

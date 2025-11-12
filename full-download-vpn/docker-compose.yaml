@@ -911,18 +911,18 @@ services:
 ###########################################################################
 ###########################################################################
   homepage:
-    image: ghcr.io/gethomepage/homepage:latest
+    image: abambah/homepage2:latest
     container_name: homepage
     restart: unless-stopped
     ports:
       - ${WEBUI_PORT_HOMEPAGE:?err}:3000
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${FOLDER_FOR_DATA:?err}/homepage:/app/config
-    environment:
-      - UMASK=${UMASK:?err}
-      - TZ=${TIMEZONE:?err}
-      - HOMEPAGE_ALLOWED_HOSTS=homepage,homepage.${CLOUDFLARE_DNS_ZONE:?err},${CLOUDFLARE_DNS_ZONE:?err},localhost,${LOCAL_DOCKER_IP:?err}
+      - /root/homepage/config:/app/config
+    env_file: /root/homepage/.env
+      # - UMASK=${UMASK:?err}
+      # - TZ=${TIMEZONE:?err}
+      # - HOMEPAGE_ALLOWED_HOSTS=192.168.1.37,homepage,homepage.${CLOUDFLARE_DNS_ZONE:?err},${CLOUDFLARE_DNS_ZONE:?err},localhost,${LOCAL_DOCKER_IP:?err}
 # NOTE: Homepage MUST NOT connect to the Gluetun VPN container
     networks:
       - mediastack
