@@ -1146,7 +1146,7 @@ Create a Crowdsec account, and obtain your Crowdsec security engine enrolement k
 - [https://app.crowdsec.net/security-engines](https://app.crowdsec.net/security-engines)  
 
 ``` bash
-sudo docker exec crowdsec cscli console enroll cm1yipaufk0021g1u01fq27s3
+sudo docker exec crowdsec cscli console enroll cmcrb46280003jr02n1xkn3kx
 sudo docker exec crowdsec cscli collections install crowdsecurity/base-http-scenarios crowdsecurity/http-cve crowdsecurity/linux crowdsecurity/iptables crowdsecurity/sshd crowdsecurity/traefik crowdsecurity/plex
 sudo docker exec crowdsec cscli parsers install crowdsecurity/syslog-logs crowdsecurity/iptables-logs crowdsecurity/sshd-logs crowdsecurity/traefik-logs crowdsecurity/whitelists
 sudo docker exec crowdsec cscli appsec-configs install crowdsecurity/virtual-patching crowdsecurity/appsec-default crowdsecurity/generic-rules
