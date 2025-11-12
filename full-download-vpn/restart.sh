@@ -69,7 +69,7 @@ fi
 echo 
 echo Pulling new / updated Docker images...
 echo 
-sudo docker compose pull
+# sudo docker compose pull
 
 echo 
 echo Removing all non-persistent Docker containers, volumes, and networks...
@@ -80,7 +80,7 @@ if [ -n "$containers" ]; then
 fi
 
 sudo docker container  prune -f           # Force-remove all Docker containers
-sudo docker image      prune -a -f       # Force-remove all Docker images                   <-- THIS WILL FORCE ALL DOCKER IMAGES TO BE DOWNLOADED AGAIN
+# sudo docker image      prune -a -f       # Force-remove all Docker images                   <-- THIS WILL FORCE ALL DOCKER IMAGES TO BE DOWNLOADED AGAIN
 sudo docker volume     prune -f           # Force-remove all non-persistent Docker volumes
 sudo docker network    prune -f           # Force-remove all Docker networks
 
