@@ -14,7 +14,7 @@
 #      on the 'gluetun' network.
 #    - The fix is to point 'unpackerr' to the 'gluetun' container's hostname and port.
 #    - Example:
-#      - UN_SONARR_0_URL=http://sonarr:8989
+#      - UN_SONARR_0_URL=http://gluetun:8989
 #      + UN_SONARR_0_URL=http://gluetun:8989
 #
 # 3. Corrected service name 'authentic-worker' to 'authentik-worker' for consistency.
@@ -550,14 +550,18 @@ services:
       - NET_ADMIN
     devices:
       - /dev/net/tun:/dev/net/tun
+    healthcheck:
+      test: "wget -qO /dev/null http://127.0.0.1:${GLUETUN_CONTROL_PORT:?err}/v1/status || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     ports:
       - 8888:8888/tcp                         # Gluetun Local Network HTTP proxy
       - 8388:8388/tcp                         # Gluetun Local Network Shadowsocks
       - 8388:8388/udp                         # Gluetun Local Network Shadowsocks
       - ${GLUETUN_CONTROL_PORT:?err}:${GLUETUN_CONTROL_PORT:?err} # Gluetun Status Port
-
 # Comment out lines below if they are not going to use Gluetun VPN for Internet connection:
-
       - ${WEBUI_PORT_BAZARR:?err}:6767        # WebUI Portal: Bazarr
       - ${WEBUI_PORT_FILEBOT:?err}:5454       # WebUI Portal: Filebot
       - ${WEBUI_PORT_HUNTARR:?err}:9705       # WebUI Portal: Huntarr
@@ -571,15 +575,11 @@ services:
       - ${WEBUI_PORT_SABNZBD:?err}:8080       # WebUI Portal: SABnzbd
       - ${WEBUI_PORT_SONARR:?err}:8989        # WebUI Portal: Sonarr
       - ${WEBUI_PORT_WHISPARR:?err}:6969      # WebUI Portal: Whisparr
-
       - ${WEBUI_PORT_QBITTORRENT:?err}:${WEBUI_PORT_QBITTORRENT:?err}   # WebUI Portal: qBittorrent
-
       - ${QBIT_PORT:?err}:6881                # Transmission Torrent Port
-      - ${FLARESOLVERR_PORT:?err}:8191        # Service Port: FlareSolverr
-      
+      - ${FLARESOLVERR_PORT:?err}:8191        # Service Port: FlareSolverr  
       - ${TDARR_SERVER_PORT:?err}:${TDARR_SERVER_PORT:?err}   # Tdarr: Server Port
       - ${WEBUI_PORT_TDARR:?err}:${WEBUI_PORT_TDARR:?err}     # Tdarr: WebUI Portal
-
       - ${WEBUI_PORT_PLEX:?err}:32400         # WebUI Portal: Plex
 #      - 1900:1900/udp                           # DNLA Service       (Clashes with Synology: SSPD "File Services" --> "Advanced")
 #      - 5353:5353/udp                           # Plex Network Port  (Clashes with Synology: Bonjour "File Services" --> "Advanced")
@@ -589,7 +589,6 @@ services:
       - 32413:32413/udp                         # Plex Network Port
       - 32414:32414/udp                         # Plex Network Port
       - 32469:32469                             # Plex Network Port
-
     volumes:
       - ${FOLDER_FOR_DATA:?err}/gluetun:/gluetun
     environment:
@@ -1266,7 +1265,7 @@ services:
 ###########################################################################
 ###########################################################################
   prowlarr:
-    image: lscr.io/linuxserver/prowlarr:develop
+    image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
     restart: unless-stopped
     depends_on:
@@ -1390,7 +1389,7 @@ services:
 ###########################################################################
 ###########################################################################
   readarr:
-    image: lscr.io/linuxserver/readarr:0.4.19-nightly
+    image: lscr.io/linuxserver/readarr:latest
     container_name: readarr
     restart: unless-stopped
     depends_on:
@@ -1668,7 +1667,7 @@ services:
       ## Lidarr Settings
       ## Lidarr Config - Copy API Key from: http://lidarr:8686/general/settings
       - UN_LIDARR_0_URL=http://gluetun:8686
-      - UN_LLIDARR_0_API_KEY=0123456789abcdef0123456789abcdef
+      - UN_LIDARR_0_API_KEY=0123456789abcdef0123456789abcdef
       - UN_LIDARR_0_PATHS_0=/data/torrents/music
       - UN_LIDARR_0_PROTOCOLS=torrent
       - UN_LIDARR_0_TIMEOUT=10s
