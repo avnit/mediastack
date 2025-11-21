@@ -506,7 +506,7 @@ services:
 ###########################################################################
 ###########################################################################
   headplane:
-    image: ghcr.io/tale/headplane:v0.1
+    image: ghcr.io/tale/headplane:latest
     container_name: headplane
     restart: unless-stopped
     networks:
