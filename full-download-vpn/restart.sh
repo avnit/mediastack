@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 set -e
 
-FOLDER_FOR_YAMLS=~/mediastack/full-download-vpn/             # <-- Folder where the yaml and .env files are located
+FOLDER_FOR_YAMLS="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/"             # <-- Folder where the yaml and .env files are located
 
 # Check if .env exists
 cd $FOLDER_FOR_YAMLS
@@ -69,11 +69,12 @@ fi
 echo 
 echo Pulling new / updated Docker images...
 echo 
-# sudo docker compose pull
+sudo docker compose pull
 
 echo 
 echo Removing all non-persistent Docker containers, volumes, and networks...
 echo 
+containers=$(sudo docker ps -aq)
 if [ -n "$containers" ]; then
   sudo docker stop $containers            # Stop all active Docker containers
   sudo docker rm   $containers            # Remove all active Docker containers
@@ -83,7 +84,7 @@ sudo docker container  prune -f           # Force-remove all Docker containers
 # sudo docker image      prune -a -f       # Force-remove all Docker images                   <-- THIS WILL FORCE ALL DOCKER IMAGES TO BE DOWNLOADED AGAIN
 # sudo docker volume     prune -f           # Force-remove all non-persistent Docker volumes
 # sudo docker network    prune -f           # Force-remove all Docker networks
-FOLDER_FOR_DATA=/shared/media/data      # <-- Folder where the persistent data is stored
+
 echo 
 echo Moving configuration files into application folders...
 echo 

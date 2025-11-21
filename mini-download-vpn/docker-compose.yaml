@@ -25,7 +25,7 @@ services:
 ###########################################################################
 ###########################################################################
   postgresql:
-    image: docker.io/library/postgres:latest
+    image: docker.io/library/postgres:17
     container_name: postgresql
     restart: unless-stopped
     networks:
@@ -58,7 +58,7 @@ services:
 ###########################################################################
 ###########################################################################
   guacamole:
-    image: guacamole/guacamole
+    image: guacamole/guacamole:1.5.3
     container_name: guacamole
     restart: unless-stopped
     user: ${PUID:?err}:${PGID:?err}
@@ -92,7 +92,7 @@ services:
     # MIDDLEWARES
 
   guacd:
-    image: guacamole/guacd
+    image: guacamole/guacd:1.5.3
     container_name: guacd
     restart: unless-stopped
     user: ${PUID:?err}:${PGID:?err}
@@ -243,7 +243,7 @@ services:
 ###########################################################################
 ###########################################################################
   traefik:
-    image: traefik:latest
+    image: traefik:v2.10
     container_name: traefik
     restart: unless-stopped
     networks:
@@ -285,7 +285,7 @@ services:
 ###########################################################################
 ###########################################################################
   traefik-certs-dumper:
-    image: ldez/traefik-certs-dumper:latest
+    image: ldez/traefik-certs-dumper:v2.10.0
     container_name: traefik-certs-dumper
     restart: always
     networks:
@@ -313,7 +313,7 @@ services:
 ###########################################################################
 ###########################################################################
   crowdsec:
-    image: crowdsecurity/crowdsec:latest
+    image: crowdsecurity/crowdsec:v1.7.3
     container_name: crowdsec
     restart: always
     networks:
@@ -343,7 +343,7 @@ services:
 ###########################################################################
 ###########################################################################
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:v2.45.0
     container_name: prometheus
     restart: unless-stopped
     user: ${PUID:?err}:${PGID:?err}
@@ -380,7 +380,7 @@ services:
 ###########################################################################
 ###########################################################################
   grafana:
-    image: grafana/grafana-enterprise
+    image: grafana/grafana-enterprise:12.1.4
     container_name: grafana
     restart: unless-stopped
     user: ${PUID:?err}:${PGID:?err}
@@ -418,7 +418,7 @@ services:
 ###########################################################################
 ###########################################################################
   headscale:
-    image: headscale/headscale:latest
+    image: headscale/headscale:v0.22.3
     container_name: headscale
     restart: unless-stopped
     networks:
@@ -456,7 +456,7 @@ services:
 ###########################################################################
 ###########################################################################
   tailscale:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.88.4
     hostname: tailscale
     container_name: tailscale
     restart: unless-stopped
@@ -485,7 +485,7 @@ services:
 ###########################################################################
 ###########################################################################
   headplane:
-    image: ghcr.io/tale/headplane:latest
+    image: ghcr.io/tale/headplane:v0.1
     container_name: headplane
     restart: unless-stopped
     networks:
