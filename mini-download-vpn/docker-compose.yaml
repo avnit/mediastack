@@ -756,7 +756,7 @@ services:
 ###########################################################################
 ###########################################################################
   flaresolverr:
-    image: ghcr.io/flaresolverr/flaresolverr:latest
+    image: ghcr.io/flaresolverr/flaresolverr:v3.3.18
     container_name: flaresolverr
     restart: unless-stopped
     environment:
@@ -868,7 +868,7 @@ services:
 ###########################################################################
 ###########################################################################
   homepage:
-    image: ghcr.io/gethomepage/homepage:latest
+    image: ghcr.io/gethomepage/homepage:v1.7.0
     container_name: homepage
     restart: unless-stopped
     ports:
