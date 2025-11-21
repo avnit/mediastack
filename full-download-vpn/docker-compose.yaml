@@ -551,12 +551,7 @@ services:
       - NET_ADMIN
     devices:
       - /dev/net/tun:/dev/net/tun
-    healthcheck:
-      test: "wget -qO /dev/null http://127.0.0.1:${GLUETUN_CONTROL_PORT:?err}/v1/status || exit 1"
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
+
     ports:
       - 8888:8888/tcp                         # Gluetun Local Network HTTP proxy
       - 8388:8388/tcp                         # Gluetun Local Network Shadowsocks
