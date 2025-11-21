@@ -612,6 +612,12 @@ services:
       - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
       - HTTPPROXY=on
       - SHADOWSOCKS=on
+    healthcheck:
+      test: ["CMD-SHELL", "ping -q -c 1 1.1.1.1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 8030s # Give it time to establish VPN connection
     networks:
       - mediastack
 
