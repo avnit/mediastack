@@ -364,7 +364,7 @@ services:
 ###########################################################################
 ###########################################################################
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:v2.45.0
     container_name: prometheus
     restart: unless-stopped
     user: ${PUID:?err}:${PGID:?err}
@@ -439,7 +439,7 @@ services:
 ###########################################################################
 ###########################################################################
   headscale:
-    image: headscale/headscale:latest
+    image: headscale/headscale:v0.22.3
     container_name: headscale
     restart: unless-stopped
     networks:
@@ -477,7 +477,7 @@ services:
 ###########################################################################
 ###########################################################################
   tailscale:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.88.4
     hostname: tailscale
     container_name: tailscale
     restart: unless-stopped
@@ -506,7 +506,7 @@ services:
 ###########################################################################
 ###########################################################################
   headplane:
-    image: ghcr.io/tale/headplane:latest
+    image: ghcr.io/tale/headplane:v0.1
     container_name: headplane
     restart: unless-stopped
     networks:
