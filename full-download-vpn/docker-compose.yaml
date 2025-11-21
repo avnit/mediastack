@@ -544,6 +544,7 @@ services:
 ###########################################################################
   gluetun:
     image: qmcgaw/gluetun:latest
+    pull_policy: always
     container_name: gluetun
     restart: always
     cap_add:
@@ -1532,7 +1533,7 @@ services:
       - PGID=${PGID:?err}
       - UMASK=${UMASK:?err}
       - TZ=${TIMEZONE:?err}
-      - serverIP=0.0.0.0
+      - serverIP=localhost
       - serverPort=${TDARR_SERVER_PORT:?err}
       - webUIPort=${WEBUI_PORT_TDARR:?err}
       - internalNode=true
@@ -1571,7 +1572,7 @@ services:
       - UMASK=${UMASK:?err}
       - TZ=${TIMEZONE:?err}
       - nodeID=Tdarr_Node_1
-      - serverIP=0.0.0.0
+      - serverIP=localhost
       - serverPort=${TDARR_SERVER_PORT:?err}
     network_mode: "service:gluetun"
 
