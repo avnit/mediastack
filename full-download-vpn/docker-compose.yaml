@@ -46,7 +46,7 @@ services:
 ###########################################################################
 ###########################################################################
   postgresql:
-    image: docker.io/library/postgres:latest
+    image: docker.io/library/postgres:17
     container_name: postgresql
     restart: unless-stopped
     networks:
@@ -79,7 +79,7 @@ services:
 ###########################################################################
 ###########################################################################
   guacamole:
-    image: guacamole/guacamole
+    image: guacamole/guacamole:1.5.3
     container_name: guacamole
     restart: unless-stopped
     user: ${PUID:?err}:${PGID:?err}
@@ -113,7 +113,7 @@ services:
     # MIDDLEWARES
 
   guacd:
-    image: guacamole/guacd
+    image: guacamole/guacd:1.5.3
     container_name: guacd
     restart: unless-stopped
     user: ${PUID:?err}:${PGID:?err}
@@ -264,7 +264,7 @@ services:
 ###########################################################################
 ###########################################################################
   traefik:
-    image: traefik:latest
+    image: traefik:v2.10
     container_name: traefik
     restart: unless-stopped
     networks:
@@ -306,7 +306,7 @@ services:
 ###########################################################################
 ###########################################################################
   traefik-certs-dumper:
-    image: ldez/traefik-certs-dumper:latest
+    image: ldez/traefik-certs-dumper:v2.10.0
     container_name: traefik-certs-dumper
     restart: always
     networks:
@@ -334,7 +334,7 @@ services:
 ###########################################################################
 ###########################################################################
   crowdsec:
-    image: crowdsecurity/crowdsec:latest
+    image: crowdsecurity/crowdsec:v1.7.3
     container_name: crowdsec
     restart: always
     networks:
@@ -1536,7 +1536,7 @@ services:
     network_mode: "service:gluetun"
 #    ports:
 #      - ${TDARR_SERVER_PORT:?err}:${TDARR_SERVER_PORT:?err}      # Configured in Gluetun VPN container
-#      - ${WEBUI_PORT_TDARR:?err}:${WEBUI_PORT_TDARR:?err}        # ConfigVured in Gluetun VPN container
+#      - ${WEBUI_PORT_TDARR:?err}:${WEBUI_PORT_TDARR:?err}        # Configured in Gluetun VPN container
     labels:
       - traefik.enable=true
     # ROUTERS
@@ -1632,7 +1632,7 @@ services:
       ## Mylar Settings
       ## Mylar Config - Copy API Key from: http://mylar:8090/general/settings
       - UN_MYLAR_0_URL=http://gluetun:8090
-      - UN_MYLAR_0_API_KEY=0123456789abcdef0123456789abcdef
+      - UN_MYLAR_0_API_KEY=${UNPACKERR_MYLAR_API_KEY:?err}
       - UN_MYLAR_0_PATHS_0=/data/torrents/comics
       - UN_MYLAR_0_PROTOCOLS=torrent
       - UN_MYLAR_0_TIMEOUT=10s
@@ -1642,7 +1642,7 @@ services:
       ## Sonarr Settings
       ## Sonarr Config - Copy API Key from: http://sonarr:8989/general/settings
       - UN_SONARR_0_URL=http://gluetun:8989
-      - UN_SONARR_0_API_KEY=0123456789abcdef0123456789abcdef
+      - UN_SONARR_0_API_KEY=${UNPACKERR_SONARR_API_KEY:?err}
       - UN_SONARR_0_PATHS_0=/data/torrents/anime
       - UN_SONARR_0_PATHS_1=/data/torrents/tv
       - UN_SONARR_0_PROTOCOLS=torrent
@@ -1653,7 +1653,7 @@ services:
       ## Radarr Settings
       ## Radarr Config - Copy API Key from: http://radarr:7878/general/settings
       - UN_RADARR_0_URL=http://gluetun:7878
-      - UN_RADARR_0_API_KEY=0123456789abcdef0123456789abcdef
+      - UN_RADARR_0_API_KEY=${UNPACKERR_RADARR_API_KEY:?err}
       - UN_RADARR_0_PATHS_0=/data/torrents/movies
       - UN_RADARR_0_PROTOCOLS=torrent
       - UN_RADARR_0_TIMEOUT=10s
@@ -1663,7 +1663,7 @@ services:
       ## Lidarr Settings
       ## Lidarr Config - Copy API Key from: http://lidarr:8686/general/settings
       - UN_LIDARR_0_URL=http://gluetun:8686
-      - UN_LIDARR_0_API_KEY=0123456789abcdef0123456789abcdef
+      - UN_LIDARR_0_API_KEY=${UNPACKERR_LIDARR_API_KEY:?err}
       - UN_LIDARR_0_PATHS_0=/data/torrents/music
       - UN_LIDARR_0_PROTOCOLS=torrent
       - UN_LIDARR_0_TIMEOUT=10s
@@ -1673,7 +1673,7 @@ services:
       ## Readarr Settings
       ## Readarr Config - Copy API Key from: http://readarr:8787/general/settings
       - UN_READARR_0_URL=http://gluetun:8787
-      - UN_READARR_0_API_KEY=0123456789abcdef0123456789abcdef
+      - UN_READARR_0_API_KEY=${UNPACKERR_READARR_API_KEY:?err}
       - UN_READARR_0_PATHS_0=/data/torrents/books
       - UN_READARR_0_PROTOCOLS=torrent
       - UN_READARR_0_TIMEOUT=10s
@@ -1681,9 +1681,9 @@ services:
       - UN_READARR_0_DELETE_ORIG=false
       - UN_READARR_0_SYNCTHING=false
       ## Whisparr Settings
-      ## Whisparr Config - Copy API Key from: http://readarr:6969/general/settings
+      ## Whisparr Config - Copy API Key from: http://whisparr:6969/general/settings
       - UN_WHISPARR_0_URL=http://gluetun:6969
-      - UN_WHISPARR_0_API_KEY=0123456789abcdef0123456789abcdef
+      - UN_WHISPARR_0_API_KEY=${UNPACKERR_WHISPARR_API_KEY:?err}
       - UN_WHISPARR_0_PATHS_0=/data/torrents/xxx
       - UN_WHISPARR_0_PROTOCOLS=torrent
       - UN_WHISPARR_0_TIMEOUT=10s
