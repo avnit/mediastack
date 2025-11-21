@@ -46,7 +46,7 @@ services:
 ###########################################################################
 ###########################################################################
   postgresql:
-    image: docker.io/library/postgres:17
+    image: docker.io/library/postgres:latest
     container_name: postgresql
     restart: unless-stopped
     networks:
@@ -79,7 +79,7 @@ services:
 ###########################################################################
 ###########################################################################
   guacamole:
-    image: guacamole/guacamole:1.5.3
+    image: guacamole/guacamole:latest
     container_name: guacamole
     restart: unless-stopped
     user: ${PUID:?err}:${PGID:?err}
@@ -113,7 +113,7 @@ services:
     # MIDDLEWARES
 
   guacd:
-    image: guacamole/guacd:1.5.3
+    image: guacamole/guacd:latest
     container_name: guacd
     restart: unless-stopped
     user: ${PUID:?err}:${PGID:?err}
@@ -264,7 +264,7 @@ services:
 ###########################################################################
 ###########################################################################
   traefik:
-    image: traefik:v2.10
+    image: traefik:latest
     container_name: traefik
     restart: unless-stopped
     networks:
@@ -334,7 +334,7 @@ services:
 ###########################################################################
 ###########################################################################
   crowdsec:
-    image: crowdsecurity/crowdsec:v1.7.3
+    image: crowdsecurity/crowdsec:latest
     container_name: crowdsec
     restart: always
     networks:
@@ -364,7 +364,7 @@ services:
 ###########################################################################
 ###########################################################################
   prometheus:
-    image: prom/prometheus:v2.45.0
+    image: prom/prometheus:latest
     container_name: prometheus
     restart: unless-stopped
     user: ${PUID:?err}:${PGID:?err}
@@ -439,7 +439,7 @@ services:
 ###########################################################################
 ###########################################################################
   headscale:
-    image: headscale/headscale:v0.22.3
+    image: headscale/headscale:latest
     container_name: headscale
     restart: unless-stopped
     networks:
@@ -477,7 +477,7 @@ services:
 ###########################################################################
 ###########################################################################
   tailscale:
-    image: tailscale/tailscale:v1.88.4
+    image: tailscale/tailscale:latest
     hostname: tailscale
     container_name: tailscale
     restart: unless-stopped
