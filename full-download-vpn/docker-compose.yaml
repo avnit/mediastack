@@ -306,7 +306,7 @@ services:
 ###########################################################################
 ###########################################################################
   traefik-certs-dumper:
-    image: ldez/traefik-certs-dumper:v2.10.0
+    image: ldez/traefik-certs-dumper:latest
     container_name: traefik-certs-dumper
     restart: always
     networks:
@@ -345,7 +345,7 @@ services:
     ports:
       - 127.0.0.1:${CROWDSEC_PORT:?err}:8080
       - 6060:6060        # Provides Metrics for Prometheus
-      - 7422:7422        # Provides WAF AppSec
+      - 7423:7422        # Provides WAF AppSec
     depends_on:
       - traefik
     volumes:
