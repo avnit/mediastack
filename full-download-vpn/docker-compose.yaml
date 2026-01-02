@@ -316,6 +316,16 @@ services:
     image: crowdsecurity/crowdsec:latest
     container_name: crowdsec
     restart: always
+    healthcheck:
+      test:
+        - CMD
+        - cscli
+        - lapi
+        - status
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     networks:
       - mediastack
     user: ${PUID:?err}:${PGID:?err}
