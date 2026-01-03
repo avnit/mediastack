@@ -68,7 +68,7 @@ http:
 
     authentik-forwardauth:
       forwardAuth:
-        address: http://authentik:9000/outpost.goauthentik.io/auth/traefik
+        address: http://auth.example.com/outpost.goauthentik.io/auth/traefik
         trustForwardHeader: true
         authResponseHeaders:
           - X-authentik-username
