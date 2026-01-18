@@ -931,6 +931,7 @@ services:
 ###########################################################################
   homepage:
     image: abambah/homepage2:latest
+    #image: ghcr.io/gethomepage/homepage:latest
     container_name: homepage
     restart: unless-stopped
     ports:
