@@ -1,0 +1,30 @@
+# Environment files with sensitive data
+.env
+.env-old
+homepage.env
+
+# Docker volumes and data
+**/data/
+**/config/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
+*.code-workspace
+
+# Backup files
+*.bak
+*.backup
