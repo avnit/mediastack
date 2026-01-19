@@ -514,6 +514,16 @@ MediaStack uses environment files to store configuration and sensitive credentia
    ```
    This script will output all service API keys in both human-readable format and ready-to-use `HOMEPAGE_VAR_*` format for your Homepage dashboard.
 
+4. **Generate Browser Bookmarks** (optional):
+   ```bash
+   chmod +x generate-bookmarks.sh
+   ./generate-bookmarks.sh
+   ```
+   This script creates a `bookmarks.html` file with all MediaStack service links using your current `LOCAL_DOCKER_IP` from the `.env` file. Import this file into your browser for quick access to all services.
+   
+   > **Tip:** Re-run this script whenever you change your Docker host IP address to update all bookmark links automatically.
+
+
 ### Git Repository Safety
 
 If you're maintaining this as a git repository and want to ensure your `.env` file is never accidentally committed:
