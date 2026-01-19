@@ -488,7 +488,58 @@ Complete PostgreSQL configuration:
 2. Initialize Guacamole database: `./create_guacamole_database.sh`
 3. Restart the stack: `./restart.sh`  
 
-</br>
+<br>
+
+## Environment File Setup
+
+MediaStack uses environment files to store configuration and sensitive credentials. To protect your sensitive data from being committed to version control:
+
+### Initial Setup
+
+1. **Copy the template file**:
+   ```bash
+   cp .env.template .env
+   ```
+
+2. **Edit the `.env` file** with your actual values:
+   - VPN credentials (`VPN_USERNAME`, `VPN_PASSWORD`)
+   - Domain and email settings (`CLOUDFLARE_EMAIL`, `CLOUDFLARE_DNS_ZONE`, `CLOUDFLARE_DNS_API_TOKEN`)
+   - Database passwords (use `openssl rand -base64 60` to generate secure passwords)
+   - Email configuration for Authentik notifications
+   - Plex claim token from [https://account.plex.tv/en/claim](https://account.plex.tv/en/claim)
+
+3. **Extract API Keys** (after first deployment):
+   ```bash
+   ./get-apikeys.sh
+   ```
+   This script will output all service API keys in both human-readable format and ready-to-use `HOMEPAGE_VAR_*` format for your Homepage dashboard.
+
+### Git Repository Safety
+
+If you're maintaining this as a git repository and want to ensure your `.env` file is never accidentally committed:
+
+1. **Run the untrack script** (one time only):
+   ```bash
+   chmod +x untrack-env-files.sh
+   ./untrack-env-files.sh
+   ```
+
+2. **Commit the protection files**:
+   ```bash
+   git add .gitignore .env.template
+   git commit -m "Add environment file template and gitignore"
+   git push
+   ```
+
+After this setup:
+- ✅ Your `.env` file will never be tracked by git
+- ✅ `git pull` will never overwrite your local configuration
+- ✅ New users can easily copy `.env.template` to get started
+- ✅ Sensitive credentials remain secure
+
+> **Security Note**: The `.gitignore` file is configured to exclude `.env`, `.env-old`, and `homepage.env` files from version control to prevent accidental credential exposure.
+
+<br>
 
 ## Starting / Maintaining MediaStack
 

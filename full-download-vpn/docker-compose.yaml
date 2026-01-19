@@ -1890,9 +1890,9 @@ services:
       # SERVICES
       - traefik.http.services.whisparr.loadbalancer.server=http://gluetun:6969
       # HOMEPAGE
-      - homepage.group=Arr Stack
-      - homepage.name=Whisparr
-      - homepage.icon=whisparr.png
-      - homepage.href=https://whisparr.${CLOUDFLARE_DNS_ZONE:?err}
-      - homepage.description=Adult Media Manager
-    # MIDDLEWARES
+      # - homepage.group=Arr Stack
+      # - homepage.name=Whisparr
+      # - homepage.icon=whisparr.png
+      # - homepage.href=https://whisparr.${CLOUDFLARE_DNS_ZONE:?err}
+      # - homepage.description=Adult Media Manager
+      # MIDDLEWARES
