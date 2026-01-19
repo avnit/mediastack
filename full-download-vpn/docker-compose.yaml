@@ -114,7 +114,7 @@ services:
       - homepage.group=Remote Access
       - homepage.name=Guacamole
       - homepage.icon=guacamole.png
-      - homepage.href=https://guacamole.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:${WEBUI_PORT_GUACAMOLE:?err}
       - homepage.description=Remote Desktop Gateway
     # MIDDLEWARES
 
@@ -231,7 +231,7 @@ services:
       - homepage.group=Management
       - homepage.name=Authentik
       - homepage.icon=authentik.png
-      - homepage.href=https://auth.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:${WEBUI_PORT_AUTHENTIK:?err}
       - homepage.description=Identity Provider
     # MIDDLEWARES
 
@@ -309,7 +309,7 @@ services:
       - homepage.group=Management
       - homepage.name=Traefik
       - homepage.icon=traefik.png
-      - homepage.href=https://traefik.${CLOUDFLARE_DNS_ZONE:?err}/dashboard/
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:${WEBUI_PORT_TRAEFIK:?err}/dashboard/
       - homepage.description=Reverse Proxy
     # MIDDLEWARES
 
@@ -705,7 +705,7 @@ services:
       - homepage.group=Arr Stack
       - homepage.name=Bazarr
       - homepage.icon=bazarr.png
-      - homepage.href=https://bazarr.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:6767
       - homepage.description=Subtitle Manager
     # MIDDLEWARES
 
@@ -751,7 +751,7 @@ services:
       - homepage.group=Tools
       - homepage.name=Chromium
       - homepage.icon=chromium.png
-      - homepage.href=https://chromium.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:${WEBUI_PORT_CHROMIUM:?err}
       - homepage.description=Web Browser
     # MIDDLEWARES
 
@@ -814,7 +814,7 @@ services:
       - homepage.group=Management
       - homepage.name=DDNS Updater
       - homepage.icon=cloud-sync.png
-      - homepage.href=https://ddns-updater.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:${WEBUI_PORT_DDNS_UPDATER:?err}
       - homepage.description=Dynamic DNS Updater
     # MIDDLEWARES
 
@@ -864,7 +864,7 @@ services:
       - homepage.group=Tools
       - homepage.name=Filebot
       - homepage.icon=filebot.png
-      - homepage.href=https://filebot.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:5454
       - homepage.description=Media Renamer
     # MIDDLEWARES
 
@@ -907,7 +907,7 @@ services:
       - homepage.group=Tools
       - homepage.name=Flaresolverr
       - homepage.icon=flaresolverr.png
-      - homepage.href=https://flaresolverr.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:8191
       - homepage.description=Cloudflare Proxy
     # MIDDLEWARES
 
@@ -1031,7 +1031,7 @@ services:
       - homepage.group=Arr Stack
       - homepage.name=Huntarr
       - homepage.icon=huntarr.png
-      - homepage.href=https://huntarr.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:9705
       - homepage.description=Missing Content Manager
     # MIDDLEWARES
 
@@ -1085,7 +1085,7 @@ services:
       - homepage.group=Media
       - homepage.name=Jellyfin
       - homepage.icon=jellyfin.png
-      - homepage.href=https://jellyfin.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:8096
       - homepage.description=Media Server
     # MIDDLEWARES
 
@@ -1130,7 +1130,7 @@ services:
       - homepage.group=Media
       - homepage.name=Jellyseerr
       - homepage.icon=jellyseerr.png
-      - homepage.href=https://jellyseerr.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:5055
       - homepage.description=Media Request Manager
     # MIDDLEWARES
 
@@ -1177,7 +1177,7 @@ services:
       - homepage.group=Arr Stack
       - homepage.name=Lidarr
       - homepage.icon=lidarr.png
-      - homepage.href=https://lidarr.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:8686
       - homepage.description=Music Manager
     # MIDDLEWARES
 
@@ -1224,7 +1224,7 @@ services:
       - homepage.group=Arr Stack
       - homepage.name=Mylar
       - homepage.icon=mylar.png
-      - homepage.href=https://mylar.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:8090
       - homepage.description=Comic Manager
     # MIDDLEWARES
 
@@ -1287,7 +1287,7 @@ services:
       - homepage.group=Media
       - homepage.name=Plex
       - homepage.icon=plex.png
-      - homepage.href=https://plex.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:32400
       - homepage.description=Media Server
     # MIDDLEWARES
 
@@ -1327,7 +1327,7 @@ services:
       - homepage.group=Management
       - homepage.name=Portainer
       - homepage.icon=portainer.png
-      - homepage.href=https://portainer.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:${WEBUI_PORT_PORTAINER:?err}
       - homepage.description=Docker Management
     # MIDDLEWARES
 
@@ -1373,7 +1373,7 @@ services:
       - homepage.group=Arr Stack
       - homepage.name=Prowlarr
       - homepage.icon=prowlarr.png
-      - homepage.href=https://prowlarr.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:9696
       - homepage.description=Indexer Manager
     # MIDDLEWARES
 
@@ -1422,7 +1422,7 @@ services:
       - homepage.group=Downloads
       - homepage.name=qBittorrent
       - homepage.icon=qbittorrent.png
-      - homepage.href=https://qbittorrent.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:${WEBUI_PORT_QBITTORRENT:?err}
       - homepage.description=Torrent Client
     # MIDDLEWARES
 
@@ -1469,7 +1469,7 @@ services:
       - homepage.group=Arr Stack
       - homepage.name=Radarr
       - homepage.icon=radarr.png
-      - homepage.href=https://radarr.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:7878
       - homepage.description=Movie Manager
     # MIDDLEWARES
 
@@ -1516,7 +1516,7 @@ services:
       - homepage.group=Arr Stack
       - homepage.name=Readarr
       - homepage.icon=readarr.png
-      - homepage.href=https://readarr.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:8787
       - homepage.description=Book Manager
     # MIDDLEWARES
 
@@ -1563,7 +1563,7 @@ services:
       - homepage.group=Downloads
       - homepage.name=SABnzbd
       - homepage.icon=sabnzbd.png
-      - homepage.href=https://sabnzbd.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:8100
       - homepage.description=Usenet Client
     # MIDDLEWARES
 
@@ -1610,7 +1610,7 @@ services:
       - homepage.group=Arr Stack
       - homepage.name=Sonarr
       - homepage.icon=sonarr.png
-      - homepage.href=https://sonarr.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:8989
       - homepage.description=Series Manager
     # MIDDLEWARES
 
@@ -1667,7 +1667,7 @@ services:
       - homepage.group=Tools
       - homepage.name=Tdarr
       - homepage.icon=tdarr.png
-      - homepage.href=https://tdarr.${CLOUDFLARE_DNS_ZONE:?err}
+      - homepage.href=http://${LOCAL_DOCKER_IP:?err}:${WEBUI_PORT_TDARR:?err}
       - homepage.description=Transcoding Automation
     # MIDDLEWARES
 
