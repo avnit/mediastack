@@ -653,6 +653,8 @@ services:
       - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
       - HTTPPROXY=on
       - SHADOWSOCKS=on
+      - OPENVPN_PROTOCOL=tcp
+      - OPENVPN_PERIOD=24h
     healthcheck:
       test: [ "CMD-SHELL", "ping -q -c 1 1.1.1.1 || exit 1" ]
       interval: 10s
