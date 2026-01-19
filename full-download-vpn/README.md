@@ -1,10 +1,12 @@
-# MediaStack Project (Docker)  
+# MediaStack Project (Docker)
 
-See you on [Reddit for MediaStack](https://www.reddit.com/r/MediaStack/)  
+## Overview
 
-## What Applications Are Provided In MediaStack  
+MediaStack is a comprehensive, containerized media management solution built on Docker. This project provides an integrated stack of applications for media streaming, automation, security, and remote access.
 
-Welcome to the MediaStack project! MediaStack is your ultimate solution for managing and streaming media collections with applications like Jellyfin and Plex. Using Docker, MediaStack containerises these media servers alongside *ARR applications (Radarr, Sonarr, Lidarr, etc.) for seamless media automation and management.  
+## Application Components  
+
+MediaStack provides a production-ready solution for managing and streaming media collections using applications such as Jellyfin and Plex. The platform leverages Docker containerization to integrate media servers with automation tools (Radarr, Sonarr, Lidarr, etc.) for comprehensive media library management.  
 
 List of Docker applications configured in the MediaStack `docker-compose.yaml` file:  
 
@@ -28,7 +30,7 @@ List of Docker applications configured in the MediaStack `docker-compose.yaml` f
 | [Headscale](https://headscale.net/stable/) | Headscale is an open-source, self-hosted alternative to Tailscale's control server for managing WireGuard-based VPNs |  
 | [Heimdall](https://docs.linuxserver.io/images/docker-heimdall) | Heimdall provides a dashboard to easily access and organise web applications and services |  
 | [Homarr](https://homarr.dev/docs/getting-started/after-the-installation) | Homarr is a self-hosted, customisable dashboard for managing and monitoring your server applications |  
-| [Homepage](https://gethomepage.dev/latest/configs/) | Homepage is an alternate to Heimdall, providing a similar dashboard to easily access and organise web applications and services |  
+  
 | [Huntarr](https://github.com/plexguide/Huntarr.io) | Huntarr is an open-source tool that automates finding missing and upgrading media in *ARR libraries |  
 | [Jellyfin](https://jellyfin.org/docs/general/administration/installing#docker) | Jellyfin is a media server that organises, streams, and manages multimedia content for users |  
 | [Jellyseerr](https://hub.docker.com/r/fallenbagel/jellyseerr) | Jellyseerr is a request management tool for Jellyfin, enabling users to request and manage media content |  
@@ -66,43 +68,43 @@ List of Docker applications configured in the MediaStack `docker-compose.yaml` f
 
 MediaStack is your ultimate solution for managing and streaming media collections with applications like Jellyfin and Plex. Using Docker, MediaStack containerises these media servers alongside *ARR applications (Radarr, Sonarr, Lidarr, etc.) for seamless media automation and management.  
 
-You will also be able to connect to your MediaStack instance security from the Internet using the following two methods:  
+The platform supports secure remote connectivity through two primary methods:
 
-- **Secure Reverse Proxy:** Traefik, Authentik, and CrowdSec provides a full reverse proxy solution with free Let's Encrypt digital certificates, including SSO / OAuth2 / OpenID / SAML / Radius / LDAP identity providers and MFA. Traefik Certs Dumper extracts the Let's Encrypt cetificates so you can install them on other systems.  
+- **Reverse Proxy Architecture:** Traefik reverse proxy with Authentik identity provider and CrowdSec intrusion prevention provides enterprise-grade security including automated Let's Encrypt TLS certificates, SSO/OAuth2/OpenID/SAML/RADIUS/LDAP authentication, and multi-factor authentication. The Traefik Certs Dumper utility extracts certificates for integration with external systems.
 
-- **Secure Tailscale VPN:** Headscale is an open source Tailscale Coordination Server, allowing remote Tailscale clients to connect to the Headscale and Tailscale applications, and accessing all of the containers over the VPN connection. Include Headplane to provide a WebUI portal to manage Headscale settings.  
+- **VPN Mesh Network:** Headscale (open-source Tailscale coordination server) enables secure WireGuard-based VPN connectivity for authorized clients. Headplane provides web-based management interface for Headscale configuration.
 
-> **NOTE:** The Traefik reverse proxy configuration for incoming connections, has been configured with the strongest of the modern cipher suites, using only TLSv1.2 and TSLv1.3 as minimum protocols, and enforces strong security headers to provide your MediaStack with the strongest security / privacy when you connect from the Internet.  
+> **Security Note:** The Traefik reverse proxy is configured with modern cipher suites, enforcing TLSv1.2 and TLSv1.3 minimum protocols with strict security headers to ensure maximum protection for internet-facing connections.  
 
 </br>
 
-## Internal Container Access (From Home)
+## Network Access Configuration
 
-Edit the "**Import Bookmarks - MediaStackGuide Applications (Internal URLs).html**" file, and find / replace all of the **`localhost`** entries with the IP address running Docker in your home network.  
+### Internal Network Access
 
-Then import the Bookmarks into your web browser.  
+For local network access, edit the `Import Bookmarks - MediaStackGuide Applications (Internal URLs).html` file and replace all `localhost` entries with the IP address of the Docker host system. Import the updated bookmarks into your web browser.
 
-## External Container Access (From Internet)
+### External Network Access
 
-Edit the "**Import Bookmarks - MediaStackGuide Applications (External URLs).html**" file, and find / replace all of the **`YOUR_DOMAIN_NAME`** entries with your Internet domain name.  
+For internet access, edit the `Import Bookmarks - MediaStackGuide Applications (External URLs).html` file and replace all `YOUR_DOMAIN_NAME` entries with your registered domain name.
 
-All of the Docker images / containers in the Docker Compose file, have already been labelled for Traefik, and they will be automatically detected and assigned the correct routing based on the incoming Internet URL, using your domain name.  
+All containers in the Docker Compose configuration include Traefik labels for automatic service discovery and routing. Configure port forwarding on your gateway/router to direct ports 80 and 443 to the Docker host IP address. Alternative ports can be specified using the `REVERSE_PROXY_PORT_HTTP(S)` variables in the `.env` file.  
 
-Port forward your incoming connections on your home Internet gateway / router, to the IP Address of your computer running Docker, using Ports 80 and 443 - If these are taken, you can use alternate ports using the **REVERSE_PROXY_PORT_HTTP(S)** settings in the **.ENV** variable file.  
+## Repository Structure and Deployment
 
-## How Do I Use The MediaStack Repo  
+The MediaStack repository is organized into configuration directories:
 
-- **base-working-files:** Download all of these files into a single directory located on your Docker computer. Then download the `docker-compose.yaml` file located in one of the following configurations, into the same directory.  
+- **base-working-files:** Contains core configuration files and scripts required for all deployments. Download these files to your Docker host directory.
 
-- **docker-compose.yaml:** Download one of the `docker-compose.yaml` configuration files:  
+- **docker-compose.yaml Configurations:** Select one configuration based on your VPN requirements:
 
-  - **full-download-vpn:** The `docker-compose.yaml` file located in this directory is configured so all outgoing network connections / media downloads are protected with the Gluetun VPN Tunnel, to provide maximum privacy on your Internet connection. **This is the recommended configuration for new users**.  
+  - **full-download-vpn:** All network traffic is routed through Gluetun VPN tunnel for maximum privacy. Recommended for production deployments.
+  
+  - **mini-download-vpn:** Only SABnzbd (Usenet) and qBittorrent (Torrent) traffic is routed through Gluetun VPN tunnel.
+  
+  - **no-download-vpn:** No VPN configuration. All traffic uses direct internet connectivity.
 
-  - **mini-download-vpn:** The `docker-compose.yaml` file located in this directory is configured so only the SABnzbd (Usenet) and qBittorrent (Torrents) are protected with the Gluetun VPN Tunnel, to provide a moderate level of privacy just on your download activities.  
-
-  - **no-download-vpn:** The `docker-compose.yaml` file located in this directory does not have Gluetun, or any other form of VPN for outgoing Internet traffic; you will have limited no privacy on downloads.  
-
-You can now configure the `docker-compose.yaml`, `.env`, and other files downloaded from the **base-working-files** configuration directory.  
+After downloading the files, configure the `docker-compose.yaml`, `.env`, and related configuration files from the `base-working-files` directory.  
 
 </br>
 
@@ -459,33 +461,32 @@ flowchart TD
 </center>
 </br>
 
-## What Do I Need To Configure
+## Configuration Requirements
 
-Follow the steps below to deploy your MediaStack quickly:  
+Complete the following configuration steps to deploy MediaStack:
 
-- Download all of the files in the `base-working-file` GitHub folder, and **one** of the pre-configured `docker-compose.yaml` files into the same directory  
-- Update the `.env` file with all the configuration settings / values for your system needs  
-- Replace `example.com` with your Internet domain in the following files:  
-  - `headscale-config.yaml`  
-  - `headplane-config.yaml`  
-  - `traefik-dynamic.yaml`  
-  - `traefik-internal.yaml`  
-  - `traefik-static.yaml`  
-- Update `cookie_secret` variable in `headplane-config.yaml` using 32 random characters  
-- Update `restart.sh` script with your values for:  
-  - **`FOLDER_FOR_YAMLS`**=/docker &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp; # <-- Folder where the yaml and .env files are located  
-- Enable execution of shell scripts with `sudo chmod 775 *sh`  
+1. Download all files from the `base-working-files` directory and one of the `docker-compose.yaml` configurations to the same directory
+2. Configure the `.env` file with system-specific values
+3. Replace `example.com` with your registered domain name in the following files:
+   - `headscale-config.yaml`
+   - `headplane-config.yaml`
+   - `traefik-dynamic.yaml`
+   - `traefik-internal.yaml`
+   - `traefik-static.yaml`
+4. Generate a 32-character random string for the `cookie_secret` variable in `headplane-config.yaml`
+5. Update the `FOLDER_FOR_YAMLS` variable in `restart.sh` script to match your deployment directory
+6. Enable script execution: `sudo chmod 775 *sh`
+7. Deploy the stack: `./restart.sh`
 
-Start your MediaStack with `./restart.sh`  
+> **Note:** The `restart.sh` script validates the `.env` configuration and manages the deployment process automatically.
 
-> NOTE: The `restart.sh` script reads the variables in the `.env` environment file, then does most of the configuration / management for you - it will tell you if you have issues.  
+### Post-Deployment Configuration
 
-The Postgresql server still needs some minor configuration to complete the MediaStack deployment:  
+Complete PostgreSQL configuration:
 
-- Set access permissions on Authentik Postgresql database with `./secure_authentik_database.sh` script  
-- Set up Guacamole Postgresql database and access permissions with `./create_guacamole_database.sh` script  
-
-Restart MediaStack again after changes with `./restart.sh`  
+1. Configure Authentik database access: `./secure_authentik_database.sh`
+2. Initialize Guacamole database: `./create_guacamole_database.sh`
+3. Restart the stack: `./restart.sh`  
 
 </br>
 
