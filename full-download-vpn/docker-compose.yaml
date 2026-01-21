@@ -1898,3 +1898,36 @@ services:
       # - homepage.href=https://whisparr.${CLOUDFLARE_DNS_ZONE:?err}
       # - homepage.description=Adult Media Manager
       # MIDDLEWARES
+  ###########################################################################
+  ###########################################################################
+  ##
+  ##  Docker Compose File: Playarr
+  ##  Function: Unified Arr Interface
+  ##
+  ##  Documentation: https://github.com/dylanblokhuis/Playarr
+  ##
+  ###########################################################################
+  ###########################################################################
+  playarr:
+    container_name: playarr
+    image: ghcr.io/dylanblokhuis/playarr-server:master
+    restart: unless-stopped
+    ports:
+      - 38000:8000
+    environment:
+      - SONARR_ADDRESS=http://${LOCAL_DOCKER_IP:?err}:8989
+      - SONARR_API_KEY= ${UNPACKERR_SONARR_API_KEY:?err}
+      - RADARR_ADDRESS=http://${LOCAL_DOCKER_IP:?err}:7878
+      - RADARR_API_KEY= ${UNPACKERR_RADARR_API_KEY:?err}
+    volumes:
+      - ${FOLDER_FOR_MEDIA:?err}/media/tv:/tv
+      - ${FOLDER_FOR_MEDIA:?err}/media/movies:/movies
+    networks:
+      - mediastack
+    labels:
+      # HOMEPAGE
+      - homepage.group=Arr Stack
+      - homepage.name=playarr
+      - homepage.icon=playarr.png
+      - homepage.href=https://${LOCAL_DOCKER_IP:?err}:38000
+      - homepage.description= Watch all media from Radarr and Sonarr
