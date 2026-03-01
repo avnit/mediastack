@@ -7,7 +7,8 @@
 #      using the port that 'gluetun' exposes for that service.
 #    - Example:
 #      - traefik.http.services.radarr.loadbalancer.server.port=7878
-#      + traefik.http.services.radarr.loadbalancer.server=http://gluetun:7878
+#      + traefik.http.services.
+# radarr.loadbalancer.server=http://gluetun:7878
 #
 # 2. Corrected 'unpackerr' environment variables.
 #    - 'unpackerr' is on the 'mediastack' network and couldn't see the *arr* services
@@ -516,6 +517,11 @@ services:
     hostname: tailscale
     container_name: tailscale
     restart: unless-stopped
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    extra_hosts:
+      - "headscale.${CLOUDFLARE_DNS_ZONE:?err}:${LOCAL_DOCKER_IP:?err}"
     networks:
       - mediastack
     cap_add:
@@ -1466,7 +1472,8 @@ services:
       - traefik.http.routers.radarr.entrypoints=secureweb
       - traefik.http.routers.radarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
       # SERVICES
-      - traefik.http.services.radarr.loadbalancer.server=http://gluetun:7878
+      - traefik.http.services.radarr.loadbalancer.server.url=http://gluetun:7878
+      - traefik.http.services.radarr.loadbalancer.server.port=7878
       # HOMEPAGE
       - homepage.group=Arr Stack
       - homepage.name=Radarr
