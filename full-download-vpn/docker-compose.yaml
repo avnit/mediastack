@@ -534,7 +534,8 @@ services:
       - TS_USERSPACE=false
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTHKEY=${TAILSCALE_AUTHKEY:?err}
-      - TS_EXTRA_ARGS=--hostname=exit-node --advertise-exit-node --advertise-routes=${LOCAL_SUBNET:?err},${DOCKER_SUBNET:?err} --login-server=https://headscale.${CLOUDFLARE_DNS_ZONE:?err}
+      - TS_EXTRA_ARGS=--hostname=exit-node --advertise-exit-node --advertise-routes=${LOCAL_SUBNET:?err},${DOCKER_SUBNET:?err} --login-server=https://headscale.asbblog.com
+
 
   ###########################################################################
   ###########################################################################
@@ -1473,7 +1474,7 @@ services:
       - traefik.http.routers.radarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
       # SERVICES
       - traefik.http.services.radarr.loadbalancer.server.url=http://gluetun:7878
-      - traefik.http.services.radarr.loadbalancer.server.port=7878
+      # - traefik.http.services.radarr.loadbalancer.server.port=7878
       # HOMEPAGE
       - homepage.group=Arr Stack
       - homepage.name=Radarr
@@ -1520,7 +1521,7 @@ services:
       - traefik.http.routers.readarr.entrypoints=secureweb
       - traefik.http.routers.readarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
       # SERVICES
-      - traefik.http.services.readarr.loadbalancer.server=http://gluetun:8787
+      - traefik.http.services.readarr.loadbalancer.server.url=http://gluetun:8787
       # HOMEPAGE
       - homepage.group=Arr Stack
       - homepage.name=Readarr
@@ -1567,7 +1568,7 @@ services:
       - traefik.http.routers.sabnzbd.entrypoints=secureweb
       - traefik.http.routers.sabnzbd.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
       # SERVICES
-      - traefik.http.services.sabnzbd.loadbalancer.server=http://gluetun:8080
+      - traefik.http.services.sabnzbd.loadbalancer.server.url=http://gluetun:8080
       # HOMEPAGE
       - homepage.group=Downloads
       - homepage.name=SABnzbd
