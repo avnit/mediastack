@@ -25,7 +25,7 @@ services:
 ###########################################################################
 ###########################################################################
   postgresql:
-    image: docker.io/library/postgres:latest
+    image: docker.io/library/postgres:17
     container_name: postgresql
     restart: unless-stopped
     networks:
@@ -551,13 +551,13 @@ services:
       - ${WEBUI_PORT_FILEBOT:?err}:5454       # WebUI Portal: Filebot
       - ${WEBUI_PORT_HUNTARR:?err}:9705       # WebUI Portal: Huntarr
       - ${WEBUI_PORT_JELLYFIN:?err}:8096      # WebUI Portal: Jellyfin
-      - ${WEBUI_PORT_JELLYSEERR:?err}:5055    # WebUI Portal: Jellyseerr
       - ${WEBUI_PORT_LIDARR:?err}:8686        # WebUI Portal: Lidarr
       - ${WEBUI_PORT_MYLAR:?err}:8090         # WebUI Portal: Mylar3
       - ${WEBUI_PORT_PROWLARR:?err}:9696      # WebUI Portal: Prowlarr
       - ${WEBUI_PORT_RADARR:?err}:7878        # WebUI Portal: Radarr
       - ${WEBUI_PORT_READARR:?err}:8787       # WebUI Portal: Readarr
       - ${WEBUI_PORT_SABNZBD:?err}:8080       # WebUI Portal: SABnzbd
+      - ${WEBUI_PORT_SEERR:?err}:5055         # WebUI Portal: Seerr
       - ${WEBUI_PORT_SONARR:?err}:8989        # WebUI Portal: Sonarr
       - ${WEBUI_PORT_WHISPARR:?err}:6969      # WebUI Portal: Whisparr
 
@@ -958,33 +958,30 @@ services:
 ##
 ###########################################################################
 ###########################################################################
-  huntarr:
-    image: huntarr/huntarr:latest
-    container_name: huntarr
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-    volumes:
-      - ${FOLDER_FOR_DATA:?err}/huntarr:/config
-    environment:
-      - PUID=${PUID:?err}
-      - PGID=${PGID:?err}
-      - TZ=${TIMEZONE:?err}
-    network_mode: "service:gluetun"
-#    ports:
-#      - ${WEBUI_PORT_HUNTARR:?err}:9705                # Configured in Gluetun VPN container
-    labels:
-      - traefik.enable=true
-    # ROUTERS
-      - traefik.http.routers.huntarr.service=huntarr
-      - traefik.http.routers.huntarr.rule=Host(`huntarr.${CLOUDFLARE_DNS_ZONE:?err}`)
-      - traefik.http.routers.huntarr.entrypoints=secureweb
-      - traefik.http.routers.huntarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
-    # SERVICES
-      - traefik.http.services.huntarr.loadbalancer.server.scheme=http
-      - traefik.http.services.huntarr.loadbalancer.server.port=9705
-    # MIDDLEWARES
+# Note : Due to major security issues, Huntarr is depretated.
+  # huntarr:
+  #   image: huntarr/huntarr:latest
+  #   container_name: huntarr
+  #   volumes:
+  #     - ${FOLDER_FOR_DATA:?err}/huntarr:/config
+  #   environment:
+  #     - PUID=${PUID:?err}
+  #     - PGID=${PGID:?err}
+  #     - TZ=${TIMEZONE:?err}
+  #   networks:
+  #     - mediastack
+  #   labels:
+  #     - traefik.enable=true
+  #   # ROUTERS
+  #     - traefik.http.routers.huntarr.service=huntarr
+  #     - traefik.http.routers.huntarr.rule=Host(`huntarr.${CLOUDFLARE_DNS_ZONE:?err}`)
+  #     - traefik.http.routers.huntarr.entrypoints=secureweb
+  #     - traefik.http.routers.huntarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+  #   # SERVICES
+  #     - traefik.http.services.huntarr.loadbalancer.server.scheme=http
+  #     - traefik.http.services.huntarr.loadbalancer.server.port=9705
+  #   # MIDDLEWARES
+
 
 ###########################################################################
 ###########################################################################
@@ -1033,46 +1030,6 @@ services:
     # SERVICES
       - traefik.http.services.jellyfin.loadbalancer.server.scheme=http
       - traefik.http.services.jellyfin.loadbalancer.server.port=8096
-    # MIDDLEWARES
-
-###########################################################################
-###########################################################################
-##
-##  Docker Compose File: Jellyseerr (fallenbagel)
-##  Function: Media Request Manager
-##
-##  Documentation: https://hub.docker.com/r/fallenbagel/jellyseerr
-##
-###########################################################################
-###########################################################################
-  jellyseerr:
-    image: fallenbagel/jellyseerr:latest
-    container_name: jellyseerr
-    restart: unless-stopped
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-    volumes:
-      - ${FOLDER_FOR_DATA:?err}/jellyseerr:/app/config
-    environment:
-      - PUID=${PUID:?err}
-      - PGID=${PGID:?err}
-      - UMASK=${UMASK:?err}
-      - TZ=${TIMEZONE:?err}
-    network_mode: "service:gluetun"
-#    ports:
-#      - ${WEBUI_PORT_JELLYSEERR:?err}:5055             # Configured in Gluetun VPN container
-    labels:
-      - traefik.enable=true
-    # ROUTERS
-      - traefik.http.routers.jellyseerr.service=jellyseerr
-      - traefik.http.routers.jellyseerr.rule=Host(`jellyseerr.${CLOUDFLARE_DNS_ZONE:?err}`)
-      - traefik.http.routers.jellyseerr.entrypoints=secureweb
-      - traefik.http.routers.jellyseerr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
-    # SERVICES
-      - traefik.http.services.jellyseerr.loadbalancer.server.scheme=http
-      - traefik.http.services.jellyseerr.loadbalancer.server.port=5055
     # MIDDLEWARES
 
 ###########################################################################
@@ -1460,6 +1417,43 @@ services:
     # SERVICES
       - traefik.http.services.sabnzbd.loadbalancer.server.scheme=http
       - traefik.http.services.sabnzbd.loadbalancer.server.port=8080
+    # MIDDLEWARES
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Seerr (seerr-team)
+##  Function: Media Request Manager
+##
+##  Documentation: https://github.com/seerr-team/seerr
+##
+###########################################################################
+###########################################################################
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: seerr
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/seerr:/app/config
+    environment:
+      - TZ=${TIMEZONE:?err}
+    network_mode: "service:gluetun"
+#    ports:
+#      - ${WEBUI_PORT_SEERR:?err}:5055                  # Configured in Gluetun VPN container
+    labels:
+      - traefik.enable=true
+    # ROUTERS
+      - traefik.http.routers.seerr.service=seerr
+      - traefik.http.routers.seerr.rule=Host(`seerr.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.seerr.entrypoints=secureweb
+      - traefik.http.routers.seerr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+    # SERVICES
+      - traefik.http.services.seerr.loadbalancer.server.scheme=http
+      - traefik.http.services.seerr.loadbalancer.server.port=5055
     # MIDDLEWARES
 
 ###########################################################################
