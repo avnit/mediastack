@@ -958,7 +958,7 @@ services:
 ##
 ###########################################################################
 ###########################################################################
-# Note : Due to major security issues, Huntarr is depretated.
+# Note : Due to major security issues, Huntarr is deprecated.
   # huntarr:
   #   image: huntarr/huntarr:latest
   #   container_name: huntarr
