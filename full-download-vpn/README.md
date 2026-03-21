@@ -3,7 +3,7 @@
 See you on [Reddit for MediaStack](https://www.reddit.com/r/MediaStack/)  
 
 ## What Applications Are Provided In MediaStack  
-
+`
 Welcome to the MediaStack project! MediaStack is your ultimate solution for managing and streaming media collections with applications like Jellyfin and Plex. Using Docker, MediaStack containerises these media servers alongside *ARR applications (Radarr, Sonarr, Lidarr, etc.) for seamless media automation and management.  
 
 List of Docker applications configured in the MediaStack `docker-compose.yaml` file:  
@@ -1177,7 +1177,7 @@ sudo vi traefik-dynamic.yaml
 ```
 
 ``` bash
-./restart
+./restart.sh
 ```
 
 You must go back to [https://app.crowdsec.net/security-engines](https://app.crowdsec.net/security-engines) and approve registration of the new CrowdSec docker engine into the online portal.  

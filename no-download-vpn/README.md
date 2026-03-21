@@ -1177,7 +1177,7 @@ sudo vi traefik-dynamic.yaml
 ```
 
 ``` bash
-./restart
+./restart.sh
 ```
 
 You must go back to [https://app.crowdsec.net/security-engines](https://app.crowdsec.net/security-engines) and approve registration of the new CrowdSec docker engine into the online portal.  
