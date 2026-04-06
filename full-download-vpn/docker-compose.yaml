@@ -592,7 +592,6 @@ services:
     ###########################################################################
   gluetun:
     image: qmcgaw/gluetun:latest
-    pull_policy: always
     container_name: gluetun
     restart: always
     cap_add:
@@ -658,16 +657,12 @@ services:
       - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
       - WIREGUARD_PRESHARED_KEY=${WIREGUARD_PRESHARED_KEY}
       - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
-      - HTTPPROXY=on
-      - SHADOWSOCKS=on
-      - OPENVPN_PROTOCOL=tcp
+      - HTTPPROXY=off
+      - SHADOWSOCKS=off
+      - OPENVPN_PROTOCOL=udp
       - OPENVPN_PERIOD=24h
-    healthcheck:
-      test: [ "CMD-SHELL", "ping -q -c 1 1.1.1.1 || exit 1" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 8030s # Give it time to establish VPN connection
+    # Relying on Gluetun's built-in healthcheck which securely checks the internal proxy state.
+    # Custom ping healthchecks are known to cause random restart loops and connection drops.
     networks:
       - mediastack
 
