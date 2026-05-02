@@ -905,28 +905,30 @@ services:
 ##
 ###########################################################################
 ###########################################################################
-  huntarr:
-    image: huntarr/huntarr:latest
-    container_name: huntarr
-    volumes:
-      - ${FOLDER_FOR_DATA:?err}/huntarr:/config
-    environment:
-      - PUID=${PUID:?err}
-      - PGID=${PGID:?err}
-      - TZ=${TIMEZONE:?err}
-    networks:
-      - mediastack
-    labels:
-      - traefik.enable=true
-    # ROUTERS
-      - traefik.http.routers.huntarr.service=huntarr
-      - traefik.http.routers.huntarr.rule=Host(`huntarr.${CLOUDFLARE_DNS_ZONE:?err}`)
-      - traefik.http.routers.huntarr.entrypoints=secureweb
-      - traefik.http.routers.huntarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
-    # SERVICES
-      - traefik.http.services.huntarr.loadbalancer.server.scheme=http
-      - traefik.http.services.huntarr.loadbalancer.server.port=9705
-    # MIDDLEWARES
+# Note : Due to major security issues, Huntarr is deprecated.
+  # huntarr:
+  #   image: huntarr/huntarr:latest
+  #   container_name: huntarr
+  #   volumes:
+  #     - ${FOLDER_FOR_DATA:?err}/huntarr:/config
+  #   environment:
+  #     - PUID=${PUID:?err}
+  #     - PGID=${PGID:?err}
+  #     - TZ=${TIMEZONE:?err}
+  #   networks:
+  #     - mediastack
+  #   labels:
+  #     - traefik.enable=true
+  #   # ROUTERS
+  #     - traefik.http.routers.huntarr.service=huntarr
+  #     - traefik.http.routers.huntarr.rule=Host(`huntarr.${CLOUDFLARE_DNS_ZONE:?err}`)
+  #     - traefik.http.routers.huntarr.entrypoints=secureweb
+  #     - traefik.http.routers.huntarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+  #   # SERVICES
+  #     - traefik.http.services.huntarr.loadbalancer.server.scheme=http
+  #     - traefik.http.services.huntarr.loadbalancer.server.port=9705
+  #   # MIDDLEWARES
+
 
 ###########################################################################
 ###########################################################################
@@ -968,41 +970,6 @@ services:
     # SERVICES
       - traefik.http.services.jellyfin.loadbalancer.server.scheme=http
       - traefik.http.services.jellyfin.loadbalancer.server.port=8096
-    # MIDDLEWARES
-
-###########################################################################
-###########################################################################
-##
-##  Docker Compose File: Jellyseerr (fallenbagel)
-##  Function: Media Request Manager
-##
-##  Documentation: https://hub.docker.com/r/fallenbagel/jellyseerr
-##
-###########################################################################
-###########################################################################
-  jellyseerr:
-    image: fallenbagel/jellyseerr:latest
-    container_name: jellyseerr
-    restart: unless-stopped
-    networks:
-      - mediastack
-    volumes:
-      - ${FOLDER_FOR_DATA:?err}/jellyseerr:/app/config
-    environment:
-      - PUID=${PUID:?err}
-      - PGID=${PGID:?err}
-      - UMASK=${UMASK:?err}
-      - TZ=${TIMEZONE:?err}
-    labels:
-      - traefik.enable=true
-    # ROUTERS
-      - traefik.http.routers.jellyseerr.service=jellyseerr
-      - traefik.http.routers.jellyseerr.rule=Host(`jellyseerr.${CLOUDFLARE_DNS_ZONE:?err}`)
-      - traefik.http.routers.jellyseerr.entrypoints=secureweb
-      - traefik.http.routers.jellyseerr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
-    # SERVICES
-      - traefik.http.services.jellyseerr.loadbalancer.server.scheme=http
-      - traefik.http.services.jellyseerr.loadbalancer.server.port=5055
     # MIDDLEWARES
 
 ###########################################################################
@@ -1284,7 +1251,7 @@ services:
 ###########################################################################
 ###########################################################################
   readarr:
-    image: lscr.io/linuxserver/readarr:develop
+    image: lscr.io/linuxserver/readarr:0.4.18-develop    
     container_name: readarr
     restart: unless-stopped
     volumes:
@@ -1350,6 +1317,38 @@ services:
     # SERVICES
       - traefik.http.services.sabnzbd.loadbalancer.server.scheme=http
       - traefik.http.services.sabnzbd.loadbalancer.server.port=8080
+    # MIDDLEWARES
+
+###########################################################################
+###########################################################################
+##
+##  Docker Compose File: Seerr (seerr-team)
+##  Function: Media Request Manager
+##
+##  Documentation: https://github.com/seerr-team/seerr
+##
+###########################################################################
+###########################################################################
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: seerr
+    restart: unless-stopped
+    networks:
+      - mediastack
+    volumes:
+      - ${FOLDER_FOR_DATA:?err}/seerr:/app/config
+    environment:
+      - TZ=${TIMEZONE:?err}
+    labels:
+      - traefik.enable=true
+    # ROUTERS
+      - traefik.http.routers.seerr.service=seerr
+      - traefik.http.routers.seerr.rule=Host(`seerr.${CLOUDFLARE_DNS_ZONE:?err}`)
+      - traefik.http.routers.seerr.entrypoints=secureweb
+      - traefik.http.routers.seerr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+    # SERVICES
+      - traefik.http.services.seerr.loadbalancer.server.scheme=http
+      - traefik.http.services.seerr.loadbalancer.server.port=5055
     # MIDDLEWARES
 
 ###########################################################################
@@ -1450,8 +1449,9 @@ services:
       - UMASK=${UMASK:?err}
       - TZ=${TIMEZONE:?err}
       - nodeID=Tdarr_Node_1
-      - serverIP=0.0.0.0
+      - serverIP=tdarr
       - serverPort=${TDARR_SERVER_PORT:?err}
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     networks:
       - mediastack
 
@@ -1516,7 +1516,7 @@ services:
       ## Mylar Settings
       ## Mylar Config - Copy API Key from: http://mylar:8090/general/settings
       - UN_MYLAR_0_URL=http://mylar:8090
-      - UN_MYLAR_0_API_KEY=0123456789abcdef0123456789abcdef
+      - UN_MYLAR_0_API_KEY=${MYLAR_API_TOKEN}
       - UN_MYLAR_0_PATHS_0=/data/torrents/comics
       - UN_MYLAR_0_PROTOCOLS=torrent
       - UN_MYLAR_0_TIMEOUT=10s
@@ -1526,7 +1526,7 @@ services:
       ## Sonarr Settings
       ## Sonarr Config - Copy API Key from: http://sonarr:8989/general/settings
       - UN_SONARR_0_URL=http://sonarr:8989
-      - UN_SONARR_0_API_KEY=0123456789abcdef0123456789abcdef
+      - UN_SONARR_0_API_KEY=${SONARR_API_TOKEN}
       - UN_SONARR_0_PATHS_0=/data/torrents/anime
       - UN_SONARR_0_PATHS_1=/data/torrents/tv
       - UN_SONARR_0_PROTOCOLS=torrent
@@ -1537,7 +1537,7 @@ services:
       ## Radarr Settings
       ## Radarr Config - Copy API Key from: http://radarr:7878/general/settings
       - UN_RADARR_0_URL=http://radarr:7878
-      - UN_RADARR_0_API_KEY=0123456789abcdef0123456789abcdef
+      - UN_RADARR_0_API_KEY=${RADARR_API_TOKEN}
       - UN_RADARR_0_PATHS_0=/data/torrents/movies
       - UN_RADARR_0_PROTOCOLS=torrent
       - UN_RADARR_0_TIMEOUT=10s
@@ -1547,7 +1547,7 @@ services:
       ## Lidarr Settings
       ## Lidarr Config - Copy API Key from: http://lidarr:8686/general/settings
       - UN_LIDARR_0_URL=http://lidarr:8686
-      - UN_LIDARR_0_API_KEY=0123456789abcdef0123456789abcdef
+      - UN_LIDARR_0_API_KEY=${LIDARR_API_TOKEN}
       - UN_LIDARR_0_PATHS_0=/data/torrents/music
       - UN_LIDARR_0_PROTOCOLS=torrent
       - UN_LIDARR_0_TIMEOUT=10s
@@ -1557,7 +1557,7 @@ services:
       ## Readarr Settings
       ## Readarr Config - Copy API Key from: http://readarr:8787/general/settings
       - UN_READARR_0_URL=http://readarr:8787
-      - UN_READARR_0_API_KEY=0123456789abcdef0123456789abcdef
+      - UN_READARR_0_API_KEY=${READARR_API_TOKEN}
       - UN_READARR_0_PATHS_0=/data/torrents/books
       - UN_READARR_0_PROTOCOLS=torrent
       - UN_READARR_0_TIMEOUT=10s
@@ -1567,7 +1567,7 @@ services:
       ## Whisparr Settings
       ## Whisparr Config - Copy API Key from: http://readarr:6969/general/settings
       - UN_WHISPARR_0_URL=http://whisparr:6969
-      - UN_WHISPARR_0_API_KEY=0123456789abcdef0123456789abcdef
+      - UN_WHISPARR_0_API_KEY=${WHISPARR_API_TOKEN}
       - UN_WHISPARR_0_PATHS_0=/data/torrents/xxx
       - UN_WHISPARR_0_PROTOCOLS=torrent
       - UN_WHISPARR_0_TIMEOUT=10s
@@ -1623,7 +1623,7 @@ services:
 ###########################################################################
 ###########################################################################
   whisparr:
-    image: hotio/whisparr:nightly
+    image: ghcr.io/hotio/whisparr:nightly
     container_name: whisparr
     restart: unless-stopped
     volumes:
