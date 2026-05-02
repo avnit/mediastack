@@ -1,4 +1,4 @@
-# MediaStack Project (Docker)
+﻿# MediaStack Project (Docker)
 
 ## Overview
 
@@ -30,10 +30,9 @@ List of Docker applications configured in the MediaStack `docker-compose.yaml` f
 | [Headscale](https://headscale.net/stable/) | Headscale is an open-source, self-hosted alternative to Tailscale's control server for managing WireGuard-based VPNs |  
 | [Heimdall](https://docs.linuxserver.io/images/docker-heimdall) | Heimdall provides a dashboard to easily access and organise web applications and services |  
 | [Homarr](https://homarr.dev/docs/getting-started/after-the-installation) | Homarr is a self-hosted, customisable dashboard for managing and monitoring your server applications |  
-  
-| [Huntarr](https://github.com/plexguide/Huntarr.io) | Huntarr is an open-source tool that automates finding missing and upgrading media in *ARR libraries |  
+| [Homepage](https://gethomepage.dev/latest/configs/) | Homepage is an alternate to Heimdall, providing a similar dashboard to easily access and organise web applications and services |  
+| [Huntarr](https://github.com/plexguide/Huntarr.io) | [DEPRECATED] Huntarr is an open-source tool that automates finding missing and upgrading media in *ARR libraries |  
 | [Jellyfin](https://jellyfin.org/docs/general/administration/installing#docker) | Jellyfin is a media server that organises, streams, and manages multimedia content for users |  
-| [Jellyseerr](https://hub.docker.com/r/fallenbagel/jellyseerr) | Jellyseerr is a request management tool for Jellyfin, enabling users to request and manage media content |  
 | [Lidarr](https://docs.linuxserver.io/images/docker-lidarr) | Lidarr is a Library Manager, automating the management and meta data for your music media files |  
 | [Mylar](https://github.com/mylar3/mylar3/wiki) | Mylar3 is a Library Manager, automating the management and meta data for your comic media files |  
 | [Plex](https://hub.docker.com/r/linuxserver/plex) | Plex is a media server that organises, streams, and manages multimedia content across devices |  
@@ -43,8 +42,9 @@ List of Docker applications configured in the MediaStack `docker-compose.yaml` f
 | [Prowlarr](https://docs.linuxserver.io/images/docker-prowlarr) | Prowlarr manages and integrates indexers for various media download applications, automating search and download processes |  
 | [qBittorrent](https://docs.linuxserver.io/images/docker-qbittorrent) | qBittorrent is a peer-to-peer file sharing application that facilitates downloading and uploading torrents |  
 | [Radarr](https://docs.linuxserver.io/images/docker-radarr) | Radarr is a Library Manager, automating the management and meta data for your Movie media files |  
-| [Readarr](https://docs.linuxserver.io/images/docker-readarr) | is a Library Manager, automating the management and meta data for your eBooks and Comic media files |  
+| [Readarr](https://docs.linuxserver.io/images/docker-readarr) | Readarris a Library Manager, automating the management and meta data for your eBooks and Comic media files |  
 | [SABnzbd](https://docs.linuxserver.io/images/docker-sabnzbd) | SABnzbd is a Usenet newsreader that automates the downloading of binary files from Usenet |  
+| [Seerr](https://github.com/seerr-team/seerr) | Seerr is a request management tool for Jellyfin, enabling users to request and manage media content |  
 | [Sonarr](https://docs.linuxserver.io/images/docker-sonarr) | Sonarr is a Library Manager, automating the management and meta data for your TV Shows (series) media files |  
 | [Tailscale](https://tailscale.com/) | Tailscale is a secure, peer-to-peer VPN that simplifies network access using WireGuard technology |  
 | [Tdarr](https://docs.tdarr.io/docs/installation/docker/run-compose/) | Tdarr automates the transcoding and management of media files to optimise storage and playback compatibility |  
@@ -123,7 +123,7 @@ flowchart TD
     Gluetun
     Jellyfin
     Plex
-    Jellyseerr
+    Seerr
     Prowlarr
     Radarr
     Readarr
@@ -142,7 +142,7 @@ flowchart TD
 
   Jellyfin     Jellyfin_Gluetun@    ---- Gluetun
   Plex         Plex_Gluetun@        ---  Gluetun
-  Jellyseerr   Jellyseerr_Gluetun@  ---- Gluetun
+  Seerr   Seerr_Gluetun@  ---- Gluetun
   Prowlarr     Prowlarr_Gluetun@    ---  Gluetun
   Radarr       Radarr_Gluetun@      ---- Gluetun
   Readarr      Readarr_Gluetun@     ---  Gluetun
@@ -164,7 +164,7 @@ flowchart TD
   style Gluetun      stroke:#2962FF
   style Jellyfin     stroke:#2962FF
   style Plex         stroke:#2962FF
-  style Jellyseerr   stroke:#2962FF
+  style Seerr   stroke:#2962FF
   style Prowlarr     stroke:#2962FF
   style Radarr       stroke:#2962FF
   style Readarr      stroke:#2962FF
@@ -203,7 +203,7 @@ flowchart TD
 
   Jellyfin_Gluetun@{     animation: fast }
   Plex_Gluetun@{         animation: fast }
-  Jellyseerr_Gluetun@{   animation: fast }
+  Seerr_Gluetun@{   animation: fast }
   Prowlarr_Gluetun@{     animation: fast }
   Radarr_Gluetun@{       animation: fast }
   Readarr_Gluetun@{      animation: fast }
@@ -243,7 +243,7 @@ flowchart TD
     Gluetun
     Jellyfin
     Plex
-    Jellyseerr
+    Seerr
     Prowlarr
     Radarr
     Readarr
@@ -262,7 +262,7 @@ flowchart TD
 
   Jellyfin     Jellyfin_NIC@        ---- NIC
   Plex         Plex_NIC@            ---  NIC
-  Jellyseerr   Jellyseerr_NIC@      ---- NIC
+  Seerr   Seerr_NIC@      ---- NIC
   Prowlarr     Prowlarr_NIC@        ---  NIC
   Radarr       Radarr_NIC@          ---- NIC
   Readarr      Readarr_NIC@         ---  NIC
@@ -287,7 +287,7 @@ flowchart TD
   style Gluetun      stroke:#2962FF
   style Jellyfin     stroke:#2962FF
   style Plex         stroke:#2962FF
-  style Jellyseerr   stroke:#2962FF
+  style Seerr   stroke:#2962FF
   style Prowlarr     stroke:#2962FF
   style Radarr       stroke:#2962FF
   style Readarr      stroke:#2962FF
@@ -329,7 +329,7 @@ flowchart TD
 
   Jellyfin_NIC@{         animation: fast }
   Plex_NIC@{             animation: fast }
-  Jellyseerr_NIC@{       animation: fast }
+  Seerr_NIC@{       animation: fast }
   Prowlarr_NIC@{         animation: fast }
   Radarr_NIC@{           animation: fast }
   Readarr_NIC@{          animation: fast }
@@ -364,7 +364,7 @@ flowchart TD
   subgraph DockerNet["No Download VPN"]
     Jellyfin
     Plex
-    Jellyseerr
+    Seerr
     Prowlarr
     Radarr
     Readarr
@@ -383,7 +383,7 @@ flowchart TD
 
   Jellyfin     Jellyfin_NIC@     ---- NIC
   Plex         Plex_NIC@         ---  NIC
-  Jellyseerr   Jellyseerr_NIC@   ---- NIC
+  Seerr   Seerr_NIC@   ---- NIC
   Prowlarr     Prowlarr_NIC@     ---  NIC
   Radarr       Radarr_NIC@       ---- NIC
   Readarr      Readarr_NIC@      ---  NIC
@@ -403,7 +403,7 @@ flowchart TD
   
   style Jellyfin     stroke:#2962FF
   style Plex         stroke:#2962FF
-  style Jellyseerr   stroke:#2962FF
+  style Seerr   stroke:#2962FF
   style Prowlarr     stroke:#2962FF
   style Radarr       stroke:#2962FF
   style Readarr      stroke:#2962FF
@@ -441,7 +441,7 @@ flowchart TD
 
   Jellyfin_NIC@{         animation: fast }
   Plex_NIC@{             animation: fast }
-  Jellyseerr_NIC@{       animation: fast }
+  Seerr_NIC@{       animation: fast }
   Prowlarr_NIC@{         animation: fast }
   Radarr_NIC@{           animation: fast }
   Readarr_NIC@{          animation: fast }
@@ -1239,7 +1239,7 @@ sudo vi traefik-dynamic.yaml
 ```
 
 ``` bash
-./restart
+./restart.sh
 ```
 
 You must go back to [https://app.crowdsec.net/security-engines](https://app.crowdsec.net/security-engines) and approve registration of the new CrowdSec docker engine into the online portal.  
