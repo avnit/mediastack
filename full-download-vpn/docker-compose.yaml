@@ -51,7 +51,8 @@ services:
     restart: unless-stopped
     networks:
       - mediastack
-    user: ${PUID:?err}:${PGID:?err}
+    # NOTE: Do NOT set 'user:' on the official postgres image - the entrypoint
+    # must run as root to perform chown/initdb, then it drops privileges automatically.
     ports:
       - ${POSTGRESQL_PORT:?err}:5432
     healthcheck:
@@ -61,7 +62,8 @@ services:
       retries: 5
       timeout: 5s
     volumes:
-      - ${FOLDER_FOR_DATA:?err}/postgresql:/var/lib/postgresql
+      # FIXED: postgres image stores data at /var/lib/postgresql/data, not /var/lib/postgresql
+      - ${FOLDER_FOR_DATA:?err}/postgresql:/var/lib/postgresql/data
     environment:
       - TZ=${TIMEZONE:?err}
       - POSTGRES_DB=${AUTHENTIK_DATABASE:?err}
@@ -604,71 +606,38 @@ services:
       - /dev/net/tun:/dev/net/tun
 
     ports:
-      - 0.0.0.0:8888:8888/tcp # Gluetun Local Network HTTP proxy
-      - 0.0.0.0:8388:8388/tcp # Gluetun Local Network Shadowsocks
-      - 0.0.0.0:8388:8388/udp # Gluetun Local Network Shadowsocks
+      - 0.0.0.0:8888:8888/tcp                                              # Gluetun Local Network HTTP proxy
+      - 0.0.0.0:8388:8388/tcp                                              # Gluetun Local Network Shadowsocks
+      - 0.0.0.0:8388:8388/udp                                              # Gluetun Local Network Shadowsocks
       - 0.0.0.0:${GLUETUN_CONTROL_PORT:?err}:${GLUETUN_CONTROL_PORT:?err} # Gluetun Status Port
-      # Comment out lines below if they are not going to use Gluetun VPN for Internet connection:
-      - 0.0.0.0:${WEBUI_PORT_BAZARR:?err}:6767 # WebUI Portal: Bazarr
-      - 0.0.0.0:${WEBUI_PORT_FILEBOT:?err}:5454 # WebUI Portal: Filebot
-      - 0.0.0.0:${WEBUI_PORT_HUNTARR:?err}:9705 # WebUI Portal: Huntarr
-      - 0.0.0.0:${WEBUI_PORT_JELLYFIN:?err}:8096 # WebUI Portal: Jellyfin
-      - 0.0.0.0:${WEBUI_PORT_JELLYSEERR:?err}:5055 # WebUI Portal: Jellyseerr
-      - 0.0.0.0:${WEBUI_PORT_LIDARR:?err}:8686 # WebUI Portal: Lidarr
-      - 0.0.0.0:${WEBUI_PORT_MYLAR:?err}:8090 # WebUI Portal: Mylar3
-      - 0.0.0.0:${WEBUI_PORT_PROWLARR:?err}:9696 # WebUI Portal: Prowlarr
-      - 0.0.0.0:${WEBUI_PORT_RADARR:?err}:7878 # WebUI Portal: Radarr
-      - 0.0.0.0:${WEBUI_PORT_READARR:?err}:8787 # WebUI Portal: Readarr
-      - 0.0.0.0:${WEBUI_PORT_SABNZBD:?err}:8080 # WebUI Portal: SABnzbd
-      - 0.0.0.0:${WEBUI_PORT_SONARR:?err}:8989 # WebUI Portal: Sonarr
-      - 0.0.0.0:${WEBUI_PORT_WHISPARR:?err}:6969 # WebUI Portal: Whisparr
+      # Comment out lines below if container is NOT routing through Gluetun VPN:
+      - 0.0.0.0:${WEBUI_PORT_BAZARR:?err}:6767                            # WebUI Portal: Bazarr
+      - 0.0.0.0:${WEBUI_PORT_FILEBOT:?err}:5454                           # WebUI Portal: Filebot
+      - 0.0.0.0:${WEBUI_PORT_HUNTARR:?err}:9705                           # WebUI Portal: Huntarr
+      - 0.0.0.0:${WEBUI_PORT_JELLYFIN:?err}:8096                          # WebUI Portal: Jellyfin
+      - 0.0.0.0:${WEBUI_PORT_JELLYSEERR:?err}:5055                        # WebUI Portal: Jellyseerr
+      - 0.0.0.0:${WEBUI_PORT_LIDARR:?err}:8686                            # WebUI Portal: Lidarr
+      - 0.0.0.0:${WEBUI_PORT_MYLAR:?err}:8090                             # WebUI Portal: Mylar3
+      - 0.0.0.0:${WEBUI_PORT_PROWLARR:?err}:9696                          # WebUI Portal: Prowlarr
+      - 0.0.0.0:${WEBUI_PORT_RADARR:?err}:7878                            # WebUI Portal: Radarr
+      - 0.0.0.0:${WEBUI_PORT_READARR:?err}:8787                           # WebUI Portal: Readarr
+      - 0.0.0.0:${WEBUI_PORT_SABNZBD:?err}:8080                           # WebUI Portal: SABnzbd
+      - 0.0.0.0:${WEBUI_PORT_SONARR:?err}:8989                            # WebUI Portal: Sonarr
+      - 0.0.0.0:${WEBUI_PORT_WHISPARR:?err}:6969                          # WebUI Portal: Whisparr
       - 0.0.0.0:${WEBUI_PORT_QBITTORRENT:?err}:${WEBUI_PORT_QBITTORRENT:?err} # WebUI Portal: qBittorrent
-      - 0.0.0.0:${QBIT_PORT:?err}:6881 # Transmission Torrent Port
-      - 0.0.0.0:${FLARESOLVERR_PORT:?err}:8191 # Service Port: FlareSolverr  
-      - 0.0.0.0:${TDARR_SERVER_PORT:?err}:${TDARR_SERVER_PORT:?err} # Tdarr: Server Port
-      - 0.0.0.0:${WEBUI_PORT_TDARR:?err}:${WEBUI_PORT_TDARR:?err} # Tdarr: WebUI Portal
-      - 0.0.0.0:${WEBUI_PORT_PLEX:?err}:32400 # WebUI Portal: Plex
-      #      - 1900:1900/udp                           # DNLA Service       (Clashes with Synology: SSPD "File Services" --> "Advanced")
-      #      - 5353:5353/udp                           # Plex Network Port  (Clashes with Synology: Bonjour "File Services" --> "Advanced")
-      - 0.0.0.0:8324:8324 # Plex Network Port
-      - 0.0.0.0:32410:32410/udp # Plex Network Port
-      - 0.0.0.0:32412:32412/udp # Plex Network Port
-      - 0.0.0.0:32413:32413/udp # Plex Network Port
-      - 0.0.0.0:32414:32414/udp # Plex Network Port
-      - 0.0.0.0:32469:32469 # Plex Network Port
-# Comment out lines below if they are not going to use Gluetun VPN for Internet connection:
-
-      - ${WEBUI_PORT_BAZARR:?err}:6767        # WebUI Portal: Bazarr
-      - ${WEBUI_PORT_FILEBOT:?err}:5454       # WebUI Portal: Filebot
-      - ${WEBUI_PORT_HUNTARR:?err}:9705       # WebUI Portal: Huntarr
-      - ${WEBUI_PORT_JELLYFIN:?err}:8096      # WebUI Portal: Jellyfin
-      - ${WEBUI_PORT_LIDARR:?err}:8686        # WebUI Portal: Lidarr
-      - ${WEBUI_PORT_MYLAR:?err}:8090         # WebUI Portal: Mylar3
-      - ${WEBUI_PORT_PROWLARR:?err}:9696      # WebUI Portal: Prowlarr
-      - ${WEBUI_PORT_RADARR:?err}:7878        # WebUI Portal: Radarr
-      - ${WEBUI_PORT_READARR:?err}:8787       # WebUI Portal: Readarr
-      - ${WEBUI_PORT_SABNZBD:?err}:8080       # WebUI Portal: SABnzbd
-      - ${WEBUI_PORT_SEERR:?err}:5055         # WebUI Portal: Seerr
-      - ${WEBUI_PORT_SONARR:?err}:8989        # WebUI Portal: Sonarr
-      - ${WEBUI_PORT_WHISPARR:?err}:6969      # WebUI Portal: Whisparr
-
-      - ${WEBUI_PORT_QBITTORRENT:?err}:${WEBUI_PORT_QBITTORRENT:?err}   # WebUI Portal: qBittorrent
-
-      - ${QBIT_PORT:?err}:6881                # Transmission Torrent Port
-      - ${FLARESOLVERR_PORT:?err}:8191        # Service Port: FlareSolverr
-      
-      - ${TDARR_SERVER_PORT:?err}:${TDARR_SERVER_PORT:?err}   # Tdarr: Server Port
-      - ${WEBUI_PORT_TDARR:?err}:${WEBUI_PORT_TDARR:?err}     # Tdarr: WebUI Portal
-
-      - ${WEBUI_PORT_PLEX:?err}:32400         # WebUI Portal: Plex
-#      - 1900:1900/udp                           # DNLA Service       (Clashes with Synology: SSPD "File Services" --> "Advanced")
-#      - 5353:5353/udp                           # Plex Network Port  (Clashes with Synology: Bonjour "File Services" --> "Advanced")
-      - 8324:8324                               # Plex Network Port
-      - 32410:32410/udp                         # Plex Network Port
-      - 32412:32412/udp                         # Plex Network Port
-      - 32413:32413/udp                         # Plex Network Port
-      - 32414:32414/udp                         # Plex Network Port
-      - 32469:32469                             # Plex Network Port
+      - 0.0.0.0:${QBIT_PORT:?err}:6881                                     # Torrent Port
+      - 0.0.0.0:${FLARESOLVERR_PORT:?err}:8191                             # Service Port: FlareSolverr
+      - 0.0.0.0:${TDARR_SERVER_PORT:?err}:${TDARR_SERVER_PORT:?err}        # Tdarr: Server Port
+      - 0.0.0.0:${WEBUI_PORT_TDARR:?err}:${WEBUI_PORT_TDARR:?err}          # Tdarr: WebUI Portal
+      - 0.0.0.0:${WEBUI_PORT_PLEX:?err}:32400                              # WebUI Portal: Plex
+#      - 0.0.0.0:1900:1900/udp                                             # DNLA Service       (Clashes with Synology: SSPD "File Services" --> "Advanced")
+#      - 0.0.0.0:5353:5353/udp                                             # Plex Network Port  (Clashes with Synology: Bonjour "File Services" --> "Advanced")
+      - 0.0.0.0:8324:8324                                                   # Plex Network Port
+      - 0.0.0.0:32410:32410/udp                                             # Plex Network Port
+      - 0.0.0.0:32412:32412/udp                                             # Plex Network Port
+      - 0.0.0.0:32413:32413/udp                                             # Plex Network Port
+      - 0.0.0.0:32414:32414/udp                                             # Plex Network Port
+      - 0.0.0.0:32469:32469                                                 # Plex Network Port
 
     volumes:
       - ${FOLDER_FOR_DATA:?err}/gluetun:/gluetun
