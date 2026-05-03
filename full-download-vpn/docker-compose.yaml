@@ -1784,8 +1784,8 @@ services:
       - UN_FOLDERS_BUFFER=20000
       ## Mylar Settings
       ## Mylar Config - Copy API Key from: http://mylar:8090/general/settings
-      - UN_MYLAR_0_URL=http://gluetun:8090
-      - UN_MYLAR_0_API_KEY=${UNPACKERR_MYLAR_API_KEY:?err}
+      - UN_MYLAR_0_URL=http://mylar:8090
+      - UN_MYLAR_0_API_KEY=${MYLAR_API_TOKEN}
       - UN_MYLAR_0_PATHS_0=/data/torrents/comics
       - UN_MYLAR_0_PROTOCOLS=torrent
       - UN_MYLAR_0_TIMEOUT=10s
@@ -1794,8 +1794,8 @@ services:
       - UN_MYLAR_0_SYNCTHING=false
       ## Sonarr Settings
       ## Sonarr Config - Copy API Key from: http://sonarr:8989/general/settings
-      - UN_SONARR_0_URL=http://gluetun:8989
-      - UN_SONARR_0_API_KEY=${UNPACKERR_SONARR_API_KEY:?err}
+      - UN_SONARR_0_URL=http://sonarr:8989
+      - UN_SONARR_0_API_KEY=${SONARR_API_TOKEN}
       - UN_SONARR_0_PATHS_0=/data/torrents/anime
       - UN_SONARR_0_PATHS_1=/data/torrents/tv
       - UN_SONARR_0_PROTOCOLS=torrent
@@ -1805,8 +1805,8 @@ services:
       - UN_SONARR_0_SYNCTHING=false
       ## Radarr Settings
       ## Radarr Config - Copy API Key from: http://radarr:7878/general/settings
-      - UN_RADARR_0_URL=http://gluetun:7878
-      - UN_RADARR_0_API_KEY=${UNPACKERR_RADARR_API_KEY:?err}
+      - UN_RADARR_0_URL=http://radarr:7878
+      - UN_RADARR_0_API_KEY=${RADARR_API_TOKEN}
       - UN_RADARR_0_PATHS_0=/data/torrents/movies
       - UN_RADARR_0_PROTOCOLS=torrent
       - UN_RADARR_0_TIMEOUT=10s
@@ -1815,8 +1815,8 @@ services:
       - UN_RADARR_0_SYNCTHING=false
       ## Lidarr Settings
       ## Lidarr Config - Copy API Key from: http://lidarr:8686/general/settings
-      - UN_LIDARR_0_URL=http://gluetun:8686
-      - UN_LIDARR_0_API_KEY=${UNPACKERR_LIDARR_API_KEY:?err}
+      - UN_LIDARR_0_URL=http://lidarr:8686
+      - UN_LIDARR_0_API_KEY=${LIDARR_API_TOKEN}
       - UN_LIDARR_0_PATHS_0=/data/torrents/music
       - UN_LIDARR_0_PROTOCOLS=torrent
       - UN_LIDARR_0_TIMEOUT=10s
@@ -1825,8 +1825,8 @@ services:
       - UN_LIDARR_0_SYNCTHING=false
       ## Readarr Settings
       ## Readarr Config - Copy API Key from: http://readarr:8787/general/settings
-      - UN_READARR_0_URL=http://gluetun:8787
-      - UN_READARR_0_API_KEY=${UNPACKERR_READARR_API_KEY:?err}
+      - UN_READARR_0_URL=http://readarr:8787
+      - UN_READARR_0_API_KEY=${READARR_API_TOKEN}
       - UN_READARR_0_PATHS_0=/data/torrents/books
       - UN_READARR_0_PROTOCOLS=torrent
       - UN_READARR_0_TIMEOUT=10s
@@ -1834,9 +1834,9 @@ services:
       - UN_READARR_0_DELETE_ORIG=false
       - UN_READARR_0_SYNCTHING=false
       ## Whisparr Settings
-      ## Whisparr Config - Copy API Key from: http://whisparr:6969/general/settings
-      - UN_WHISPARR_0_URL=http://gluetun:6969
-      - UN_WHISPARR_0_API_KEY=${UNPACKERR_WHISPARR_API_KEY:?err}
+      ## Whisparr Config - Copy API Key from: http://readarr:6969/general/settings
+      - UN_WHISPARR_0_URL=http://whisparr:6969
+      - UN_WHISPARR_0_API_KEY=${WHISPARR_API_TOKEN}
       - UN_WHISPARR_0_PATHS_0=/data/torrents/xxx
       - UN_WHISPARR_0_PROTOCOLS=torrent
       - UN_WHISPARR_0_TIMEOUT=10s
