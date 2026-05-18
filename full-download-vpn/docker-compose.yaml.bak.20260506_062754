@@ -1639,6 +1639,7 @@ services:
   tdarr:
     image: ghcr.io/haveagitgat/tdarr:latest
     container_name: tdarr
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -1684,6 +1685,7 @@ services:
   tdarr-node:
     image: ghcr.io/haveagitgat/tdarr_node:latest
     container_name: tdarr-node
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -1874,6 +1876,7 @@ services:
   whisparr:
     image: ghcr.io/hotio/whisparr:nightly
     container_name: whisparr
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
