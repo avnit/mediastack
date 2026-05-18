@@ -997,7 +997,7 @@ services:
   homarr:
     image: ghcr.io/ajnart/homarr:latest
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:7575 || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://$(hostname):7575 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
