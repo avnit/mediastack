@@ -52,8 +52,7 @@ services:
     restart: unless-stopped
     networks:
       - mediastack
-    # NOTE: Do NOT set 'user:' on the official postgres image - the entrypoint
-    # must run as root to perform chown/initdb, then it drops privileges automatically.
+    user: ${PUID:?err}:${PGID:?err}
     ports:
       - ${POSTGRESQL_PORT:?err}:5432
     healthcheck:
@@ -560,8 +559,6 @@ services:
   ###########################################################################
   headplane:
     image: ghcr.io/tale/headplane:latest
-    healthcheck:
-      disable: true
     container_name: headplane
     restart: unless-stopped
     networks:
@@ -996,12 +993,6 @@ services:
     ###########################################################################
   homarr:
     image: ghcr.io/ajnart/homarr:latest
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://$(hostname):7575 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
     container_name: homarr
     restart: unless-stopped
     volumes:

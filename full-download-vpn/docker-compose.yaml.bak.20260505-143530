@@ -52,8 +52,7 @@ services:
     restart: unless-stopped
     networks:
       - mediastack
-    # NOTE: Do NOT set 'user:' on the official postgres image - the entrypoint
-    # must run as root to perform chown/initdb, then it drops privileges automatically.
+    user: ${PUID:?err}:${PGID:?err}
     ports:
       - ${POSTGRESQL_PORT:?err}:5432
     healthcheck:
@@ -63,7 +62,7 @@ services:
       retries: 5
       timeout: 5s
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - ${FOLDER_FOR_DATA:?err}/postgresql:/var/lib/postgresql
     environment:
       - TZ=${TIMEZONE:?err}
       - POSTGRES_DB=${AUTHENTIK_DATABASE:?err}
@@ -560,8 +559,6 @@ services:
   ###########################################################################
   headplane:
     image: ghcr.io/tale/headplane:latest
-    healthcheck:
-      disable: true
     container_name: headplane
     restart: unless-stopped
     networks:
@@ -709,6 +706,7 @@ services:
   bazarr:
     image: lscr.io/linuxserver/bazarr:latest
     container_name: bazarr
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -996,12 +994,6 @@ services:
     ###########################################################################
   homarr:
     image: ghcr.io/ajnart/homarr:latest
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://$(hostname):7575 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
     container_name: homarr
     restart: unless-stopped
     volumes:
@@ -1081,6 +1073,7 @@ services:
   jellyfin:
     image: lscr.io/linuxserver/jellyfin:latest
     container_name: jellyfin
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -1134,6 +1127,7 @@ services:
   lidarr:
     image: lscr.io/linuxserver/lidarr:latest
     container_name: lidarr
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -1180,6 +1174,7 @@ services:
   mylar:
     image: lscr.io/linuxserver/mylar3:latest
     container_name: mylar
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -1226,6 +1221,7 @@ services:
   plex:
     image: lscr.io/linuxserver/plex:latest
     container_name: plex
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -1329,6 +1325,7 @@ services:
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -1374,6 +1371,7 @@ services:
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -1423,6 +1421,7 @@ services:
   radarr:
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -1470,6 +1469,7 @@ services:
   readarr:
     image: lscr.io/linuxserver/readarr:0.4.19-nightly
     container_name: readarr
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -1516,6 +1516,7 @@ services:
   sabnzbd:
     image: lscr.io/linuxserver/sabnzbd:latest
     container_name: sabnzbd
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -1600,6 +1601,7 @@ services:
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -1648,6 +1650,7 @@ services:
   tdarr:
     image: ghcr.io/haveagitgat/tdarr:latest
     container_name: tdarr
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -1693,6 +1696,7 @@ services:
   tdarr-node:
     image: ghcr.io/haveagitgat/tdarr_node:latest
     container_name: tdarr-node
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -1883,6 +1887,7 @@ services:
   whisparr:
     image: ghcr.io/hotio/whisparr:nightly
     container_name: whisparr
+    init: true
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -1948,6 +1953,3 @@ services:
       - homepage.icon=play-circle.png
       - homepage.href=http://${LOCAL_DOCKER_IP:?err}:38000
       - homepage.description=Watch all media from Radarr and Sonarr
-
-volumes:
-  postgres-data:
