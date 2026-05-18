@@ -1305,6 +1305,7 @@ services:
       - PGID=${PGID:?err}
       - TZ=${TIMEZONE:?err}
       - TP_THEME=${TP_THEME:?err}
+        - UMASK=002
     network_mode: "service:gluetun"
     #    ports:
     #      - ${WEBUI_PORT_PROWLARR:?err}:9696             # Configured in Gluetun VPN container
