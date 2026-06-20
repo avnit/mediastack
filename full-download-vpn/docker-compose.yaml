@@ -1306,12 +1306,12 @@ services:
     - TZ=${TIMEZONE:?err}
     network_mode: service:gluetun
     labels:
-    - homepage.group=Arr Apps
-    - homepage.name=Whisparr
-    - homepage.icon=whisparr.png
-    - homepage.href=http://192.168.0.17:6969
-    - homepage.description=Adult content manager
-    - homepage.server=my-docker
+    # - homepage.group=Arr Apps
+    # - homepage.name=Whisparr
+    # - homepage.icon=whisparr.png
+    # - homepage.href=http://192.168.0.17:6969
+    # - homepage.description=Adult content manager
+    # - homepage.server=my-docker
     - traefik.enable=true
     - traefik.http.routers.whisparr.service=whisparr
     - traefik.http.routers.whisparr.rule=Host(`whisparr.${CLOUDFLARE_DNS_ZONE:?err}`)
