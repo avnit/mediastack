@@ -1,0 +1,499 @@
+# Instincts generated from https://github.com/avnit/mediastack
+# Generated: 2026-05-02T02:20:39.627Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: mediastack-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/avnit/mediastack
+---
+
+# Mediastack Commit Length
+
+## Action
+
+Keep commit messages concise (~47 characters)
+
+## Evidence
+
+- Average commit message length: 47 chars
+- Based on 46 commits
+
+---
+id: mediastack-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/avnit/mediastack
+---
+
+# Mediastack Naming Files
+
+## Action
+
+Use kebab-case naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: kebab-case
+
+---
+id: mediastack-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/avnit/mediastack
+---
+
+# Mediastack Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: mediastack-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/avnit/mediastack
+---
+
+# Mediastack Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: mediastack-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/avnit/mediastack
+---
+
+# Mediastack Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: mediastack-workflow-feature-development
+trigger: "when implementing a new feature"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/avnit/mediastack
+---
+
+# Mediastack Workflow Feature Development
+
+## Action
+
+Follow the feature-development workflow:
+1. Add feature implementation
+2. Add tests for feature
+3. Update documentation
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~12x per month
+- Files: **/*.test.*, **/api/**
+
+---
+id: mediastack-workflow-update-docker-compose-configuration
+trigger: "when doing update docker compose configuration"
+confidence: 0.8
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/avnit/mediastack
+---
+
+# Mediastack Workflow Update Docker Compose Configuration
+
+## Action
+
+Follow the update-docker-compose-configuration workflow:
+1. Edit full-download-vpn/docker-compose.yaml to reflect service or configuration changes.
+2. Optionally update full-download-vpn/.env if environment variables are affected.
+3. Commit the changes.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~6x per month
+- Files: full-download-vpn/docker-compose.yaml, full-download-vpn/.env
+
+---
+id: mediastack-workflow-update-env-file
+trigger: "when doing update env file"
+confidence: 0.7
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/avnit/mediastack
+---
+
+# Mediastack Workflow Update Env File
+
+## Action
+
+Follow the update-env-file workflow:
+1. Edit full-download-vpn/.env to add, remove, or modify variables.
+2. Commit the changes.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~4x per month
+- Files: full-download-vpn/.env
+
+---
+id: mediastack-workflow-update-restart-script
+trigger: "when doing update restart script"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/avnit/mediastack
+---
+
+# Mediastack Workflow Update Restart Script
+
+## Action
+
+Follow the update-restart-script workflow:
+1. Edit or add full-download-vpn/restart.sh.
+2. Optionally update README.md to reflect script changes.
+3. Commit the changes.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: full-download-vpn/restart.sh, full-download-vpn/README.md
+
+---
+id: mediastack-workflow-add-or-update-bookmarks-html
+trigger: "when doing add or update bookmarks html"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/avnit/mediastack
+---
+
+# Mediastack Workflow Add Or Update Bookmarks Html
+
+## Action
+
+Follow the add-or-update-bookmarks-html workflow:
+1. Edit or add full-download-vpn/bookmarks.html or full-download-vpn/booksmarks.html.
+2. Optionally update README.md or related scripts.
+3. Commit the changes.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: full-download-vpn/bookmarks.html, full-download-vpn/booksmarks.html
+
+---
+id: mediastack-instinct-file-naming
+trigger: "When creating or renaming a file in the repository"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: avnit/mediastack
+---
+
+# Mediastack Instinct File Naming
+
+## Action
+
+Use kebab-case for file names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.files
+- Observed in folderStructure.commonFolders
+
+---
+id: mediastack-instinct-function-naming
+trigger: "When defining a function"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: avnit/mediastack
+---
+
+# Mediastack Instinct Function Naming
+
+## Action
+
+Use camelCase for function names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.functions
+
+---
+id: mediastack-instinct-class-naming
+trigger: "When defining a class"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: avnit/mediastack
+---
+
+# Mediastack Instinct Class Naming
+
+## Action
+
+Use PascalCase for class names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.classes
+
+---
+id: mediastack-instinct-constant-naming
+trigger: "When declaring a constant"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: avnit/mediastack
+---
+
+# Mediastack Instinct Constant Naming
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for constant names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.constants
+
+---
+id: mediastack-instinct-import-style
+trigger: "When importing modules"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: avnit/mediastack
+---
+
+# Mediastack Instinct Import Style
+
+## Action
+
+Use relative import paths
+
+## Evidence
+
+- Pattern in codeStyle.importStyle
+
+---
+id: mediastack-instinct-export-style
+trigger: "When exporting modules or functions"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: avnit/mediastack
+---
+
+# Mediastack Instinct Export Style
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in codeStyle.exportStyle
+
+---
+id: mediastack-instinct-test-location
+trigger: "When adding or updating tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: avnit/mediastack
+---
+
+# Mediastack Instinct Test Location
+
+## Action
+
+Place test files in a separate directory from source files
+
+## Evidence
+
+- Pattern in architecture.folderStructure.testLocation
+- Workflows reference **/*.test.*
+
+---
+id: mediastack-instinct-test-feature
+trigger: "When implementing a new feature"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: avnit/mediastack
+---
+
+# Mediastack Instinct Test Feature
+
+## Action
+
+Add corresponding test files for the feature
+
+## Evidence
+
+- feature-development workflow includes test addition
+- filesInvolved includes **/*.test.*
+
+---
+id: mediastack-instinct-commit-prefix
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: avnit/mediastack
+---
+
+# Mediastack Instinct Commit Prefix
+
+## Action
+
+Start the commit message with a prefix such as 'feat' or 'fix' followed by a colon
+
+## Evidence
+
+- commits.prefixes includes 'feat', 'fix'
+- Examples: 'feat: Introduce...', 'fix: Update...'
+
+---
+id: mediastack-instinct-commit-length
+trigger: "When writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: avnit/mediastack
+---
+
+# Mediastack Instinct Commit Length
+
+## Action
+
+Keep the commit message concise, ideally around 47 characters
+
+## Evidence
+
+- commits.averageLength is 47
+
+---
+id: mediastack-instinct-update-docker-compose
+trigger: "When someone wants to add, remove, or modify services, environment variables, or network settings in the Docker Compose stack"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: avnit/mediastack
+---
+
+# Mediastack Instinct Update Docker Compose
+
+## Action
+
+Edit full-download-vpn/docker-compose.yaml and optionally full-download-vpn/.env, then commit the changes
+
+## Evidence
+
+- update-docker-compose-configuration workflow
+- Commits editing docker-compose.yaml and .env
+
+---
+id: mediastack-instinct-update-env-file
+trigger: "When someone needs to change environment variables or secrets for the stack"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: avnit/mediastack
+---
+
+# Mediastack Instinct Update Env File
+
+## Action
+
+Edit full-download-vpn/.env and commit the changes
+
+## Evidence
+
+- update-env-file workflow
+- Commits editing .env
+
+---
+id: mediastack-instinct-update-restart-script
+trigger: "When someone needs to improve or fix the stack management script"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: avnit/mediastack
+---
+
+# Mediastack Instinct Update Restart Script
+
+## Action
+
+Edit or add full-download-vpn/restart.sh, optionally update README.md, and commit the changes
+
+## Evidence
+
+- update-restart-script workflow
+- Commits editing restart.sh and README.md
+
+---
+id: mediastack-instinct-update-bookmarks-html
+trigger: "When someone wants to update or fix the bookmarks HTML file"
+confidence: 0.8
+domain: workflow
+source: repo-analysis
+source_repo: avnit/mediastack
+---
+
+# Mediastack Instinct Update Bookmarks Html
+
+## Action
+
+Edit or add full-download-vpn/bookmarks.html or full-download-vpn/booksmarks.html, optionally update README.md or related scripts, and commit the changes
+
+## Evidence
+
+- add-or-update-bookmarks-html workflow
+- Commits editing bookmarks.html/booksmarks.html
+
