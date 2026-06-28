@@ -1,0 +1,8 @@
+Bazarr   API Key:  e7fe98c006a03f925f6fc3509c9ed7db   located in /shared/media/data/bazarr/config/config.yaml
+Lidarr   API Key:  c5bfb34e443d4d90a089fede46cc0f25   located in /shared/media/data/lidarr/config.xml
+Mylar    API Key:  c7779253428435e056800d6a7927277b   located in /shared/media/data/mylar/mylar/config.ini
+Prowlarr API Key:  aa769a1ba05a44aba9e25561bd8a0c06   located in /shared/media/data/prowlarr/config.xml
+Radarr   API Key:  e5638a65a0c94684b2f0cb3a44392c02   located in /shared/media/data/radarr/config.xml
+Readarr  API Key:  1a3c13291c7a4da098f80742f136c335   located in /shared/media/data/readarr/config.xml
+Sonarr   API Key:  593f3d8f76ca4b31acfe18b4756ffb97   located in /shared/media/data/sonarr/config.xml
+Whisparr API Key:  385e5709f2d247ea9e4a2c1aa4011ac6

@@ -1925,3 +1925,5 @@ services:
       - ${FOLDER_FOR_MEDIA:?err}/media/movies:/movies
     networks:
       - mediastack
+SONARR_API_KEY=593f3d8f76ca4b31acfe18b4756ffb97
+_RADARR_API_KEY=e5638a65a0c94684b2f0cb3a44392c02
