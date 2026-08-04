@@ -3,12 +3,15 @@
 # This script will extract all of the API Keys configured in the *ARR Media Library Managers
 # You need to install 'yq' and 'xmllint' packages to parse configuration files
 
-export FOLDER_FOR_YAMLS=/root/mediastack/full-download-vpn/                # <-- Folder where the yaml and .env files are located
-export FOLDER_FOR_MEDIA=/shared/media/md           # <-- Folder where your media is locate
-export FOLDER_FOR_DATA=/shared/media/data          # <-- Folder where MediaStack stores persistent data and configurations
+# Load environment variables if available
+if [ -f "$(dirname "$0")/.env" ]; then
+    export $(grep -v '^#' "$(dirname "$0")/.env" | grep -v '^$' | xargs)
+fi
 
-export PUID=1000
-export PGID=1000
+FOLDER_FOR_YAMLS="${FOLDER_FOR_YAMLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/}"
+FOLDER_FOR_DATA="${FOLDER_FOR_DATA:-/shared/media/data}"
+PUID="${PUID:-1000}"
+PGID="${PGID:-1000}"
 
 # Auto-detect Docker host IP address
 export DOCKER_HOST_IP=$(ip a | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep '^192\.' | head -n1)
