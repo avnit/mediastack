@@ -439,7 +439,7 @@ services:
     - ${WEBUI_PORT_RADARR:?err}:7878
     - ${WEBUI_PORT_READARR:?err}:8787
     - ${WEBUI_PORT_SABNZBD:?err}:8080
-    - ${WEBUI_PORT_SEERR:?err}:5055
+    - ${WEBUI_PORT_JELLYSEERR:?err}:5055
     - ${WEBUI_PORT_SONARR:?err}:8989
     - ${WEBUI_PORT_WHISPARR:?err}:6969
     - ${WEBUI_PORT_QBITTORRENT:?err}:${WEBUI_PORT_QBITTORRENT:?err}
@@ -1298,10 +1298,10 @@ services:
         restart: true
     volumes:
     - ${FOLDER_FOR_MEDIA:?err}:/data
-    - /opt/appdata/whisparr:/config
+    - ${FOLDER_FOR_DATA:?err}/whisparr:/config
     environment:
-    - PUID=99
-    - PGID=100
+    - PUID=${PUID:?err}
+    - PGID=${PGID:?err}
     - UMASK=${UMASK:?err}
     - TZ=${TIMEZONE:?err}
     network_mode: service:gluetun
