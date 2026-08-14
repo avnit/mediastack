@@ -1,10 +1,12 @@
-# MediaStack Project (Docker)  
+﻿# MediaStack Project (Docker)
 
-See you on [Reddit for MediaStack](https://www.reddit.com/r/MediaStack/)  
+## Overview
 
-## What Applications Are Provided In MediaStack  
-`
-Welcome to the MediaStack project! MediaStack is your ultimate solution for managing and streaming media collections with applications like Jellyfin and Plex. Using Docker, MediaStack containerises these media servers alongside *ARR applications (Radarr, Sonarr, Lidarr, etc.) for seamless media automation and management.  
+MediaStack is a comprehensive, containerized media management solution built on Docker. This project provides an integrated stack of applications for media streaming, automation, security, and remote access.
+
+## Application Components  
+
+MediaStack provides a production-ready solution for managing and streaming media collections using applications such as Jellyfin and Plex. The platform leverages Docker containerization to integrate media servers with automation tools (Radarr, Sonarr, Lidarr, etc.) for comprehensive media library management.  
 
 List of Docker applications configured in the MediaStack `docker-compose.yaml` file:  
 
@@ -66,43 +68,43 @@ List of Docker applications configured in the MediaStack `docker-compose.yaml` f
 
 MediaStack is your ultimate solution for managing and streaming media collections with applications like Jellyfin and Plex. Using Docker, MediaStack containerises these media servers alongside *ARR applications (Radarr, Sonarr, Lidarr, etc.) for seamless media automation and management.  
 
-You will also be able to connect to your MediaStack instance security from the Internet using the following two methods:  
+The platform supports secure remote connectivity through two primary methods:
 
-- **Secure Reverse Proxy:** Traefik, Authentik, and CrowdSec provides a full reverse proxy solution with free Let's Encrypt digital certificates, including SSO / OAuth2 / OpenID / SAML / Radius / LDAP identity providers and MFA. Traefik Certs Dumper extracts the Let's Encrypt cetificates so you can install them on other systems.  
+- **Reverse Proxy Architecture:** Traefik reverse proxy with Authentik identity provider and CrowdSec intrusion prevention provides enterprise-grade security including automated Let's Encrypt TLS certificates, SSO/OAuth2/OpenID/SAML/RADIUS/LDAP authentication, and multi-factor authentication. The Traefik Certs Dumper utility extracts certificates for integration with external systems.
 
-- **Secure Tailscale VPN:** Headscale is an open source Tailscale Coordination Server, allowing remote Tailscale clients to connect to the Headscale and Tailscale applications, and accessing all of the containers over the VPN connection. Include Headplane to provide a WebUI portal to manage Headscale settings.  
+- **VPN Mesh Network:** Headscale (open-source Tailscale coordination server) enables secure WireGuard-based VPN connectivity for authorized clients. Headplane provides web-based management interface for Headscale configuration.
 
-> **NOTE:** The Traefik reverse proxy configuration for incoming connections, has been configured with the strongest of the modern cipher suites, using only TLSv1.2 and TSLv1.3 as minimum protocols, and enforces strong security headers to provide your MediaStack with the strongest security / privacy when you connect from the Internet.  
+> **Security Note:** The Traefik reverse proxy is configured with modern cipher suites, enforcing TLSv1.2 and TLSv1.3 minimum protocols with strict security headers to ensure maximum protection for internet-facing connections.  
 
 </br>
 
-## Internal Container Access (From Home)
+## Network Access Configuration
 
-Edit the "**Import Bookmarks - MediaStackGuide Applications (Internal URLs).html**" file, and find / replace all of the **`localhost`** entries with the IP address running Docker in your home network.  
+### Internal Network Access
 
-Then import the Bookmarks into your web browser.  
+For local network access, edit the `Import Bookmarks - MediaStackGuide Applications (Internal URLs).html` file and replace all `localhost` entries with the IP address of the Docker host system. Import the updated bookmarks into your web browser.
 
-## External Container Access (From Internet)
+### External Network Access
 
-Edit the "**Import Bookmarks - MediaStackGuide Applications (External URLs).html**" file, and find / replace all of the **`YOUR_DOMAIN_NAME`** entries with your Internet domain name.  
+For internet access, edit the `Import Bookmarks - MediaStackGuide Applications (External URLs).html` file and replace all `YOUR_DOMAIN_NAME` entries with your registered domain name.
 
-All of the Docker images / containers in the Docker Compose file, have already been labelled for Traefik, and they will be automatically detected and assigned the correct routing based on the incoming Internet URL, using your domain name.  
+All containers in the Docker Compose configuration include Traefik labels for automatic service discovery and routing. Configure port forwarding on your gateway/router to direct ports 80 and 443 to the Docker host IP address. Alternative ports can be specified using the `REVERSE_PROXY_PORT_HTTP(S)` variables in the `.env` file.  
 
-Port forward your incoming connections on your home Internet gateway / router, to the IP Address of your computer running Docker, using Ports 80 and 443 - If these are taken, you can use alternate ports using the **REVERSE_PROXY_PORT_HTTP(S)** settings in the **.ENV** variable file.  
+## Repository Structure and Deployment
 
-## How Do I Use The MediaStack Repo  
+The MediaStack repository is organized into configuration directories:
 
-- **base-working-files:** Download all of these files into a single directory located on your Docker computer. Then download the `docker-compose.yaml` file located in one of the following configurations, into the same directory.  
+- **base-working-files:** Contains core configuration files and scripts required for all deployments. Download these files to your Docker host directory.
 
-- **docker-compose.yaml:** Download one of the `docker-compose.yaml` configuration files:  
+- **docker-compose.yaml Configurations:** Select one configuration based on your VPN requirements:
 
-  - **full-download-vpn:** The `docker-compose.yaml` file located in this directory is configured so all outgoing network connections / media downloads are protected with the Gluetun VPN Tunnel, to provide maximum privacy on your Internet connection. **This is the recommended configuration for new users**.  
+  - **full-download-vpn:** All network traffic is routed through Gluetun VPN tunnel for maximum privacy. Recommended for production deployments.
+  
+  - **mini-download-vpn:** Only SABnzbd (Usenet) and qBittorrent (Torrent) traffic is routed through Gluetun VPN tunnel.
+  
+  - **no-download-vpn:** No VPN configuration. All traffic uses direct internet connectivity.
 
-  - **mini-download-vpn:** The `docker-compose.yaml` file located in this directory is configured so only the SABnzbd (Usenet) and qBittorrent (Torrents) are protected with the Gluetun VPN Tunnel, to provide a moderate level of privacy just on your download activities.  
-
-  - **no-download-vpn:** The `docker-compose.yaml` file located in this directory does not have Gluetun, or any other form of VPN for outgoing Internet traffic; you will have limited no privacy on downloads.  
-
-You can now configure the `docker-compose.yaml`, `.env`, and other files downloaded from the **base-working-files** configuration directory.  
+After downloading the files, configure the `docker-compose.yaml`, `.env`, and related configuration files from the `base-working-files` directory.  
 
 </br>
 
@@ -459,35 +461,95 @@ flowchart TD
 </center>
 </br>
 
-## What Do I Need To Configure
+## Configuration Requirements
 
-Follow the steps below to deploy your MediaStack quickly:  
+Complete the following configuration steps to deploy MediaStack:
 
-- Download all of the files in the `base-working-file` GitHub folder, and **one** of the pre-configured `docker-compose.yaml` files into the same directory  
-- Update the `.env` file with all the configuration settings / values for your system needs  
-- Replace `example.com` with your Internet domain in the following files:  
-  - `headscale-config.yaml`  
-  - `headplane-config.yaml`  
-  - `traefik-dynamic.yaml`  
-  - `traefik-internal.yaml`  
-  - `traefik-static.yaml`  
-- Update `cookie_secret` variable in `headplane-config.yaml` using 32 random characters  
-- Update `restart.sh` script with your values for:  
-  - **`FOLDER_FOR_YAMLS`**=/docker &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp; # <-- Folder where the yaml and .env files are located  
-- Enable execution of shell scripts with `sudo chmod 775 *sh`  
+1. Download all files from the `base-working-files` directory and one of the `docker-compose.yaml` configurations to the same directory
+2. Configure the `.env` file with system-specific values
+3. Replace `example.com` with your registered domain name in the following files:
+   - `headscale-config.yaml`
+   - `headplane-config.yaml`
+   - `traefik-dynamic.yaml`
+   - `traefik-internal.yaml`
+   - `traefik-static.yaml`
+4. Generate a 32-character random string for the `cookie_secret` variable in `headplane-config.yaml`
+5. Update the `FOLDER_FOR_YAMLS` variable in `restart.sh` script to match your deployment directory
+6. Enable script execution: `sudo chmod 775 *sh`
+7. Deploy the stack: `./restart.sh`
 
-Start your MediaStack with `./restart.sh`  
+> **Note:** The `restart.sh` script validates the `.env` configuration and manages the deployment process automatically.
 
-> NOTE: The `restart.sh` script reads the variables in the `.env` environment file, then does most of the configuration / management for you - it will tell you if you have issues.  
+### Post-Deployment Configuration
 
-The Postgresql server still needs some minor configuration to complete the MediaStack deployment:  
+Complete PostgreSQL configuration:
 
-- Set access permissions on Authentik Postgresql database with `./secure_authentik_database.sh` script  
-- Set up Guacamole Postgresql database and access permissions with `./create_guacamole_database.sh` script  
+1. Configure Authentik database access: `./secure_authentik_database.sh`
+2. Initialize Guacamole database: `./create_guacamole_database.sh`
+3. Restart the stack: `./restart.sh`  
 
-Restart MediaStack again after changes with `./restart.sh`  
+<br>
 
-</br>
+## Environment File Setup
+
+MediaStack uses environment files to store configuration and sensitive credentials. To protect your sensitive data from being committed to version control:
+
+### Initial Setup
+
+1. **Copy the template file**:
+   ```bash
+   cp .env.template .env
+   ```
+
+2. **Edit the `.env` file** with your actual values:
+   - VPN credentials (`VPN_USERNAME`, `VPN_PASSWORD`)
+   - Domain and email settings (`CLOUDFLARE_EMAIL`, `CLOUDFLARE_DNS_ZONE`, `CLOUDFLARE_DNS_API_TOKEN`)
+   - Database passwords (use `openssl rand -base64 60` to generate secure passwords)
+   - Email configuration for Authentik notifications
+   - Plex claim token from [https://account.plex.tv/en/claim](https://account.plex.tv/en/claim)
+
+3. **Extract API Keys** (after first deployment):
+   ```bash
+   ./get-apikeys.sh
+   ```
+   This script will output all service API keys in both human-readable format and ready-to-use `HOMEPAGE_VAR_*` format for your Homepage dashboard.
+
+4. **Generate Browser Bookmarks** (optional):
+   ```bash
+   chmod +x generate-bookmarks.sh
+   ./generate-bookmarks.sh
+   ```
+   This script creates a `bookmarks.html` file with all MediaStack service links using your current `LOCAL_DOCKER_IP` from the `.env` file. Import this file into your browser for quick access to all services.
+   
+   > **Tip:** Re-run this script whenever you change your Docker host IP address to update all bookmark links automatically.
+
+
+### Git Repository Safety
+
+If you're maintaining this as a git repository and want to ensure your `.env` file is never accidentally committed:
+
+1. **Run the untrack script** (one time only):
+   ```bash
+   chmod +x untrack-env-files.sh
+   ./untrack-env-files.sh
+   ```
+
+2. **Commit the protection files**:
+   ```bash
+   git add .gitignore .env.template
+   git commit -m "Add environment file template and gitignore"
+   git push
+   ```
+
+After this setup:
+- ✅ Your `.env` file will never be tracked by git
+- ✅ `git pull` will never overwrite your local configuration
+- ✅ New users can easily copy `.env.template` to get started
+- ✅ Sensitive credentials remain secure
+
+> **Security Note**: The `.gitignore` file is configured to exclude `.env`, `.env-old`, and `homepage.env` files from version control to prevent accidental credential exposure.
+
+<br>
 
 ## Starting / Maintaining MediaStack
 
@@ -1146,7 +1208,7 @@ Create a Crowdsec account, and obtain your Crowdsec security engine enrolement k
 - [https://app.crowdsec.net/security-engines](https://app.crowdsec.net/security-engines)  
 
 ``` bash
-sudo docker exec crowdsec cscli console enroll cm1yipaufk0021g1u01fq27s3
+sudo docker exec crowdsec cscli console enroll cmcrb46280003jr02n1xkn3kx
 sudo docker exec crowdsec cscli collections install crowdsecurity/base-http-scenarios crowdsecurity/http-cve crowdsecurity/linux crowdsecurity/iptables crowdsecurity/sshd crowdsecurity/traefik crowdsecurity/plex
 sudo docker exec crowdsec cscli parsers install crowdsecurity/syslog-logs crowdsecurity/iptables-logs crowdsecurity/sshd-logs crowdsecurity/traefik-logs crowdsecurity/whitelists
 sudo docker exec crowdsec cscli appsec-configs install crowdsecurity/virtual-patching crowdsecurity/appsec-default crowdsecurity/generic-rules
