@@ -1278,4 +1278,27 @@ Using Docker to deploy the applications in the MediaStack is a great way to stor
 
 We strongly emphasise the ethical and legal use of technology, advocating for managing media that users have rights to, such as purchased copies. Our community does not condone or tolerate piracy or related discussions. Piracy violates intellectual property laws and undermines content creators. Our forums focus on supporting users in managing their media content legally and responsibly.  
 
-By respecting legal guidelines and content creators' rights, we ensure a supportive, ethical community dedicated to lawful media management.  
+By respecting legal guidelines and content creators' rights, we ensure a supportive, ethical community dedicated to lawful media management.
+
+<!-- ARCH-DIAGRAM:START -->
+
+## Architecture
+
+> Auto-generated architecture diagram. See [`docs/context-map.md`](docs/context-map.md) for the full context map (core application, containers/cloud, and database connections).
+
+```mermaid
+flowchart TD
+  User([User / Client])
+  App["mediastack"]
+  DB0[("PostgreSQL / AlloyDB")]
+  SVC0["Cloudflare Workers"]
+  Img["Container image<br/>(Docker/Compose)"]
+  Deploy["GKE / Kubernetes"]
+  User --> App
+  App --> DB0
+  App --> SVC0
+  App -.deploy.-> Img
+  Img -.deploy.-> Deploy
+```
+
+<!-- ARCH-DIAGRAM:END -->
