@@ -1335,6 +1335,152 @@ You can access your Portainer instance at: [http://localhost:9000](http://localh
 
 </br>  
 
+## Deployment Notes & Known Issues
+
+Findings from a full-stack outage on the `192.168.0.17` LXC (Proxmox host, PVE kernel `7.0.14-14`), and the fixes applied to this repository. Read this before debugging a stack that will not come up.
+
+### The failure cascade, in the order it actually bites
+
+A single host-port collision can look like four unrelated faults. When Docker cannot bind a published port it tears the container's network endpoint down *after* the process has launched, leaving a namespace with interfaces but no gateway. Gluetun then reports:
+
+```
+ERROR default route not found: in 4 route(s)
+```
+
+That message names the symptom, not the cause. Because ~30 host ports and every media application share gluetun's namespace via `network_mode: service:gluetun`, one conflict takes down Plex, Jellyfin, qBittorrent, SABnzbd, the *arr suite, Bazarr, Tdarr and FlareSolverr at once.
+
+`restart.sh` now runs `check_port_conflicts()` after `cleanup_containers()` and refuses to start if a non-Docker process owns a published port.
+
+### Diagnosing "default route not found"
+
+Distinguish a genuine Docker networking fault from a gluetun bug with a throwaway container using gluetun's exact setup:
+
+```bash
+docker run --rm --network mediastack --cap-add NET_ADMIN --device /dev/net/tun -p 32400:32400 alpine:3 ip route
+```
+
+| Result | Meaning |
+| :--- | :--- |
+| No `default via <gateway>` | Docker network or bridge fault. Inspect `docker network inspect mediastack` for `Internal: true` or a `gateway_mode_ipv4` mismatch, and confirm the `br-*` interface holds the gateway address. |
+| Default route present | The network is fine; gluetun cannot parse it. Version problem — see below. |
+
+### gluetun pinned to v3.41.3
+
+`v3.41.1` fails to recognise the IPv4 default route on recent PVE kernels and crash-loops. Confirmed by two observations: an identical throwaway container sees the route without trouble, and `v3.41.1` *also* succeeds once IPv6 routes are removed:
+
+```bash
+docker run --rm --network mediastack --cap-add NET_ADMIN --device /dev/net/tun \
+  --sysctl net.ipv6.conf.all.disable_ipv6=1 qmcgaw/gluetun:v3.41.1 2>&1 | grep -i 'default route'
+```
+
+So the fault is gluetun's route enumeration tripping over `fe80::/64` and `ff00::/8`, not a missing route. `v3.41.3` handles it correctly with IPv6 present, which is why the image is pinned rather than worked around with a sysctl — a sysctl would disable IPv6 for every container sharing the namespace. Related upstream report: [community-scripts/ProxmoxVE#13390](https://github.com/community-scripts/ProxmoxVE/issues/13390).
+
+**Do not float this image to `:latest`.** Pin it, and test a new tag with the throwaway-container command above before bumping.
+
+### NordVPN OpenVPN server list goes stale
+
+After the routing fix, OpenVPN failed repeatedly with:
+
+```
+WARN [openvpn] TLS Error: TLS key negotiation failed to occur within 60 seconds
+```
+
+A handshake that never gets a reply is **not** an authentication failure — bad credentials or a lapsed subscription fail *after* the handshake with `AUTH_FAILED`. NordVPN rotates server IPs faster than gluetun's release cadence, so the list baked into the image goes stale. `UPDATER_PERIOD=24h` on the gluetun service now refreshes it daily. To refresh immediately:
+
+```bash
+docker run --rm -v "${FOLDER_FOR_DATA}/gluetun:/gluetun" qmcgaw/gluetun:v3.41.3 update -enduser -providers nordvpn
+```
+
+Also note that `SERVER_COUNTRIES` and `SERVER_REGIONS` are **ANDed**. Setting both narrows the candidate pool to a handful of servers; clearing `SERVER_REGIONS` widens it considerably when connections keep failing.
+
+### Traefik: acme.json permissions gate every certificate
+
+Traefik refuses to load an `acme.json` looser than `600` and drops the entire resolver:
+
+```
+ERR The ACME resolve is skipped from the resolvers list
+    error="unable to get ACME account: permissions 777 for /letsencrypt/acme.json are too open"
+ERR Error while creating certificate store
+    error="unable to find certificate for domains ... falling back to the internal generated certificate"
+```
+
+Every `secureweb` route then serves Traefik's self-signed certificate. The downstream symptom is confusing — Tailscale cannot reach Headscale and reports `tls: unrecognized name`, which reads like a DNS or SNI problem rather than a file mode.
+
+Two defences are in place: `restart.sh` sets `600` after its recursive `chmod`, and a `traefik-init` sidecar re-asserts it on **every** container start via `service_completed_successfully`. The sidecar matters because `restart.sh` only runs on a full re-run, while `docker compose up -d` does not.
+
+### CrowdSec: null YAML documents in the acquisition file
+
+```
+Error: any only supports arrays, was !!null
+```
+
+CrowdSec parses `acquis.yaml` as a multi-document stream and rejects any document that parses as null. A trailing `---`, or a datasource block that is entirely commented out, produces exactly that. Verify with:
+
+```bash
+python3 -c "import yaml,sys; print([type(d).__name__ for d in yaml.safe_load_all(open(sys.argv[1]))])" "${FOLDER_FOR_DATA}/crowdsec/acquis.yaml"
+```
+
+`['dict', 'NoneType']` means a null document is present; it should print only `dict` entries. Keep commented-out datasources' `---` separators commented too.
+
+### Valkey must bind 0.0.0.0
+
+Valkey is published on `0.0.0.0`, not `127.0.0.1`. It is consumed cross-host — a loopback bind leaves it reachable locally, so it looks healthy while silently breaking every remote consumer. If a remote container cannot reach its cache, check this bind address first.
+
+### Prometheus: config lives outside the TSDB directory
+
+`prometheus.yml` is mounted from `${FOLDER_FOR_DATA}/prometheus-config/`, not from inside `${FOLDER_FOR_DATA}/prometheus/`. Nesting the config inside the data directory means clearing a corrupt write-ahead log also deletes the configuration.
+
+Recovering from `opening storage failed: get segment range: segments are not sequential`:
+
+```bash
+docker compose stop prometheus
+rm -rf "${FOLDER_FOR_DATA}/prometheus/wal" "${FOLDER_FOR_DATA}/prometheus/chunks_head"
+chown -R "${PUID}:${PGID}" "${FOLDER_FOR_DATA}/prometheus"
+docker compose up -d prometheus
+```
+
+This discards up to roughly two hours of un-flushed samples; anything already compacted into blocks survives.
+
+**If you change this mount path, create the directory first.** Docker silently creates a *directory* named `prometheus.yml` when the bind-mount source is missing, and Prometheus then fails to start. `restart.sh` creates `prometheus-config` for this reason.
+
+### SQLite corruption: never put application databases on NFS
+
+`database disk image is malformed` appeared simultaneously in CrowdSec, Mylar, Bazarr, Lidarr and Whisparr. SQLite's locking is unreliable over NFS and corruption is the usual outcome. Keep `FOLDER_FOR_DATA` on local ext4, or relocate the affected application's `/config` to local storage.
+
+Audit which files are actually damaged before touching any of them:
+
+```bash
+for a in bazarr lidarr mylar sonarr radarr readarr prowlarr; do find "${FOLDER_FOR_DATA}/$a" -maxdepth 2 -name '*.db' 2>/dev/null | while read -r f; do printf '%s: ' "$f"; sqlite3 "$f" 'PRAGMA integrity_check;' 2>&1 | head -1; done; done
+```
+
+Most *arr databases can be salvaged with `sqlite3 broken.db ".recover" | sqlite3 fixed.db` rather than rebuilt from scratch. CrowdSec's database holds only decisions, alerts and machine registrations — it regenerates cleanly, so moving it aside is safe.
+
+Plex keeps its own dated rolling backups in `Plug-in Support/Databases/`; restore the most recent one rather than letting Plex rebuild the library, which loses watch history and collections.
+
+### Run one Plex, not two
+
+A natively-installed `plexmediaserver` and the containerised Plex both want port `32400`. The native service wins on boot, the container's port bind fails, and gluetun's endpoint teardown follows. Pick one:
+
+```bash
+systemctl disable --now plexmediaserver
+```
+
+The same applies to any application installed both natively and as a container.
+
+### Startup races that are not bugs
+
+The qBittorrent container runs the theme.park `DOCKER_MOD`, which installs `git` and `perl` and clones a repository on every start — roughly 25 seconds before qBittorrent listens. The *arr applications share gluetun's namespace and start first, so they log:
+
+```
+System.Net.Http.HttpRequestException: Connection refused (localhost:8200)
+```
+
+This clears on its own. A `Failed to authenticate with qBittorrent` that persists *minutes* after qBittorrent is up is a real credential problem in the *arr application's download-client settings, not this race.
+
+Likewise, gluetun logging `[dns] using plaintext DNS at address 1.1.1.1` during startup is expected — it resolves VPN server names in the clear before the tunnel exists. Confirm DNS-over-TLS from the log *after* `VPN is up`, not before.
+
+</br>  
+
 ## Piracy Notice  
 
 Using Docker to deploy the applications in the MediaStack is a great way to store, manage, and access your digital media that you own, or have legally acquired, and particularly when dealing with the digital media your children are exposed to. Docker allows easy deployment, updates, and maintenance, ensuring optimal performance without system interference.  

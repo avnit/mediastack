@@ -89,9 +89,16 @@ copy_configs() {
     sudo chmod 664                .env *yaml
     sudo chown $PUID:$PGID        .env *yaml *sh
     
-    # Create acme.json if missing and set strict permissions
+    # Create acme.json if missing and set strict permissions.
+    # MUST run after create_directories() - the recursive "chmod -R 2775" there
+    # would otherwise leave this world-readable. Traefik refuses to load an
+    # acme.json looser than 600 and silently drops the letsencrypt resolver
+    # ("ACME resolve is skipped"), so every route falls back to the self-signed
+    # certificate. The traefik-init service in docker-compose.yaml re-asserts
+    # this on every container start; this is the belt to that pair of braces.
     sudo touch                    "$FOLDER_FOR_DATA"/traefik/letsencrypt/acme.json
-    sudo chmod 600                "$FOLDER_FOR_DATA"/traefik/letsencrypt/acme.json 
+    sudo chmod 600                "$FOLDER_FOR_DATA"/traefik/letsencrypt/acme.json
+    echo "   - acme.json permissions: $(stat -c '%a' "$FOLDER_FOR_DATA"/traefik/letsencrypt/acme.json) (must be 600)"
 
     # Copy config files
     sudo cp headplane-config.yaml "$FOLDER_FOR_DATA"/headplane/config.yaml
@@ -113,6 +120,47 @@ cleanup_containers() {
       sudo docker rm   $containers || true
     fi
     sudo docker container prune -f
+}
+
+check_port_conflicts() {
+    echo
+    echo "Checking for host port conflicts before starting the stack..."
+    echo
+
+    local ports conflicts=0 holder
+    ports=$(docker compose config 2>/dev/null | sed -n 's/.*published: "\([0-9]\{1,5\}\)".*/\1/p' | sort -un)
+
+    if [ -z "$ports" ]; then
+        echo "WARNING: could not read published ports from 'docker compose config' - skipping check."
+        return 0
+    fi
+
+    for port in $ports; do
+        # Runs after cleanup_containers(), so any listener found here is foreign to this stack.
+        holder=$(ss -tulpn 2>/dev/null | awk -v p=":${port}$" '$5 ~ p' | grep -v 'docker-proxy' | head -n1 || true)
+        if [ -n "$holder" ]; then
+            echo "Host port $port is already in use:"
+            echo "     $holder"
+            conflicts=1
+        fi
+    done
+
+    if [ "$conflicts" -ne 0 ]; then
+        echo
+        echo "Free the ports listed above before starting."
+        echo
+        echo "   A conflict makes Docker fail with 'failed to bind host port', and gluetun"
+        echo "   then reports the misleading 'default route not found: in N route(s)'"
+        echo "   because its endpoint is torn down after the failed bind. Every container"
+        echo "   using 'network_mode: service:gluetun' goes down with it."
+        echo
+        echo "   Common culprit: a natively-installed service competing with its own"
+        echo "   container, e.g. 'systemctl disable --now plexmediaserver' for port 32400."
+        echo
+        exit 1
+    fi
+
+    echo "No host port conflicts detected."
 }
 
 start_stack() {
@@ -205,5 +253,6 @@ fi
 
 # Now restart the stack
 cleanup_containers
+check_port_conflicts
 start_stack
 verify_stack
