@@ -70,6 +70,64 @@ create_directories() {
     sudo -E chown -R $PUID:$PGID "$FOLDER_FOR_MEDIA" "$FOLDER_FOR_DATA"
 }
 
+ensure_generated_secrets() {
+    # Variables the compose file requires that have no sensible default and must
+    # never be committed. Generated once and written into .env, so a fresh clone
+    # or a "git pull" that introduces a new secret does not hard-fail
+    # "docker compose config" on an unset ${VAR:?err}.
+    echo
+    echo "Checking generated secrets in $ENV_FILE..."
+
+    local var placeholder="GENERATE_YOUR_OWN_SECRET_KEY_HERE" generated=0 current
+
+    for var in HOMARR_NEXTAUTH_SECRET; do
+        current=$(grep -E "^${var}=" "$ENV_FILE" | cut -d '=' -f2- | xargs | tr -d '\r')
+
+        if [ -z "$current" ] || [ "$current" = "$placeholder" ]; then
+            # Drop any empty or placeholder line so we never end up with duplicates.
+            sudo sed -i "/^${var}=$/d;/^${var}=${placeholder}\$/d" "$ENV_FILE"
+            printf '%s=%s\n' "$var" "$(openssl rand -base64 32 2>/dev/null || head -c 32 /dev/urandom | base64)" \
+                | sudo tee -a "$ENV_FILE" > /dev/null
+            echo "   - $var: generated"
+            generated=1
+        else
+            echo "   - $var: present"
+        fi
+    done
+
+    if [ "$generated" -eq 1 ]; then
+        echo
+        echo "   New secrets were written. Homarr will require a fresh login."
+    fi
+}
+
+migrate_legacy_layout() {
+    # prometheus.yml used to be mounted from inside the TSDB data directory, which
+    # meant clearing a corrupt write-ahead log also deleted the configuration.
+    # Move it out once; safe to re-run.
+    if [ -f "$FOLDER_FOR_DATA/prometheus/prometheus.yml" ] && \
+       [ ! -e "$FOLDER_FOR_DATA/prometheus-config/prometheus.yml" ]; then
+        echo
+        echo "Migrating prometheus.yml out of the TSDB data directory..."
+        sudo mkdir -p "$FOLDER_FOR_DATA"/prometheus-config
+        sudo mv "$FOLDER_FOR_DATA"/prometheus/prometheus.yml "$FOLDER_FOR_DATA"/prometheus-config/prometheus.yml
+        sudo chown "$PUID:$PGID" "$FOLDER_FOR_DATA"/prometheus-config/prometheus.yml
+        echo "   - moved to $FOLDER_FOR_DATA/prometheus-config/prometheus.yml"
+    fi
+
+    # Docker silently creates a DIRECTORY when a bind-mount source file is missing.
+    # Prometheus then fails to start with an unhelpful parse error, so name it here.
+    if [ -d "$FOLDER_FOR_DATA/prometheus-config/prometheus.yml" ]; then
+        echo
+        echo "❌ Error: $FOLDER_FOR_DATA/prometheus-config/prometheus.yml is a DIRECTORY."
+        echo "   Docker created it because the config file was missing when a container started."
+        echo "   Remove it and restore the real prometheus.yml before continuing:"
+        echo "     sudo rmdir '$FOLDER_FOR_DATA/prometheus-config/prometheus.yml'"
+        echo
+        exit 1
+    fi
+}
+
 validate_docker_compose() {
     echo 
     echo "Validating Docker Compose configuration..."
@@ -203,6 +261,7 @@ verify_stack() {
 
 check_env
 load_vars
+ensure_generated_secrets
 validate_docker_compose
 
 # ------------------------------------------------------------------------------
@@ -222,6 +281,7 @@ PULL_PID=$!
 
 # Run local file operations while network pull happens
 create_directories
+migrate_legacy_layout
 copy_configs
 
 echo 
