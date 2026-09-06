@@ -26,5 +26,20 @@ Thumbs.db
 *.code-workspace
 
 # Backup files
-*.bak
+# "*.bak" only matches names ENDING in .bak, so timestamped copies such as
+# docker-compose.yaml.bak-hc and .bak-2026-08-22-195548 slipped through and
+# ~10,800 lines of them were committed. The trailing * catches those.
+*.bak*
 *.backup
+docker-compose.yaml.*
+!docker-compose.yaml
+
+# Captured container output. "*.log" does not match logs-error.txt, and a
+# 190,296-line dump of docker logs -- containing a live API key -- was
+# committed as a result.
+logs-*.txt
+logs_*.txt
+
+# Artefacts of pasting shell output back into a command line.
+FETCH_HEAD
+NODE_ENV=*
