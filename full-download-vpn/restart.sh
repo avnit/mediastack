@@ -65,9 +65,31 @@ create_directories() {
     sudo -E mkdir -p "$FOLDER_FOR_MEDIA"/watch
     sudo -E mkdir -p "$FOLDER_FOR_MEDIA"/filebot/{input,output}
     
-    # Permissions
-    sudo -E chmod -R 2775 "$FOLDER_FOR_MEDIA" "$FOLDER_FOR_DATA"
-    sudo -E chown -R $PUID:$PGID "$FOLDER_FOR_MEDIA" "$FOLDER_FOR_DATA"
+    # Permissions.
+    #
+    # A recursive chmod/chown across the media tree fails on NFS exported with
+    # root_squash - "Operation not permitted" even as root - and under "set -e"
+    # that non-zero exit aborted the entire script before copy_configs() ran.
+    # Apply per path, skip network filesystems whose ownership is server-side,
+    # and never let a permission failure kill the run.
+    local target fstype
+    for target in "$FOLDER_FOR_MEDIA" "$FOLDER_FOR_DATA"; do
+        [ -d "$target" ] || continue
+        fstype=$(stat -f -c %T "$target" 2>/dev/null || echo unknown)
+
+        case "$fstype" in
+            nfs*|cifs|smb*|fuseblk|9p)
+                echo "   - $target is on $fstype - skipping recursive chown/chmod (ownership is server-side)."
+                continue
+                ;;
+        esac
+
+        echo "   - Applying ownership and permissions to $target ($fstype)..."
+        sudo -E chmod -R 2775 "$target" 2>/dev/null \
+            || echo "     WARNING: some paths under $target could not be chmod'ed - continuing."
+        sudo -E chown -R "$PUID:$PGID" "$target" 2>/dev/null \
+            || echo "     WARNING: some paths under $target could not be chown'ed - continuing."
+    done
 }
 
 ensure_generated_secrets() {
@@ -194,13 +216,30 @@ copy_configs() {
     sudo chmod 600                "$FOLDER_FOR_DATA"/traefik/letsencrypt/acme.json
     echo "   - acme.json permissions: $(stat -c '%a' "$FOLDER_FOR_DATA"/traefik/letsencrypt/acme.json) (must be 600)"
 
-    # Copy config files
-    sudo cp headplane-config.yaml "$FOLDER_FOR_DATA"/headplane/config.yaml
-    sudo cp headscale-config.yaml "$FOLDER_FOR_DATA"/headscale/config.yaml
-    sudo cp traefik-static.yaml   "$FOLDER_FOR_DATA"/traefik/traefik.yaml
-    sudo cp traefik-dynamic.yaml  "$FOLDER_FOR_DATA"/traefik/dynamic.yaml
-    sudo cp traefik-internal.yaml "$FOLDER_FOR_DATA"/traefik/internal.yaml
-    sudo cp crowdsec-acquis.yaml  "$FOLDER_FOR_DATA"/crowdsec/acquis.yaml
+    # Copy config files.
+    #
+    # These overwrite the live files unconditionally, so anything edited in place
+    # under $FOLDER_FOR_DATA is lost on the next run. install_config() keeps a
+    # timestamped backup whenever the live file has diverged, so an uncommitted
+    # hand edit is recoverable instead of silently destroyed.
+    install_config headplane-config.yaml "$FOLDER_FOR_DATA"/headplane/config.yaml
+    install_config headscale-config.yaml "$FOLDER_FOR_DATA"/headscale/config.yaml
+    install_config traefik-static.yaml   "$FOLDER_FOR_DATA"/traefik/traefik.yaml
+    install_config traefik-dynamic.yaml  "$FOLDER_FOR_DATA"/traefik/dynamic.yaml
+    install_config traefik-internal.yaml "$FOLDER_FOR_DATA"/traefik/internal.yaml
+    install_config crowdsec-acquis.yaml  "$FOLDER_FOR_DATA"/crowdsec/acquis.yaml
+}
+
+install_config() {
+    local src="$1" dst="$2" backup
+
+    if [ -f "$dst" ] && ! cmp -s "$src" "$dst"; then
+        backup="$dst.bak.$(date +%Y%m%d-%H%M%S)"
+        sudo cp -a "$dst" "$backup"
+        echo "   - $(basename "$dst") differed from the repo; live copy saved to $(basename "$backup")"
+    fi
+
+    sudo cp "$src" "$dst"
 }
 
 cleanup_containers() {
