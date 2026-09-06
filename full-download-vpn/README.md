@@ -1443,9 +1443,23 @@ This discards up to roughly two hours of un-flushed samples; anything already co
 
 **If you change this mount path, create the directory first.** Docker silently creates a *directory* named `prometheus.yml` when the bind-mount source is missing, and Prometheus then fails to start. `restart.sh` creates `prometheus-config` for this reason.
 
-### SQLite corruption: never put application databases on NFS
+### SQLite corruption
 
-`database disk image is malformed` appeared simultaneously in CrowdSec, Mylar, Bazarr, Lidarr and Whisparr. SQLite's locking is unreliable over NFS and corruption is the usual outcome. Keep `FOLDER_FOR_DATA` on local ext4, or relocate the affected application's `/config` to local storage.
+`database disk image is malformed` appeared simultaneously in CrowdSec, Mylar, Bazarr, Lidarr and Whisparr.
+
+**Check the filesystem before assuming a cause.** SQLite locking is unreliable over NFS and corruption is the usual outcome there, so that is the first thing to rule out — but on this deployment it was not the cause:
+
+```bash
+stat -f -c '%n is %T' "${FOLDER_FOR_DATA}" "${FOLDER_FOR_MEDIA}"
+# /opt/data is ext2/ext3     <- local, so NFS is not the explanation
+# /shared/media is nfs       <- media only; no application databases live here
+```
+
+With `FOLDER_FOR_DATA` on local ext4, look instead at:
+
+- **A full or failing disk.** SQLite cannot complete a write and leaves a torn page. `df -h "${FOLDER_FOR_DATA}"` and `dmesg -T | grep -iE 'i/o error|ext4|blk_update'`.
+- **Repeated hard kills.** A crash-looping dependency takes every `network_mode: service:gluetun` container down with it, and Docker escalates to SIGKILL after the stop timeout. Days of that, with applications killed mid-transaction, damages databases that would otherwise survive a clean stop.
+- **Two processes on one database.** A natively-installed service and its containerised twin pointed at the same data directory will corrupt it. See "Run one Plex, not two".
 
 Audit which files are actually damaged before touching any of them:
 
