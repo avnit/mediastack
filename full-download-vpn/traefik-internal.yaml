@@ -18,6 +18,19 @@ http:
         - 100.64.0.0/10
         - 10.100.0.0/22
         - 127.0.0.1/32
+    lan-and-docker:
+      # lan-only plus the mediastack bridge (DOCKER_SUBNET). Tailscale runs as a
+      # container and reaches headscale.asbblog.com through traefik, so its
+      # requests arrive from the bridge gateway 172.28.10.1 and lan-only rejects
+      # them with 403 before any backend is contacted.
+      ipAllowList:
+        sourceRange:
+        - 192.168.0.0/24
+        - 192.168.30.0/24
+        - 100.64.0.0/10
+        - 10.100.0.0/22
+        - 127.0.0.1/32
+        - 172.28.10.0/24
     pi-root-redirect:
       redirectRegex:
         regex: ^https://pi\.asbblog\.com/?$
@@ -414,7 +427,7 @@ http:
       priority: 100
       service: lan-headscale
       middlewares:
-      - lan-only
+      - lan-and-docker
       - security-headers@file
     lan-pve4:
       rule: Host(`pve4.asbblog.com`)
