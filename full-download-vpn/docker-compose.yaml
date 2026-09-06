@@ -96,7 +96,7 @@ services:
     - mediastack
     user: ${PUID:?err}:${PGID:?err}
     ports:
-    - 127.0.0.1:${VALKEY_PORT:?err}:6379
+    - 0.0.0.0:${VALKEY_PORT:?err}:6379
     healthcheck:
       test:
       - CMD-SHELL
@@ -188,10 +188,25 @@ services:
       valkey:
         condition: service_healthy
         restart: true
+  traefik-init:
+    image: docker.io/library/alpine:3
+    container_name: traefik-init
+    user: root
+    restart: "no"
+    command:
+    - sh
+    - -c
+    - 'mkdir -p /letsencrypt && [ -f /letsencrypt/acme.json ] || : > /letsencrypt/acme.json;
+      chmod 600 /letsencrypt/acme.json && ls -l /letsencrypt/acme.json'
+    volumes:
+    - ${FOLDER_FOR_DATA:?err}/traefik/letsencrypt:/letsencrypt
   traefik:
     image: traefik:latest
     container_name: traefik
     restart: unless-stopped
+    depends_on:
+      traefik-init:
+        condition: service_completed_successfully
     networks:
     - mediastack
     user: root
@@ -283,7 +298,7 @@ services:
     - 127.0.0.1:${WEBUI_PORT_PROMETHEUS:?err}:9090
     volumes:
     - ${FOLDER_FOR_DATA:?err}/prometheus:/prometheus
-    - ${FOLDER_FOR_DATA:?err}/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    - ${FOLDER_FOR_DATA:?err}/prometheus-config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     environment:
     - TZ=${TIMEZONE:?err}
     labels:
@@ -416,7 +431,7 @@ services:
     - traefik.http.services.headplane.loadbalancer.server.scheme=http
     - traefik.http.services.headplane.loadbalancer.server.port=3000
   gluetun:
-    image: qmcgaw/gluetun:v3.41.1
+    image: qmcgaw/gluetun:v3.41.3
     container_name: gluetun
     init: true
     restart: always
@@ -483,6 +498,7 @@ services:
     - SHADOWSOCKS=off
     - OPENVPN_PROTOCOL=udp
     - OPENVPN_PERIOD=24h
+    - UPDATER_PERIOD=24h
     - HEALTH_TARGET_ADDRESSES=1.1.1.1:443,9.9.9.9:443
     - HEALTH_VPN_DURATION_INITIAL=30s
     - HEALTH_VPN_DURATION_ADDITION=10s
