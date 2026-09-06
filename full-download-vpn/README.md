@@ -1467,7 +1467,26 @@ Audit which files are actually damaged before touching any of them:
 for a in bazarr lidarr mylar sonarr radarr readarr prowlarr; do find "${FOLDER_FOR_DATA}/$a" -maxdepth 2 -name '*.db' 2>/dev/null | while read -r f; do printf '%s: ' "$f"; sqlite3 "$f" 'PRAGMA integrity_check;' 2>&1 | head -1; done; done
 ```
 
-Most *arr databases can be salvaged with `sqlite3 broken.db ".recover" | sqlite3 fixed.db` rather than rebuilt from scratch. CrowdSec's database holds only decisions, alerts and machine registrations — it regenerates cleanly, so moving it aside is safe.
+**`.recover` needs a filter, and the swap needs a guard.** The naive pipe fails:
+
+```bash
+sqlite3 broken.db ".recover" | sqlite3 fixed.db
+# Parse error near line 8: object name reserved for internal use: sqlite_sequence
+```
+
+`.recover` emits `CREATE TABLE sqlite_sequence(name,seq);`, which SQLite refuses because that name is internal. The CLI bails on the first parse error when reading a script, so `fixed.db` ends up holding only the handful of statements that preceded it -- a structurally valid, nearly empty database. Drop those statements instead; losing them only resets AUTOINCREMENT counters, which SQLite recomputes as `max(rowid)+1`:
+
+```bash
+sqlite3 broken.db ".recover" | grep -vE '^(CREATE TABLE|INSERT INTO) sqlite_sequence' | sqlite3 fixed.db
+```
+
+Then gate the swap on the integrity check rather than reading it by eye, so a failed recovery cannot overwrite the original:
+
+```bash
+[ "$(sqlite3 fixed.db 'PRAGMA integrity_check;')" = "ok" ] && mv fixed.db broken.db
+```
+
+Always `cp -a` the damaged file aside first. `.recover` reconstructs from intact pages, so a badly damaged database can come back structurally valid but missing rows -- check row counts against what the application should hold before deleting the backup. CrowdSec's database holds only decisions, alerts and machine registrations — it regenerates cleanly, so moving it aside is safe.
 
 Plex keeps its own dated rolling backups in `Plug-in Support/Databases/`; restore the most recent one rather than letting Plex rebuild the library, which loses watch history and collections.
 
