@@ -453,7 +453,7 @@ services:
     - ${WEBUI_PORT_PROWLARR:?err}:9696
     - ${WEBUI_PORT_RADARR:?err}:7878
     - ${WEBUI_PORT_READARR:?err}:8787
-    - ${WEBUI_PORT_SABNZBD:?err}:8080
+    - ${WEBUI_PORT_SABNZBD:?err}:${WEBUI_PORT_SABNZBD:?err}
     - ${WEBUI_PORT_JELLYSEERR:?err}:5055
     - ${WEBUI_PORT_SONARR:?err}:8989
     - ${WEBUI_PORT_WHISPARR:?err}:6969
@@ -1047,7 +1047,8 @@ services:
     - traefik.http.routers.sabnzbd.rule=Host(`sabnzbd.${CLOUDFLARE_DNS_ZONE:?err}`)
     - traefik.http.routers.sabnzbd.entrypoints=secureweb
     - traefik.http.routers.sabnzbd.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
-    - traefik.http.services.sabnzbd.loadbalancer.server.url=http://gluetun:8080
+    - traefik.http.services.sabnzbd.loadbalancer.server.url=https://gluetun:${WEBUI_PORT_SABNZBD:?err}
+    - traefik.http.services.sabnzbd.loadbalancer.serverstransport=insecure-no-verify@file
   seerr:
     image: ghcr.io/seerr-team/seerr:latest
     container_name: seerr
