@@ -102,29 +102,65 @@ ensure_generated_secrets() {
 }
 
 migrate_legacy_layout() {
+    local dst="$FOLDER_FOR_DATA/prometheus-config/prometheus.yml"
+    local src="$FOLDER_FOR_DATA/prometheus/prometheus.yml"
+
+    sudo mkdir -p "$FOLDER_FOR_DATA"/prometheus-config
+
+    # Docker silently creates an empty DIRECTORY when a bind-mount source file is
+    # missing, and every later start then dies with "not a directory: Are you
+    # trying to mount a directory onto a file". Clear the placeholder so the
+    # migration below can put the real file in its place. rmdir refuses to touch
+    # a non-empty directory, so this cannot eat real data.
+    if [ -d "$dst" ]; then
+        echo
+        echo "Removing Docker's empty placeholder directory at $dst..."
+        if ! sudo rmdir "$dst" 2>/dev/null; then
+            echo
+            echo "❌ Error: $dst is a directory and is NOT empty."
+            echo "   Inspect it by hand - something other than Docker created it:"
+            echo "     ls -la '$dst'"
+            echo
+            exit 1
+        fi
+    fi
+
     # prometheus.yml used to be mounted from inside the TSDB data directory, which
     # meant clearing a corrupt write-ahead log also deleted the configuration.
     # Move it out once; safe to re-run.
-    if [ -f "$FOLDER_FOR_DATA/prometheus/prometheus.yml" ] && \
-       [ ! -e "$FOLDER_FOR_DATA/prometheus-config/prometheus.yml" ]; then
+    if [ -f "$src" ] && [ ! -e "$dst" ]; then
         echo
         echo "Migrating prometheus.yml out of the TSDB data directory..."
-        sudo mkdir -p "$FOLDER_FOR_DATA"/prometheus-config
-        sudo mv "$FOLDER_FOR_DATA"/prometheus/prometheus.yml "$FOLDER_FOR_DATA"/prometheus-config/prometheus.yml
-        sudo chown "$PUID:$PGID" "$FOLDER_FOR_DATA"/prometheus-config/prometheus.yml
-        echo "   - moved to $FOLDER_FOR_DATA/prometheus-config/prometheus.yml"
+        sudo mv "$src" "$dst"
+        sudo chown "$PUID:$PGID" "$dst"
+        echo "   - moved to $dst"
     fi
 
-    # Docker silently creates a DIRECTORY when a bind-mount source file is missing.
-    # Prometheus then fails to start with an unhelpful parse error, so name it here.
-    if [ -d "$FOLDER_FOR_DATA/prometheus-config/prometheus.yml" ]; then
+    # Neither location has it: seed a minimal working config rather than letting
+    # Docker recreate the placeholder directory and fail the same way next run.
+    if [ ! -e "$dst" ]; then
         echo
-        echo "❌ Error: $FOLDER_FOR_DATA/prometheus-config/prometheus.yml is a DIRECTORY."
-        echo "   Docker created it because the config file was missing when a container started."
-        echo "   Remove it and restore the real prometheus.yml before continuing:"
-        echo "     sudo rmdir '$FOLDER_FOR_DATA/prometheus-config/prometheus.yml'"
-        echo
-        exit 1
+        echo "No prometheus.yml found in either location - writing a minimal default..."
+        sudo tee "$dst" > /dev/null <<'PROMCFG'
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: traefik
+    static_configs:
+      - targets: ['traefik:8082']
+
+  - job_name: unpackerr
+    static_configs:
+      - targets: ['unpackerr:5656']
+PROMCFG
+        sudo chown "$PUID:$PGID" "$dst"
+        echo "   - wrote a default $dst (review and extend it)"
     fi
 }
 
