@@ -1074,8 +1074,7 @@ services:
     - traefik.http.routers.seerr.rule=Host(`seerr.${CLOUDFLARE_DNS_ZONE:?err}`)
     - traefik.http.routers.seerr.entrypoints=secureweb
     - traefik.http.routers.seerr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
-    - traefik.http.services.seerr.loadbalancer.server.scheme=http
-    - traefik.http.services.seerr.loadbalancer.server.port=5055
+    - traefik.http.services.seerr.loadbalancer.server.url=http://gluetun:5055
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
