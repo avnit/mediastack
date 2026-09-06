@@ -54,7 +54,7 @@ noise:
 # IPv4: https://github.com/tailscale/tailscale/blob/22ebb25e833264f58d7c3f534a8b166894a89536/net/tsaddr/tsaddr.go#L33
 # Any other range is NOT supported, and it will cause unexpected issues.
 prefixes:
-  v4: 192.168.68.0/24
+  v4: 192.168.0.0/24
   v6: fd7a:115c:a1e0::/48
 
   # Strategy used for allocation of IPs to nodes, available options:
@@ -72,7 +72,7 @@ derp:
   server:
     # If enabled, runs the embedded DERP server and merges it into the rest of the DERP config
     # The Headscale server_url defined above MUST be using https, DERP requires TLS to be in place
-    enabled: false
+    enabled: true
 
     # Region ID to use for the embedded DERP server.
     # The local DERP prevails if the region ID collides with other region ID coming from
@@ -100,7 +100,7 @@ derp:
 
     # For better connection stability (especially when using an Exit-Node and DNS is not working),
     # it is possible to optionally add the public IPv4 and IPv6 address to the Derp-Map using:
-    ipv4: 192.168.1.37
+    ipv4: 192.168.0.17
     # ipv6: 2001:db8::1
 
   # List of externally available DERP maps encoded in JSON
@@ -272,9 +272,9 @@ dns:
   nameservers:
     global:
       - 1.1.1.1
-      - 192.168.68.160
-      - 192.168.0.68
-      - 1.1.1.1
+      - 8.8.8.8
+      - 192.168.0.1
+      # - 1.1.1.1
       # - 2606:4700:4700::1111
       # - 2606:4700:4700::1001
 
