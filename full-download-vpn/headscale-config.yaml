@@ -128,8 +128,13 @@ derp:
 # Disables the automatic check for headscale updates on startup
 disable_check_updates: false
 
-# Time before an inactive ephemeral node is deleted?
-ephemeral_node_inactivity_timeout: 30m
+# Time before an inactive ephemeral node is deleted.
+# Renamed in newer headscale releases; the flat key is ignored with a warning:
+#   WARN: "ephemeral_node_inactivity_timeout" is deprecated,
+#         please use "node.ephemeral.inactivity_timeout" instead.
+node:
+  ephemeral:
+    inactivity_timeout: 30m
 
 database:
   # Database type. Available options: sqlite, postgres
@@ -394,8 +399,10 @@ logtail:
   # disabled by default. Enabling this will make your clients send logs to Tailscale Inc.
   enabled: false
 
-# Enabling this option makes devices prefer a random port for WireGuard traffic over the
-# default static port 41641. This option is intended as a workaround for some buggy
-# firewall devices. See https://tailscale.com/kb/1181/firewalls/ for more information.
-randomize_client_port: false
+# Removed in newer headscale releases -- setting it is now FATAL:
+#   FATAL: The "randomize_client_port" configuration key has been removed.
+# It now lives as "randomizeClientPort": true at the top level of the policy
+# file (see policy.path / policy.mode below), or as a per-node "nodeAttrs"
+# entry. It was false here, which is the default, so nothing is lost.
+# randomize_client_port: false
 
