@@ -47,8 +47,12 @@ http:
         accessControlAllowHeaders: "*"
         accessControlAllowMethods:
           - GET
-          - OPTIONS
+          - HEAD
+          - POST
           - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
         accessControlAllowOriginList:
           - https://asbblog.com
           - https://*.asbblog.com
