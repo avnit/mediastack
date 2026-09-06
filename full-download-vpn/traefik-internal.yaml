@@ -1,308 +1,717 @@
 #########################################################################
+# internal.yaml — split-horizon LAN routes for <name>.asbblog.com
+# Generated Sep 03 2026 from the Cloudflare Tunnel published-routes list.
+# Sep 05 2026: added lan-unifi (UCG Fiber .1) so Homarr can reach UniFi via the LE cert.
+# UniFi resolves these names to 192.168.0.17 on the LAN only; off-LAN the
+# public Cloudflare record wins.  TLS: *.asbblog.com Let's Encrypt wildcard.
+# Router names are prefixed lan- and carry priority 100 so they beat any
+# docker-label router for the same Host (grafana/portainer/headscale).
+# Chain: lan-only (ipAllowList) + security-headers@file.  No Authentik/CrowdSec on LAN.
 #########################################################################
-#
-# Filename: internal.yaml        Traefik Internal Web Services Configuration File
-#
-# Replace all "example.com" values with your domain name
-#
-#  i.e.   - main: example.com
-#           sans:
-#             - "*.example.com"
-#
-#########################################################################
-#########################################################################
-
 http:
+  middlewares:
+    lan-only:
+      ipAllowList:
+        sourceRange:
+        - 192.168.0.0/24
+        - 192.168.30.0/24
+        - 100.64.0.0/10
+        - 10.100.0.0/22
+        - 127.0.0.1/32
+    pi-root-redirect:
+      redirectRegex:
+        regex: ^https://pi\.asbblog\.com/?$
+        replacement: https://pi.asbblog.com/admin/
+    pi3-root-redirect:
+      redirectRegex:
+        regex: ^https://pi3\.asbblog\.com/?$
+        replacement: https://pi3.asbblog.com/admin/
   routers:
-    synology:                                # Synology DSM (from original file)
-      rule: "Host(`synology.asbblog.com`)"
-      service: synology
+    lan-tools:
+      rule: Host(`tools.asbblog.com`)
       entryPoints:
-        - secureweb
-      tls:
-        certResolver: letsencrypt
+      - secureweb
+      priority: 100
+      service: lan-tools
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-
-    gateway:                                 # Ubiquiti Dream Machine (from original file)
-      rule: "Host(`gateway.asbblog.com`)"
-      service: gateway
+      - lan-only
+      - security-headers@file
+    lan-pi:
+      rule: Host(`pi.asbblog.com`)
       entryPoints:
-        - secureweb
-      tls:
-        certResolver: letsencrypt
+      - secureweb
+      priority: 100
+      service: lan-pi
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-
-    # --- ADDED SERVICES FROM PI-HOLE ---
-
-    arr:
-      rule: "Host(`arr.asbblog.com`)"
-      service: arr
-      entryPoints: ["secureweb"]
-      tls: { certResolver: letsencrypt }
+      - lan-only
+      - pi-root-redirect
+      - security-headers@file
+    lan-casaos:
+      rule: Host(`casaos.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-casaos
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-
-    deb2:
-      rule: "Host(`deb2.asbblog.com`)"
-      service: deb2
-      entryPoints: ["secureweb"]
-      tls: { certResolver: letsencrypt }
+      - lan-only
+      - security-headers@file
+    lan-jelly:
+      rule: Host(`jelly.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-jelly
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-
-    media:
-      rule: "Host(`media.asbblog.com`)"
-      service: media
-      entryPoints: ["secureweb"]
-      tls: { certResolver: letsencrypt }
+      - lan-only
+      - security-headers@file
+    lan-qb:
+      rule: Host(`qb.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-qb
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-        
-    n8n:
-      rule: "Host(`n8n.asbblog.com`)"
-      service: n8n
-      entryPoints: ["secureweb"]
-      tls: { certResolver: letsencrypt }
+      - lan-only
+      - security-headers@file
+    lan-transmission:
+      rule: Host(`transmission.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-transmission
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-
-    nas:
-      rule: "Host(`nas.asbblog.com`)"
-      service: nas
-      entryPoints: ["secureweb"]
-      tls: { certResolver: letsencrypt }
+      - lan-only
+      - security-headers@file
+    lan-homepage:
+      rule: Host(`homepage.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-homepage
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-
-    orange:
-      rule: "Host(`orange.asbblog.com`)"
-      service: orange
-      entryPoints: ["secureweb"]
-      tls: { certResolver: letsencrypt }
+      - lan-only
+      - security-headers@file
+    lan-radarr2:
+      rule: Host(`radarr2.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-radarr2
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-
-    pbs:
-      rule: "Host(`pbs.asbblog.com`)"
-      service: pbs
-      entryPoints: ["secureweb"]
-      tls: { certResolver: letsencrypt }
+      - lan-only
+      - security-headers@file
+    lan-lidarr2:
+      rule: Host(`lidarr2.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-lidarr2
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-
-    pi2:
-      rule: "Host(`pi2.asbblog.com`)"
-      service: pi2
-      entryPoints: ["secureweb"]
-      tls: { certResolver: letsencrypt }
+      - lan-only
+      - security-headers@file
+    lan-sonarr2:
+      rule: Host(`sonarr2.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-sonarr2
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-        
-    pi3:
-      rule: "Host(`pi3.asbblog.com`)"
-      service: pi3
-      entryPoints: ["secureweb"]
-      tls: { certResolver: letsencrypt }
+      - lan-only
+      - security-headers@file
+    lan-qb2:
+      rule: Host(`qb2.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-qb2
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-        
-    pi4:
-      rule: "Host(`pi4.asbblog.com`)"
-      service: pi4
-      entryPoints: ["secureweb"]
-      tls: { certResolver: letsencrypt }
+      - lan-only
+      - security-headers@file
+    lan-portainer:
+      rule: Host(`portainer.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-portainer
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-
-    portainer:
-      rule: "Host(`portainer.asbblog.com`)"
-      service: portainer
-      entryPoints: ["secureweb"]
-      tls: { certResolver: letsencrypt }
+      - lan-only
+      - security-headers@file
+    lan-music:
+      rule: Host(`music.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-music
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-
-    pve:
-      rule: "Host(`pve.asbblog.com`)"
-      service: pve
-      entryPoints: ["secureweb"]
-      tls: { certResolver: letsencrypt }
+      - lan-only
+      - security-headers@file
+    lan-jacket:
+      rule: Host(`jacket.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-jacket
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-
-    pve2:
-      rule: "Host(`pve2.asbblog.com`)"
-      service: pve2
-      entryPoints: ["secureweb"]
-      tls: { certResolver: letsencrypt }
+      - lan-only
+      - security-headers@file
+    lan-unraid:
+      rule: Host(`unraid.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-unraid
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-        
-    pve3:
-      rule: "Host(`pve3.asbblog.com`)"
-      service: pve3
-      entryPoints: ["secureweb"]
-      tls: { certResolver: letsencrypt }
+      - lan-only
+      - security-headers@file
+    lan-grafana:
+      rule: Host(`grafana.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-grafana
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-        
-    synology-local:
-      rule: "Host(`synology-local.asbblog.com`)"
-      service: synology-local
-      entryPoints: ["secureweb"]
-      tls: { certResolver: letsencrypt }
+      - lan-only
+      - security-headers@file
+    lan-vault1:
+      rule: Host(`vault1.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-vault1
       middlewares:
-        - authentik-forwardauth@file
-        - security-headers@file
-        - traefik-bouncer@file
-
+      - lan-only
+      - security-headers@file
+    lan-calibre:
+      rule: Host(`calibre.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-calibre
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-docker:
+      rule: Host(`docker.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-docker
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-pve:
+      rule: Host(`pve.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-pve
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-opnsense:
+      rule: Host(`opnsense.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-opnsense
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-unifi:
+      rule: Host(`unifi.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-unifi
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-immich:
+      rule: Host(`immich.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-immich
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-readarr3:
+      rule: Host(`readarr3.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-readarr3
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-sonarr3:
+      rule: Host(`sonarr3.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-sonarr3
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-prowlarr3:
+      rule: Host(`prowlarr3.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-prowlarr3
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-qb3:
+      rule: Host(`qb3.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-qb3
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-radarr3:
+      rule: Host(`radarr3.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-radarr3
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-homarr3:
+      rule: Host(`homarr3.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-homarr3
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-homepage2:
+      rule: Host(`homepage2.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-homepage2
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-jellyseerr:
+      rule: Host(`jellyseerr.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-jellyseerr
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-jellyfin3:
+      rule: Host(`jellyfin3.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-jellyfin3
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-lidarr3:
+      rule: Host(`lidarr3.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-lidarr3
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-truenas1:
+      rule: Host(`truenas1.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-truenas1
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-nas:
+      rule: Host(`nas.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-nas
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-pi3:
+      rule: Host(`pi3.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-pi3
+      middlewares:
+      - lan-only
+      - pi3-root-redirect
+      - security-headers@file
+    lan-file:
+      rule: Host(`file.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-file
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-immich2:
+      rule: Host(`immich2.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-immich2
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-hdhome:
+      rule: Host(`hdhome.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-hdhome
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-n8n:
+      rule: Host(`n8n.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-n8n
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-speedtest:
+      rule: Host(`speedtest.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-speedtest
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-pve7:
+      rule: Host(`pve7.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-pve7
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-headscale:
+      rule: Host(`headscale.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-headscale
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-pve4:
+      rule: Host(`pve4.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-pve4
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-pve6:
+      rule: Host(`pve6.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-pve6
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-hermes:
+      rule: Host(`hermes.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-hermes
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-stores:
+      rule: Host(`stores.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-stores
+      middlewares:
+      - lan-only
+      - security-headers@file
+    lan-hermes2:
+      rule: Host(`hermes2.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-hermes2
+      middlewares:
+      - lan-only
+      - security-headers@file
   services:
-    synology:
+    lan-tools:
       loadBalancer:
-        servers:
-          - url: "https://192.168.0.158:5001"   # Synology Web UI - HTTPS
         passHostHeader: true
-        serversTransport: insecure-no-verify          
-
-    gateway:
+        servers:
+        - url: http://192.168.0.206:8081
+    lan-pi:
       loadBalancer:
-        servers:
-          - url: "https://192.168.0.1"        # Ubiquiti Web UI - HTTPS
         passHostHeader: true
+        servers:
+        - url: http://192.168.0.206
+    lan-casaos:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.206:81
+    lan-jelly:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.95:8096
+    lan-qb:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.206:8082
+    lan-transmission:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.206:9091
+    lan-homepage:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.21:7575
+    lan-radarr2:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.206:7878
+    lan-lidarr2:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.185:8686
+    lan-sonarr2:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.185:8989
+    lan-qb2:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.17:8200
+    lan-portainer:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: https://192.168.0.185:9443
         serversTransport: insecure-no-verify
-
-    # --- ADDED SERVICES FROM PI-HOLE ---
-    
-    arr:
+    lan-music:
       loadBalancer:
-        servers:
-          - url: "http://192.168.0.45:9000" # <-- VERIFY PORT
         passHostHeader: true
-
-    deb2:
+        servers:
+        - url: http://192.168.0.95:8095
+    lan-jacket:
       loadBalancer:
-        servers:
-          - url: "http://192.168.0.14" # <-- VERIFY PORT
         passHostHeader: true
-        
-    media:
+        servers:
+        - url: http://192.168.0.185:9117
+    lan-unraid:
       loadBalancer:
+        passHostHeader: false
         servers:
-          - url: "http://192.168.1.37:3000" # <-- VERIFY PORT
-        passHostHeader: true
-        
-    n8n:
+        - url: http://192.168.0.95
+    lan-grafana:
       loadBalancer:
-        servers:
-          - url: "http://192.168.0.42:5678" # Default n8n port
         passHostHeader: true
-        
-    nas:
+        servers:
+        - url: http://192.168.0.95:3000
+    lan-vault1:
       loadBalancer:
-        servers:
-          - url: "http://192.168.68.79:5001" # <-- VERIFY PORT
         passHostHeader: true
-        
-    orange:
+        servers:
+        - url: http://192.168.0.95:4743
+    lan-calibre:
       loadBalancer:
-        servers:
-          - url: "http://192.168.0.74:80" # <-- VERIFY PORT (Same IP as Portainer)
         passHostHeader: true
-        
-    pbs:
+        servers:
+        - url: http://192.168.0.95:9999
+    lan-docker:
       loadBalancer:
-        servers:
-          - url: "https://192.168.1.45:8007" # Default Proxmox BS port
         passHostHeader: true
+        servers:
+        - url: http://192.168.0.95:8080
+    lan-pve:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: https://192.168.0.45:8006
         serversTransport: insecure-no-verify
-        
-    pi2:
+    lan-opnsense:
       loadBalancer:
-        servers:
-          - url: "http://192.168.0.68:80/admin" # <-- VERIFY PORT
         passHostHeader: true
-        
-    pi3:
-      loadBalancer:
         servers:
-          - url: "http://192.168.68.133:80/admin" # <-- VERIFY PORT
-        passHostHeader: true
-        
-    pi4:
-      loadBalancer:
-        servers:
-          - url: "http://192.168.68.160:80/admin" # <-- VERIFY PORT
-        passHostHeader: true
-
-    portainer:
-      loadBalancer:
-        servers:
-          - url: "https://192.168.0.74:9443" # Default Portainer HTTPS port
-        passHostHeader: true
+        - url: https://192.168.0.1
         serversTransport: insecure-no-verify
-        
-    pve:
+    lan-unifi:
       loadBalancer:
-        servers:
-          - url: "https://192.168.68.117:8006" # Default Proxmox VE port
         passHostHeader: true
+        servers:
+        - url: https://192.168.0.1
         serversTransport: insecure-no-verify
-
-    pve2:
+    lan-immich:
       loadBalancer:
-        servers:
-          - url: "https://192.168.74.1:8006" # Default Proxmox VE port
         passHostHeader: true
-        serversTransport: insecure-no-verify
-        
-    pve3:
+        servers:
+        - url: http://192.168.0.104:2283
+    lan-readarr3:
       loadBalancer:
-        servers:
-          - url: "https://192.168.69.112:8006" # Default Proxmox VE port
         passHostHeader: true
-        serversTransport: insecure-no-verify
-        
-    synology-local:
+        servers:
+        - url: http://192.168.0.17:8787
+    lan-sonarr3:
       loadBalancer:
-        servers:
-          - url: "https://192.168.96.54:5001" # Default Synology HTTPS port
         passHostHeader: true
+        servers:
+        - url: http://192.168.0.17:8989
+    lan-prowlarr3:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.17:9696
+    lan-qb3:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.17:8200
+    lan-radarr3:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.17:7878
+    lan-homarr3:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.17:7575
+    lan-homepage2:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.17:3000
+    lan-jellyseerr:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.17:5055
+    lan-jellyfin3:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.17:8096
+    lan-lidarr3:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.17:8686
+    lan-truenas1:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.138
+    lan-nas:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: https://192.168.0.86:5001
         serversTransport: insecure-no-verify
-
+    lan-pi3:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: https://192.168.0.68
+        serversTransport: insecure-no-verify
+    lan-file:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: https://192.168.0.95:7001
+        serversTransport: insecure-no-verify
+    lan-immich2:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.138:2283
+    lan-hdhome:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.214:5004
+    lan-n8n:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.215:5678
+    lan-speedtest:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.17:33080
+    lan-pve7:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: https://192.168.0.160:8006
+        serversTransport: insecure-no-verify
+    lan-headscale:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.167:8080
+    lan-pve4:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: https://192.168.0.88:8006
+        serversTransport: insecure-no-verify
+    lan-pve6:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: https://192.168.0.192:8006
+        serversTransport: insecure-no-verify
+    lan-hermes:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.20:8080
+    lan-stores:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.17:18001
+    lan-hermes2:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.21:8080
   serversTransports:
     insecure-no-verify:
       insecureSkipVerify: true
