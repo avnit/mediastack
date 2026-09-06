@@ -1500,6 +1500,49 @@ systemctl disable --now plexmediaserver
 
 The same applies to any application installed both natively and as a container.
 
+### A changed bind-mount path looks exactly like data loss
+
+Symptom: an application comes up factory-reset — empty library, default settings — with nothing in its logs and no container error. Everything is "healthy".
+
+Cause: the bind-mount **source** in `docker-compose.yaml` changed, and a stale copy of the config already existed at the new path. The container mounts whatever is there and starts rebuilding. Docker has no way to know it handed the application the wrong directory.
+
+This happened to Whisparr here. A commit changed:
+
+```diff
+-    - /opt/appdata/whisparr:/config
++    - ${FOLDER_FOR_DATA:?err}/whisparr:/config
+```
+
+`/opt/data/whisparr` still held a July snapshot from before the config had been moved out, so Whisparr silently adopted it:
+
+| | `/opt/appdata/whisparr` | `/opt/data/whisparr` |
+| :--- | :--- | :--- |
+| `whisparr2.db` | 18,481,152 bytes, Sep 2 | 1,703,936 bytes, rebuilt that day |
+| `MediaCover` | Aug 30 | Jul 12 |
+
+The two-second diagnostic is to compare what the container actually mounted against the timestamps in every candidate directory:
+
+```bash
+docker inspect <name> --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{println}}{{end}}'
+ls -la /opt/appdata/<name>/ /opt/data/<name>/
+```
+
+To consolidate onto the new path, stop the container first so its WAL is checkpointed, gate on the source database being sound, and rename the stale directory rather than deleting it:
+
+```bash
+[ "$(sqlite3 /opt/appdata/<name>/<app>.db 'PRAGMA integrity_check;')" = "ok" ] \
+  && docker compose stop <name> \
+  && mv /opt/data/<name> "/opt/data/<name>.stale.$(date +%Y%m%d-%H%M%S)" \
+  && cp -a /opt/appdata/<name> /opt/data/<name> \
+  && rm -f /opt/data/<name>/*.pid \
+  && chown -R "${PUID}:${PGID}" /opt/data/<name> \
+  && docker compose up -d <name>
+```
+
+Verify in the application's own UI before removing the `.stale.*` directory, and keep the original source until you have.
+
+Two habits avoid the whole class of problem: never change a bind-mount source without checking what already sits at the destination, and treat "the app lost its config" as a mount question before an application question.
+
 ### Startup races that are not bugs
 
 The qBittorrent container runs the theme.park `DOCKER_MOD`, which installs `git` and `perl` and clones a repository on every start — roughly 25 seconds before qBittorrent listens. The *arr applications share gluetun's namespace and start first, so they log:
