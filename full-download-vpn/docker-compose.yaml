@@ -1054,6 +1054,7 @@ services:
     container_name: seerr
     init: true
     restart: unless-stopped
+    user: ${PUID:?err}:${PGID:?err}
     depends_on:
       gluetun:
         condition: service_healthy
