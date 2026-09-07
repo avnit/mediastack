@@ -6,6 +6,32 @@ set -e
 # ==============================================================================
 FOLDER_FOR_YAMLS="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/"
 ENV_FILE=".env"
+SYNC_INDEXERS=0
+
+# ------------------------------------------------------------------------------
+# Arguments
+# ------------------------------------------------------------------------------
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --sync-indexers)
+            # Import Jackett indexers into Whisparr after the stack is verified.
+            # Opt-in: this is a one-shot administrative action, not something a
+            # restart should do on its own. Credentials come from .env, never
+            # from this file -- the repository is public.
+            SYNC_INDEXERS=1
+            ;;
+        -h|--help)
+            echo "Usage: $0 [--sync-indexers]"
+            echo "  --sync-indexers   after restarting, run ./sync-jackett-to-whisparr.sh --xxx-only"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1 (try --help)" >&2
+            exit 1
+            ;;
+    esac
+    shift
+done
 
 # ==============================================================================
 # Functions
@@ -423,3 +449,10 @@ cleanup_containers
 check_port_conflicts
 start_stack
 verify_stack
+
+if [ "$SYNC_INDEXERS" -eq 1 ]; then
+    echo
+    echo "Importing Jackett indexers into Whisparr..."
+    echo
+    "$FOLDER_FOR_YAMLS"sync-jackett-to-whisparr.sh --xxx-only
+fi
