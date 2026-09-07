@@ -97,7 +97,10 @@ http:
           crowdsecAppsecHost: crowdsec:7422
           crowdsecAppsecFailureBlock: true
           crowdsecAppsecUnreachableBlock: true
-          crowdsecLapiKey: HHiqFzzMVulay4Cbp2Jtxkp8YlPTpW/EwgZw6Z62PO0
+          # Substituted from CROWDSEC_LAPI_KEY in .env when restart.sh installs
+          # this file. Traefik's file provider does NOT expand ${VAR}, so the
+          # placeholder must be replaced at deploy time, never left literal.
+          crowdsecLapiKey: __CROWDSEC_LAPI_KEY__
           crowdsecLapiHost: crowdsec:8080
           crowdsecLapiScheme: http
           crowdsecLapiTLSInsecureVerify: false

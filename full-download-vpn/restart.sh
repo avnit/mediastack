@@ -225,9 +225,41 @@ copy_configs() {
     install_config headplane-config.yaml "$FOLDER_FOR_DATA"/headplane/config.yaml
     install_config headscale-config.yaml "$FOLDER_FOR_DATA"/headscale/config.yaml
     install_config traefik-static.yaml   "$FOLDER_FOR_DATA"/traefik/traefik.yaml
-    install_config traefik-dynamic.yaml  "$FOLDER_FOR_DATA"/traefik/dynamic.yaml
+    install_config_subst traefik-dynamic.yaml "$FOLDER_FOR_DATA"/traefik/dynamic.yaml
     install_config traefik-internal.yaml "$FOLDER_FOR_DATA"/traefik/internal.yaml
     install_config crowdsec-acquis.yaml  "$FOLDER_FOR_DATA"/crowdsec/acquis.yaml
+}
+
+install_config_subst() {
+    # Same as install_config, but substitutes secrets that must not live in the
+    # repository. Traefik's file provider does not expand ${VAR}, so the value
+    # has to be baked in at deploy time.
+    local src="$1" dst="$2" key tmp
+
+    key=$(grep -E '^CROWDSEC_LAPI_KEY=' "$ENV_FILE" | cut -d '=' -f2- | xargs | tr -d '\r')
+
+    if [ -z "$key" ]; then
+        echo
+        echo "ERROR: CROWDSEC_LAPI_KEY is not set in $ENV_FILE."
+        echo "       Refusing to install $(basename "$dst") with an unsubstituted"
+        echo "       placeholder: the crowdsec bouncer would fail to authenticate"
+        echo "       against the LAPI, and traefik-bouncer@file guards most routers."
+        echo "       Run ./rotate-crowdsec-key.sh to mint a key and populate .env."
+        echo
+        exit 1
+    fi
+
+    tmp=$(mktemp)
+    sed "s|__CROWDSEC_LAPI_KEY__|${key}|" "$src" > "$tmp"
+
+    if grep -q '__CROWDSEC_LAPI_KEY__' "$tmp"; then
+        rm -f "$tmp"
+        echo "ERROR: substitution failed for $(basename "$dst"); not installing."
+        exit 1
+    fi
+
+    install_config "$tmp" "$dst"
+    rm -f "$tmp"
 }
 
 install_config() {
