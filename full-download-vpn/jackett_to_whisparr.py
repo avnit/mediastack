@@ -30,6 +30,7 @@ import copy
 import json
 import logging
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -89,6 +90,24 @@ class Config:
                 "JACKETT_URL_FOR_WHISPARR", jackett_url
             ).rstrip("/"),
         )
+
+
+# --------------------------------------------------------------------------- #
+# Log hygiene
+# --------------------------------------------------------------------------- #
+# Whisparr echoes the whole torznab URL back in its validation errors, and that
+# URL carries the Jackett API key as a query parameter. Logging it verbatim
+# leaks the key into terminal scrollback, log files and pasted output.
+_SECRET_QS_RE = re.compile(r"((?:api_?key|apikey|passkey|token)=)[^&\s\]\"']+", re.I)
+
+# Whisparr's wording when a test query succeeded but matched nothing in the
+# requested categories. Expected for a general indexer queried for XXX, so it
+# is reported separately from genuine failures.
+_NO_RESULTS = "no results in the configured categories"
+
+
+def redact(text: Any) -> str:
+    return _SECRET_QS_RE.sub(r"\1<redacted>", str(text))
 
 
 # --------------------------------------------------------------------------- #
@@ -210,28 +229,41 @@ def _set_field(payload: dict[str, Any], name: str, value: Any) -> None:
     LOG.debug("schema has no field %r; skipping", name)
 
 
+def resolve_categories(idx: JackettIndexer, requested: list[int] | None) -> list[int]:
+    """None => auto: indexer's own XXX caps, else all its caps, else defaults."""
+    if requested is not None:
+        return requested
+    xxx = sorted(c for c in idx.categories if 6000 <= c < 7000)
+    if xxx:
+        return xxx
+    return sorted(idx.categories) or XXX_CATEGORIES
+
+
 def build_payload(
     cfg: Config,
     schema: dict[str, Any],
     idx: JackettIndexer,
     mode: str,
-    categories: list[int],
+    categories: list[int] | None,
+    disabled: bool = False,
 ) -> dict[str, Any]:
     p = copy.deepcopy(schema)
     p.pop("id", None)
     p.pop("presets", None)
     p["name"] = f"{idx.title}{NAME_SUFFIX}"
-    p["enableRss"] = True
     p.setdefault("priority", 25)
     p.setdefault("tags", [])
 
+    # Whisparr only runs the connectivity test when at least one enable* flag
+    # is set. --disabled saves the indexer untested; enable it later in the UI.
+    p["enableRss"] = not disabled
     if mode == "torznab":
-        p["enableAutomaticSearch"] = True
-        p["enableInteractiveSearch"] = True
+        p["enableAutomaticSearch"] = not disabled
+        p["enableInteractiveSearch"] = not disabled
         _set_field(p, "baseUrl", jackett_torznab_base(cfg, idx))
         _set_field(p, "apiPath", "/api")
         _set_field(p, "apiKey", cfg.jackett_api_key)
-        _set_field(p, "categories", categories)
+        _set_field(p, "categories", resolve_categories(idx, categories))
         _set_field(p, "minimumSeeders", 1)
     else:  # rss
         p["enableAutomaticSearch"] = False
@@ -257,9 +289,12 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
                     help="only indexers whose Jackett caps advertise a 6xxx (XXX) category")
     ap.add_argument("--force", action="store_true",
                     help="POST with forceSave=true (skip Whisparr's connectivity test)")
+    ap.add_argument("--disabled", action="store_true",
+                    help="save with RSS/search flags off; skips Whisparr's test entirely")
     ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--categories", default=",".join(map(str, XXX_CATEGORIES)),
-                    help="torznab mode: comma-separated Newznab category IDs")
+    ap.add_argument("--categories", default="auto",
+                    help="torznab mode: 'auto' (indexer's own XXX caps, else all its caps), "
+                         "'xxx' (fixed 6000-6090 list), or comma-separated IDs")
     ap.add_argument("-v", "--verbose", action="store_true")
     return ap.parse_args(argv)
 
@@ -272,7 +307,13 @@ def main(argv: list[str]) -> int:
     )
     try:
         cfg = Config.from_env()
-        categories = [int(c) for c in args.categories.split(",") if c.strip()]
+        categories: list[int] | None
+        if args.categories == "auto":
+            categories = None
+        elif args.categories == "xxx":
+            categories = XXX_CATEGORIES
+        else:
+            categories = [int(c) for c in args.categories.split(",") if c.strip()]
         jackett = fetch_jackett_indexers(cfg)
         if args.xxx_only:
             jackett = [i for i in jackett if i.has_xxx]
@@ -286,14 +327,14 @@ def main(argv: list[str]) -> int:
         LOG.error("%s", exc)
         return 2
 
-    added = skipped = failed = 0
+    added = skipped = failed = no_content = 0
     for idx in sorted(jackett, key=lambda i: i.title.lower()):
         name = f"{idx.title}{NAME_SUFFIX}"
         if name.lower() in existing:
             LOG.debug("skip (exists): %s", name)
             skipped += 1
             continue
-        payload = build_payload(cfg, schema, idx, args.mode, categories)
+        payload = build_payload(cfg, schema, idx, args.mode, categories, args.disabled)
         if args.dry_run:
             LOG.info("would add: %s  [%s]", name, idx.id)
             added += 1
@@ -301,7 +342,7 @@ def main(argv: list[str]) -> int:
         try:
             status, resp = wh.add_indexer(payload, args.force)
         except SyncError as exc:
-            LOG.error("add failed: %s -> %s", name, exc)
+            LOG.error("add failed: %s -> %s", name, redact(exc))
             failed += 1
             continue
         if status in (200, 201):
@@ -311,10 +352,27 @@ def main(argv: list[str]) -> int:
             msg = resp
             if isinstance(resp, list):
                 msg = "; ".join(str(e.get("errorMessage", e)) for e in resp)
-            LOG.warning("rejected (HTTP %s): %s -> %s", status, name, msg)
-            failed += 1
+            msg = redact(msg)
+            if _NO_RESULTS in msg:
+                # The indexer answered but carries nothing in these categories.
+                # Normal for a general-purpose tracker queried for XXX.
+                LOG.info("no matching content: %s", name)
+                no_content += 1
+            else:
+                LOG.warning("rejected (HTTP %s): %s -> %s", status, name, msg)
+                failed += 1
 
-    LOG.info("done: added=%d skipped=%d failed=%d", added, skipped, failed)
+    LOG.info(
+        "done: added=%d skipped=%d no-matching-content=%d failed=%d",
+        added, skipped, no_content, failed,
+    )
+    if no_content and not args.xxx_only:
+        LOG.info(
+            "%d indexers answered but hold nothing in categories %s. "
+            "Re-run with --xxx-only to try just the indexers whose Jackett "
+            "capabilities advertise a 6xxx category.",
+            no_content, args.categories,
+        )
     return 1 if failed else 0
 
 
