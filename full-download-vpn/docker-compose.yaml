@@ -451,6 +451,7 @@ services:
     - ${WEBUI_PORT_FILEBOT:?err}:5454
     - ${WEBUI_PORT_HUNTARR:?err}:9705
     - ${WEBUI_PORT_JELLYFIN:?err}:8096
+    - ${WEBUI_PORT_LAZYLIBRARIAN:?err}:5299
     - ${WEBUI_PORT_LIDARR:?err}:8686
     - ${WEBUI_PORT_MYLAR:?err}:8090
     - ${WEBUI_PORT_PROWLARR:?err}:9696
@@ -781,6 +782,36 @@ services:
     - traefik.http.routers.jellyfin.entrypoints=secureweb
     - traefik.http.routers.jellyfin.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     - traefik.http.services.jellyfin.loadbalancer.server.url=http://gluetun:8096
+  lazylibrarian:
+    image: scambra/lazylibrarian-calibre
+    container_name: lazylibrarian
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+    - ${FOLDER_FOR_MEDIA:?err}:/data
+    - ${FOLDER_FOR_DATA:?err}/lazylibrarian:/config
+    environment:
+    - PUID=${PUID:?err}
+    - PGID=${PGID:?err}
+    - UMASK=${UMASK:?err}
+    - TZ=${TIMEZONE:?err}
+    network_mode: service:gluetun
+    labels:
+    - homepage.group=Arr Apps
+    - homepage.name=LazyLibrarian
+    - homepage.icon=lazylibrarian.png
+    - homepage.href=http://192.168.0.17:5299
+    - homepage.description=Book and audiobook manager
+    - homepage.server=my-docker
+    - traefik.enable=true
+    - traefik.http.routers.lazylibrarian.service=lazylibrarian
+    - traefik.http.routers.lazylibrarian.rule=Host(`lazylibrarian.${CLOUDFLARE_DNS_ZONE:?err}`)
+    - traefik.http.routers.lazylibrarian.entrypoints=secureweb
+    - traefik.http.routers.lazylibrarian.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+    - traefik.http.services.lazylibrarian.loadbalancer.server.url=http://gluetun:5299
   lidarr:
     image: lscr.io/linuxserver/lidarr:latest
     container_name: lidarr
