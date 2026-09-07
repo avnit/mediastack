@@ -783,7 +783,15 @@ services:
     - traefik.http.routers.jellyfin.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     - traefik.http.services.jellyfin.loadbalancer.server.url=http://gluetun:8096
   lazylibrarian:
-    image: scambra/lazylibrarian-calibre
+    # Was scambra/lazylibrarian-calibre, which crash-looped on import:
+    #   ValidIntTypes = int | bool
+    #   TypeError: unsupported operand type(s) for |: 'type' and 'type'
+    # PEP 604 union syntax needs Python 3.10+, but that image ships an older
+    # interpreter alongside newer LazyLibrarian source. It publishes only
+    # :latest, so there is no earlier tag to pin around it.
+    # LinuxServer's image is actively built, matches the PUID/PGID/UMASK
+    # convention used across this stack, and provides Calibre as a docker-mod.
+    image: lscr.io/linuxserver/lazylibrarian:latest
     container_name: lazylibrarian
     restart: unless-stopped
     depends_on:
@@ -798,6 +806,7 @@ services:
     - PGID=${PGID:?err}
     - UMASK=${UMASK:?err}
     - TZ=${TIMEZONE:?err}
+    - DOCKER_MODS=linuxserver/mods:universal-calibre
     network_mode: service:gluetun
     labels:
     - homepage.group=Arr Apps
