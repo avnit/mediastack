@@ -104,12 +104,20 @@ http:
           crowdsecLapiHost: crowdsec:8080
           crowdsecLapiScheme: http
           crowdsecLapiTLSInsecureVerify: false
+          # Trusted ranges: RFC1918 LAN + Docker, plus the Headscale tailnet
+          # (prefixes.v4 / prefixes.v6 in headscale-config.yaml).
+          # NOTE: clientTrustedIPs makes the plugin skip the LAPI call entirely for
+          # these sources, so CrowdSec can never block them.
           forwardedHeadersTrustedIPs:
             - 10.0.0.0/8
             - 172.16.0.0/12
             - 192.168.0.0/16
+            - 100.64.0.0/10
+            - fd7a:115c:a1e0::/48
           clientTrustedIPs:
             - 10.0.0.0/8
             - 172.16.0.0/12
             - 192.168.0.0/16
+            - 100.64.0.0/10
+            - fd7a:115c:a1e0::/48
 
