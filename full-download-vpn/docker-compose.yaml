@@ -212,7 +212,7 @@ services:
     user: root
     environment:
     - TZ=${TIMEZONE:?err}
-    - CF_DNS_API_TOKEN=${CLOUDFLARE_DNS_API_TOKEN:?err}
+    - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
     ports:
     - 0.0.0.0:${REVERSE_PROXY_PORT_HTTP:?err}:80
     - 0.0.0.0:${REVERSE_PROXY_PORT_HTTPS:?err}:443
