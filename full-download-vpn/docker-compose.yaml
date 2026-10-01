@@ -647,12 +647,6 @@ services:
     - homepage.href=http://192.168.0.17:5454
     - homepage.description=File renamer
     - homepage.server=my-docker
-    - traefik.enable=true
-    - traefik.http.routers.filebot.service=filebot
-    - traefik.http.routers.filebot.rule=Host(`filebot.${CLOUDFLARE_DNS_ZONE:?err}`)
-    - traefik.http.routers.filebot.entrypoints=secureweb
-    - traefik.http.routers.filebot.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
-    - traefik.http.services.filebot.loadbalancer.server.url=http://gluetun:5454
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
     container_name: flaresolverr
@@ -776,12 +770,6 @@ services:
     - homepage.href=http://192.168.0.17:8096
     - homepage.description=Media server
     - homepage.server=my-docker
-    - traefik.enable=true
-    - traefik.http.routers.jellyfin.service=jellyfin
-    - traefik.http.routers.jellyfin.rule=Host(`jellyfin.${CLOUDFLARE_DNS_ZONE:?err}`)
-    - traefik.http.routers.jellyfin.entrypoints=secureweb
-    - traefik.http.routers.jellyfin.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
-    - traefik.http.services.jellyfin.loadbalancer.server.url=http://gluetun:8096
   lazylibrarian:
     # Was scambra/lazylibrarian-calibre, which crash-looped on import:
     #   ValidIntTypes = int | bool
@@ -807,6 +795,7 @@ services:
     - UMASK=${UMASK:?err}
     - TZ=${TIMEZONE:?err}
     - DOCKER_MODS=linuxserver/mods:universal-calibre|linuxserver/mods:lazylibrarian-ffmpeg
+    - QT_QPA_PLATFORM=offscreen
     network_mode: service:gluetun
     labels:
     - homepage.group=Arr Apps
@@ -908,12 +897,6 @@ services:
     - homepage.href=http://192.168.0.17:32400/web
     - homepage.description=Media server
     - homepage.server=my-docker
-    - traefik.enable=true
-    - traefik.http.routers.plex.service=plex
-    - traefik.http.routers.plex.rule=Host(`plex.${CLOUDFLARE_DNS_ZONE:?err}`) && PathPrefix(`/web/`)
-    - traefik.http.routers.plex.entrypoints=secureweb
-    - traefik.http.routers.plex.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
-    - traefik.http.services.plex.loadbalancer.server.url=http://gluetun:32400
   portainer:
     image: portainer/portainer-ce:latest
     container_name: portainer
@@ -953,7 +936,8 @@ services:
     - PUID=${PUID:?err}
     - PGID=${PGID:?err}
     - TZ=${TIMEZONE:?err}
-    - TP_THEME=${TP_THEME:?err} - UMASK=002
+    - TP_THEME=${TP_THEME:?err}
+    - UMASK=002
     network_mode: service:gluetun
     labels:
     - homepage.group=Arr Apps
@@ -995,12 +979,6 @@ services:
     - homepage.href=http://192.168.0.17:8200
     - homepage.description=Torrent client
     - homepage.server=my-docker
-    - traefik.enable=true
-    - traefik.http.routers.qbittorrent.service=qbittorrent
-    - traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.${CLOUDFLARE_DNS_ZONE:?err}`)
-    - traefik.http.routers.qbittorrent.entrypoints=secureweb
-    - traefik.http.routers.qbittorrent.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
-    - traefik.http.services.qbittorrent.loadbalancer.server.url=http://gluetun:${WEBUI_PORT_QBITTORRENT:?err}
   radarr:
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
@@ -1091,7 +1069,7 @@ services:
     - traefik.http.routers.sabnzbd.entrypoints=secureweb
     - traefik.http.routers.sabnzbd.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     - traefik.http.services.sabnzbd.loadbalancer.server.url=https://gluetun:${WEBUI_PORT_SABNZBD:?err}
-    - traefik.http.services.sabnzbd.loadbalancer.serverstransport=insecure-no-verify@file
+    - traefik.http.services.sabnzbd.loadbalancer.serversTransport=insecure-no-verify@file
   seerr:
     image: ghcr.io/seerr-team/seerr:latest
     container_name: seerr
@@ -1176,12 +1154,6 @@ services:
     - nodeID=Tdarr_Server
     network_mode: service:gluetun
     labels:
-    - traefik.enable=true
-    - traefik.http.routers.tdarr.service=tdarr
-    - traefik.http.routers.tdarr.rule=Host(`tdarr.${CLOUDFLARE_DNS_ZONE:?err}`)
-    - traefik.http.routers.tdarr.entrypoints=secureweb
-    - traefik.http.routers.tdarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
-    - traefik.http.services.tdarr.loadbalancer.server.url=http://gluetun:${WEBUI_PORT_TDARR:?err}
     - homepage.group=Downloads
     - homepage.server=my-docker
     - homepage.name=Tdarr
