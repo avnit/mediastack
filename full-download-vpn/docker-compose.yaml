@@ -450,7 +450,7 @@ services:
     - ${WEBUI_PORT_BAZARR:?err}:6767
     - ${WEBUI_PORT_FILEBOT:?err}:5454
     - ${WEBUI_PORT_HUNTARR:?err}:9705
-    - ${WEBUI_PORT_JELLYFIN:?err}:8096
+    # - ${WEBUI_PORT_JELLYFIN:?err}:8096
     - ${WEBUI_PORT_LAZYLIBRARIAN:?err}:5299
     - ${WEBUI_PORT_LIDARR:?err}:8686
     - ${WEBUI_PORT_MYLAR:?err}:8090
@@ -466,13 +466,13 @@ services:
     - ${FLARESOLVERR_PORT:?err}:8191
     - ${TDARR_SERVER_PORT:?err}:${TDARR_SERVER_PORT:?err}
     - ${WEBUI_PORT_TDARR:?err}:${WEBUI_PORT_TDARR:?err}
-    - ${WEBUI_PORT_PLEX:?err}:32400
-    - 8324:8324
-    - 32410:32410/udp
-    - 32412:32412/udp
-    - 32413:32413/udp
-    - 32414:32414/udp
-    - 32469:32469
+    # - ${WEBUI_PORT_PLEX:?err}:32400
+    # - 8324:8324
+    # - 32410:32410/udp
+    # - 32412:32412/udp
+    # - 32413:32413/udp
+    # - 32414:32414/udp
+    # - 32469:32469
     volumes:
     - ${FOLDER_FOR_DATA:?err}/gluetun:/gluetun
     environment:
@@ -758,13 +758,14 @@ services:
         restart: true
     volumes:
     - ${FOLDER_FOR_MEDIA:?err}/media:/data/media
+    - /shared:/shared
     - /opt/jellyfin/config:/config
     environment:
     - PUID=${PUID:?err}
     - PGID=${PGID:?err}
     - UMASK=${UMASK:?err}
     - TZ=${TIMEZONE:?err}
-    network_mode: service:gluetun
+    network_mode: host
     labels:
     - homepage.group=Media
     - homepage.name=Jellyfin
@@ -880,9 +881,10 @@ services:
       gluetun:
         condition: service_healthy
         restart: true
-    network_mode: service:gluetun
+    network_mode: host
     volumes:
     - ${FOLDER_FOR_MEDIA:?err}/media:/data/media
+    - /shared:/data/shared
     - ${FOLDER_FOR_DATA:?err}/plex:/config
     environment:
     - PUID=${PUID:?err}
@@ -1325,7 +1327,8 @@ services:
     - UN_CMDHOOK_0_EXCLUDE_1=lidarr
     - UN_CMDHOOK_0_TIMEOUT=10s
   whisparr:
-    image: ghcr.io/hotio/whisparr:nightly
+    # image: ghcr.io/hotio/whisparr:nightly
+    image: ghcr.io/hotio/whisparr:v3-a7f0a98
     container_name: whisparr
     restart: unless-stopped
     depends_on:

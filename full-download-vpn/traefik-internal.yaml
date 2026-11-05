@@ -631,7 +631,7 @@ http:
       loadBalancer:
         passHostHeader: true
         servers:
-        - url: https://192.168.0.86:5001
+        - url: https://192.168.0.87:5001
         serversTransport: insecure-no-verify
     lan-pi3:
       loadBalancer:
