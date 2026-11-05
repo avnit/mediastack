@@ -49,6 +49,41 @@ load_vars() {
     fi
 }
 
+read_env_value() {
+    # Print the value of a variable from .env, without inline comments or whitespace
+    grep -E "^$1=" "$ENV_FILE" | head -n1 | cut -d '=' -f2- | sed -E 's/[[:space:]]+#.*$//' | xargs | tr -d '\r'
+}
+
+check_secrets() {
+    # Secrets are kept in .env only and injected into the deployed config copies
+    # by copy_configs, so they never need to be stored in the tracked YAML files.
+    MISSING_SECRETS=()
+    [ -z "$(read_env_value CROWDSEC_BOUNCER_API_KEY)" ]     && MISSING_SECRETS+=("CROWDSEC_BOUNCER_API_KEY")
+    [ -z "$(read_env_value HEADPLANE_OIDC_CLIENT_SECRET)" ] && MISSING_SECRETS+=("HEADPLANE_OIDC_CLIENT_SECRET")
+
+    if [ ${#MISSING_SECRETS[@]} -ne 0 ]; then
+        echo "❌ Error: The following secrets are missing or empty in $ENV_FILE:"
+        for var in "${MISSING_SECRETS[@]}"; do
+            echo "   - $var"
+        done
+        echo "   See .env.template for how to generate them. Nothing has been changed."
+        exit 1
+    fi
+
+    if [ -z "$(read_env_value HEADPLANE_COOKIE_SECRET)" ]; then
+        echo "⚠️  HEADPLANE_COOKIE_SECRET is not set in $ENV_FILE - Headplane will use the public default cookie secret."
+    fi
+}
+
+inject_secret() {
+    # $1 = variable name in .env, $2 = placeholder text, $3 = deployed config file
+    local value escaped
+    value=$(read_env_value "$1")
+    [ -z "$value" ] && return 0
+    escaped=$(printf '%s' "$value" | sed -e 's/[\\&|]/\\&/g')
+    sudo sed -i "s|$2|$escaped|g" "$3"
+}
+
 create_directories() {
     echo 
     echo "Creating folders and setting permissions..."
@@ -86,7 +121,8 @@ copy_configs() {
     echo 
     echo "Moving configuration files into application folders..."
     echo 
-    sudo chmod 664                .env *yaml
+    sudo chmod 664                *yaml
+    sudo chmod 640                .env                # Contains credentials - not world-readable
     sudo chown $PUID:$PGID        .env *yaml *sh
     
     # Create acme.json if missing and set strict permissions
@@ -100,6 +136,12 @@ copy_configs() {
     sudo cp traefik-dynamic.yaml  "$FOLDER_FOR_DATA"/traefik/dynamic.yaml
     sudo cp traefik-internal.yaml "$FOLDER_FOR_DATA"/traefik/internal.yaml
     sudo cp crowdsec-acquis.yaml  "$FOLDER_FOR_DATA"/crowdsec/acquis.yaml
+
+    # Inject secrets from .env into the deployed copies (tracked files only hold placeholders)
+    inject_secret CROWDSEC_BOUNCER_API_KEY     "CROWDSEC_BOUNCER_API_KEY_PLACEHOLDER"     "$FOLDER_FOR_DATA"/traefik/dynamic.yaml
+    inject_secret HEADPLANE_OIDC_CLIENT_SECRET "HEADPLANE_OIDC_CLIENT_SECRET_PLACEHOLDER" "$FOLDER_FOR_DATA"/headplane/config.yaml
+    # The tracked Headplane config ships the public default cookie secret; replace it when one is set
+    inject_secret HEADPLANE_COOKIE_SECRET      "1234567890abcdef1234567890abcdef"         "$FOLDER_FOR_DATA"/headplane/config.yaml
 }
 
 cleanup_containers() {
@@ -155,6 +197,7 @@ verify_stack() {
 
 check_env
 load_vars
+check_secrets
 validate_docker_compose
 
 # ------------------------------------------------------------------------------

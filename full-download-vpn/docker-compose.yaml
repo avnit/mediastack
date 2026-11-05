@@ -1918,13 +1918,11 @@ services:
       - 8000:8000
     environment:
       - SONARR_ADDRESS=http://gluetun:8989
-      - SONARR_API_KEY= ${SONARR_API_KEY:?err}
+      - SONARR_API_KEY=${SONARR_API_KEY:-${UNPACKERR_SONARR_API_KEY:?err}}
       - RADARR_ADDRESS=http://gluetun:7878
-      - RADARR_API_KEY= ${RADARR_API_KEY:?err}
+      - RADARR_API_KEY=${RADARR_API_KEY:-${UNPACKERR_RADARR_API_KEY:?err}}
     volumes:
       - ${FOLDER_FOR_MEDIA:?err}/media/tv:/tv
       - ${FOLDER_FOR_MEDIA:?err}/media/movies:/movies
     networks:
       - mediastack
-SONARR_API_KEY=593f3d8f76ca4b31acfe18b4756ffb97
-_RADARR_API_KEY=e5638a65a0c94684b2f0cb3a44392c02

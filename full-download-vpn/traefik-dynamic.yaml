@@ -93,7 +93,7 @@ http:
           crowdsecAppsecHost: crowdsec:7422
           crowdsecAppsecFailureBlock: true
           crowdsecAppsecUnreachableBlock: true
-          crowdsecLapiKey: HHiqFzzMVulay4Cbp2Jtxkp8YlPTpW/EwgZw6Z62PO0
+          crowdsecLapiKey: CROWDSEC_BOUNCER_API_KEY_PLACEHOLDER
           crowdsecLapiHost: crowdsec:8080
           crowdsecLapiScheme: http
           crowdsecLapiTLSInsecureVerify: false

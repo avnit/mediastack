@@ -84,7 +84,7 @@ oidc:
 
   # The client secret for the OIDC client
   # Either this or `client_secret_path` must be set for OIDC to work
-  client_secret: "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"
+  client_secret: "HEADPLANE_OIDC_CLIENT_SECRET_PLACEHOLDER"
   # You can alternatively set `client_secret_path` to read the secret from disk.
   # The path specified can resolve environment variables, making integration
   # with systemd's `LoadCredential` straightforward:

@@ -9,7 +9,11 @@ homepage.env
 
 # Logs
 *.log
+*-log.txt
 logs/
+
+# Scratch output (get-apikeys.sh results and similar contain API keys)
+Untitled-*.txt
 
 # Temporary files
 *.tmp
