@@ -204,7 +204,7 @@ acme_url: https://acme-v02.api.letsencrypt.org/directory
 acme_email: "abambah@gmail.com"
 
 # Domain name to request a TLS certificate for:
-tls_letsencrypt_hostname: "media.asbblog.com"
+tls_letsencrypt_hostname: ""
 
 # Path to store certificates and metadata needed by
 # letsencrypt

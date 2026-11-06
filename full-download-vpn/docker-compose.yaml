@@ -382,8 +382,8 @@ services:
     dns:
     - 1.1.1.1
     - 8.8.8.8
-    extra_hosts:
-    - headscale.${CLOUDFLARE_DNS_ZONE:?err}:${LOCAL_DOCKER_IP:?err}
+   # extra_hosts:
+   #  - headscale.${CLOUDFLARE_DNS_ZONE:?err}:${LOCAL_DOCKER_IP:?err}
     networks:
     - mediastack
     cap_add:
@@ -400,39 +400,38 @@ services:
     - TS_STATE_DIR=/var/lib/tailscale
     - TS_AUTHKEY=${TAILSCALE_AUTHKEY:?err}
     - TS_EXTRA_ARGS=--hostname=exit-node --advertise-exit-node --advertise-routes=${LOCAL_SUBNET:?err},${DOCKER_SUBNET:?err}
-      --login-server=https://headscale.asbblog.com
-  headplane:
-    image: ghcr.io/tale/headplane:latest
-    healthcheck:
-      disable: true
-    container_name: headplane
-    restart: unless-stopped
-    networks:
-    - mediastack
-    ports:
-    - 127.0.0.1:${WEBUI_PORT_HEADPLANE:?err}:3000
-    volumes:
-    - /var/run/docker.sock:/var/run/docker.sock:ro
-    - ${FOLDER_FOR_DATA:?err}/headscale:/etc/headscale
-    - ${FOLDER_FOR_DATA:?err}/headplane:/etc/headplane
-    - ${FOLDER_FOR_DATA:?err}/headplane/data:/var/lib/headplane
-    environment:
-    - TZ=${TIMEZONE:?err}
-    labels:
-    - homepage.group=Remote Access
-    - homepage.name=Headplane
-    - homepage.icon=headscale.png
-    - homepage.href=http://192.168.0.17:3500
-    - homepage.description=Headscale UI
-    - homepage.server=my-docker
-    - traefik.enable=true
-    - traefik.http.routers.headplane.service=headplane
-    - traefik.http.routers.headplane.rule=Host(`headplane.${CLOUDFLARE_DNS_ZONE:?err}`)
-      && PathPrefix(`/admin/`)
-    - traefik.http.routers.headplane.entrypoints=secureweb
-    - traefik.http.routers.headplane.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
-    - traefik.http.services.headplane.loadbalancer.server.scheme=http
-    - traefik.http.services.headplane.loadbalancer.server.port=3000
+ #  headplane:
+ #    image: ghcr.io/tale/headplane:latest
+ #   healthcheck:
+ #     disable: true
+ #   container_name: headplane
+ #   restart: unless-stopped
+ #   networks:
+ #   - mediastack
+ #   ports:
+ #   - 127.0.0.1:${WEBUI_PORT_HEADPLANE:?err}:3000
+ #   volumes:
+ #   - /var/run/docker.sock:/var/run/docker.sock:ro
+ #   - ${FOLDER_FOR_DATA:?err}/headscale:/etc/headscale
+ #   - ${FOLDER_FOR_DATA:?err}/headplane:/etc/headplane
+ #   - ${FOLDER_FOR_DATA:?err}/headplane/data:/var/lib/headplane
+ #   environment:
+ #   - TZ=${TIMEZONE:?err}
+ #   labels:
+ #   - homepage.group=Remote Access
+ #   - homepage.name=Headplane
+ #   - homepage.icon=headscale.png
+ #   - homepage.href=http://192.168.0.17:3500
+ #    - homepage.description=Headscale UI
+ #   - homepage.server=my-docker
+ #   - traefik.enable=true
+ #   - traefik.http.routers.headplane.service=headplane
+ #   - traefik.http.routers.headplane.rule=Host(`headplane.${CLOUDFLARE_DNS_ZONE:?err}`)
+ #     && PathPrefix(`/admin/`)
+ #   - traefik.http.routers.headplane.entrypoints=secureweb
+ #   - traefik.http.routers.headplane.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+ #   - traefik.http.services.headplane.loadbalancer.server.scheme=http
+ #   - traefik.http.services.headplane.loadbalancer.server.port=3000
   gluetun:
     image: qmcgaw/gluetun:v3.41.3
     container_name: gluetun
