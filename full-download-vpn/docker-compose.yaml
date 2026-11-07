@@ -1157,6 +1157,48 @@ services:
     - traefik.http.routers.sonarr.entrypoints=secureweb
     - traefik.http.routers.sonarr.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     - traefik.http.services.sonarr.loadbalancer.server.url=http://gluetun:8989
+  statuspage:
+    # Container status dashboard. Reads live state from the Docker socket and the
+    # homepage.* labels already on every service, so service metadata lives in one
+    # place. stdlib-only Python, so the stock image needs no extra packages.
+    image: python:3.13-alpine
+    container_name: statuspage
+    restart: unless-stopped
+    networks:
+    - mediastack
+    command:
+    - python3
+    - /app/app.py
+    environment:
+    - TZ=${TIMEZONE:?err}
+    - PORT=8400
+    volumes:
+    - ./statuspage/app.py:/app/app.py:ro
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+    - ${WEBUI_PORT_STATUSPAGE:-8400}:8400
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - python3 -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8400/healthz',timeout=5)"
+      start_period: 15s
+      interval: 30s
+      retries: 3
+      timeout: 5s
+    labels:
+    - homepage.group=Dashboard
+    - homepage.name=Status
+    - homepage.icon=docker.png
+    - homepage.href=http://192.168.0.17:8400
+    - homepage.description=Container status dashboard
+    - homepage.server=my-docker
+    - traefik.enable=true
+    - traefik.http.routers.statuspage.service=statuspage
+    - traefik.http.routers.statuspage.rule=Host(`status.${CLOUDFLARE_DNS_ZONE:?err}`)
+    - traefik.http.routers.statuspage.entrypoints=secureweb
+    - traefik.http.routers.statuspage.middlewares=lan-only@file,security-headers@file,traefik-bouncer@file
+    - traefik.http.services.statuspage.loadbalancer.server.scheme=http
+    - traefik.http.services.statuspage.loadbalancer.server.port=8400
   tdarr:
     image: ghcr.io/haveagitgat/tdarr:latest
     container_name: tdarr
