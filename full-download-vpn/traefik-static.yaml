@@ -80,7 +80,8 @@ certificatesResolvers:
           - 1.1.1.1:53
           - 1.0.0.1:53
         propagation:
-          delayBeforeChecks: 2s
+          delayBeforeChecks: 60s
+          disableChecks: true
 
 experimental:
   plugins:

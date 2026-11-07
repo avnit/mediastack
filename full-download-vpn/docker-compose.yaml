@@ -177,7 +177,7 @@ services:
     - AUTHENTIK_POSTGRESQL__PASSWORD=${POSTGRESQL_PASSWORD:?err}
     - AUTHENTIK_ERROR_REPORTING__ENABLED=${AUTHENTIK_ERROR_REPORTING__ENABLED:?err}
     volumes:
-    - /var/run/docker.sock:/var/run/docker.sock
+    - /var/run/docker.sock:/var/run/docker.sock:ro
     - ${FOLDER_FOR_DATA:?err}/authentik/certs:/certs
     - ${FOLDER_FOR_DATA:?err}/authentik/media:/media
     - ${FOLDER_FOR_DATA:?err}/authentik/templates:/templates
@@ -229,7 +229,11 @@ services:
     restart: always
     networks:
     - mediastack
-    user: ${PUID:?err}:${PGID:?err}
+    # Must run as root: traefik writes acme.json as root with mode 0600 (and
+    # refuses to use it if looser), so uid 99 cannot read it. Traefik rewrites
+    # the file atomically on renewal, which resets ownership - chowning it is
+    # therefore only a temporary patch. The /data mount is read-only.
+    user: root
     entrypoint: sh -c ' while ! [ -e /data/acme.json ] || ! [ `jq ".[] | .Certificates
       | length" /data/acme.json | jq -s "add" ` != 0 ]; do sleep 1 ; done && traefik-certs-dumper
       file --version v2 --watch --source /data/acme.json --dest /certs'
@@ -283,7 +287,7 @@ services:
     - 127.0.0.1:${WEBUI_PORT_PROMETHEUS:?err}:9090
     volumes:
     - ${FOLDER_FOR_DATA:?err}/prometheus:/prometheus
-    - ${FOLDER_FOR_DATA:?err}/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    - ${FOLDER_FOR_DATA:?err}/prometheus-config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     environment:
     - TZ=${TIMEZONE:?err}
     labels:
@@ -301,7 +305,7 @@ services:
     - traefik.http.services.prometheus.loadbalancer.server.scheme=http
     - traefik.http.services.prometheus.loadbalancer.server.port=9090
   grafana:
-    image: grafana/grafana-enterprise
+    image: grafana/grafana-enterprise:latest
     container_name: grafana
     restart: unless-stopped
     user: ${PUID:?err}:${PGID:?err}
@@ -330,35 +334,35 @@ services:
     - traefik.http.routers.grafana.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     - traefik.http.services.grafana.loadbalancer.server.scheme=http
     - traefik.http.services.grafana.loadbalancer.server.port=3000
-  headscale:
-    image: headscale/headscale:latest
-    container_name: headscale
-    restart: unless-stopped
-    networks:
-    - mediastack
-    command: serve
-    ports:
-    - 0.0.0.0:${CONNECT_PORT_HEADSCALE:?err}:8080
-    - 127.0.0.1:${METRICS_PORT_HEADSCALE:?err}:9090
-    volumes:
-    - ${FOLDER_FOR_DATA:?err}/headscale:/etc/headscale
-    - ${FOLDER_FOR_DATA:?err}/headscale/data:/var/lib/headscale
-    environment:
-    - TZ=${TIMEZONE:?err}
-    labels:
-    - homepage.group=Remote Access
-    - homepage.name=Headscale
-    - homepage.icon=headscale.png
-    - homepage.href=http://192.168.0.17:4080
-    - homepage.description=VPN control server
-    - homepage.server=my-docker
-    - traefik.enable=true
-    - traefik.http.routers.headscale.service=headscale
-    - traefik.http.routers.headscale.rule=Host(`headscale.${CLOUDFLARE_DNS_ZONE:?err}`)
-    - traefik.http.routers.headscale.entrypoints=secureweb
-    - traefik.http.routers.headscale.middlewares=security-headers@file,traefik-bouncer@file
-    - traefik.http.services.headscale.loadbalancer.server.scheme=http
-    - traefik.http.services.headscale.loadbalancer.server.port=8080
+#   headscale:
+#    image: headscale/headscale:latest
+#    container_name: headscale
+#    restart: unless-stopped
+#    networks:
+#    - mediastack
+#    command: serve
+#    ports:
+#    - 0.0.0.0:${CONNECT_PORT_HEADSCALE:?err}:8080
+#    - 127.0.0.1:${METRICS_PORT_HEADSCALE:?err}:9090
+#    volumes:
+#    - ${FOLDER_FOR_DATA:?err}/headscale:/etc/headscale
+#    - ${FOLDER_FOR_DATA:?err}/headscale/data:/var/lib/headscale
+#    environment:
+#    - TZ=${TIMEZONE:?err}
+#    labels:
+#    - homepage.group=Remote Access
+#    - homepage.name=Headscale
+#    - homepage.icon=headscale.png
+#    - homepage.href=http://192.168.0.17:4080
+#    - homepage.description=VPN control server
+#    - homepage.server=my-docker
+#    - traefik.enable=true
+#    - traefik.http.routers.headscale.service=headscale
+#    - traefik.http.routers.headscale.rule=Host(`headscale.${CLOUDFLARE_DNS_ZONE:?err}`)
+#    - traefik.http.routers.headscale.entrypoints=secureweb
+#    - traefik.http.routers.headscale.middlewares=security-headers@file,traefik-bouncer@file
+#    - traefik.http.services.headscale.loadbalancer.server.scheme=http
+#    - traefik.http.services.headscale.loadbalancer.server.port=8080
   tailscale:
     image: tailscale/tailscale:latest
     hostname: tailscale
@@ -367,8 +371,8 @@ services:
     dns:
     - 1.1.1.1
     - 8.8.8.8
-    extra_hosts:
-    - headscale.${CLOUDFLARE_DNS_ZONE:?err}:${LOCAL_DOCKER_IP:?err}
+   #  extra_hosts:
+   #  - headscale.${CLOUDFLARE_DNS_ZONE:?err}:${LOCAL_DOCKER_IP:?err}
     networks:
     - mediastack
     cap_add:
@@ -382,7 +386,7 @@ services:
     - TS_STATE_DIR=/var/lib/tailscale
     - TS_AUTHKEY=${TAILSCALE_AUTHKEY:?err}
     - TS_EXTRA_ARGS=--hostname=exit-node --advertise-exit-node --advertise-routes=${LOCAL_SUBNET:?err},${DOCKER_SUBNET:?err}
-      --login-server=https://headscale.asbblog.com
+  #    --login-server=https://headscale.asbblog.com
   headplane:
     image: ghcr.io/tale/headplane:latest
     healthcheck:
@@ -433,12 +437,15 @@ services:
     - ${WEBUI_PORT_FILEBOT:?err}:5454
     - ${WEBUI_PORT_HUNTARR:?err}:9705
     - ${WEBUI_PORT_JELLYFIN:?err}:8096
+    - ${WEBUI_PORT_LAZYLIBRARIAN:?err}:5299
     - ${WEBUI_PORT_LIDARR:?err}:8686
     - ${WEBUI_PORT_MYLAR:?err}:8090
     - ${WEBUI_PORT_PROWLARR:?err}:9696
     - ${WEBUI_PORT_RADARR:?err}:7878
     - ${WEBUI_PORT_READARR:?err}:8787
-    - ${WEBUI_PORT_SABNZBD:?err}:8080
+    # sabnzbd.ini sets port=8100, not the image default 8080, so the published
+    # port must map to 8100 or nothing is listening on the container side.
+    - ${WEBUI_PORT_SABNZBD:?err}:8100
     - ${WEBUI_PORT_SEERR:?err}:5055
     - ${WEBUI_PORT_SONARR:?err}:8989
     - ${WEBUI_PORT_WHISPARR:?err}:6969
@@ -462,8 +469,8 @@ services:
     - UMASK=${UMASK:?err}
     - TZ=${TIMEZONE:?err}
     - VPN_SERVICE_PROVIDER=${VPN_SERVICE_PROVIDER:?err}
-    - OPENVPN_USER=${VPN_USERNAME:?err}
-    - OPENVPN_PASSWORD=${VPN_PASSWORD:?err}
+    - OPENVPN_USER=${VPN_USERNAME:-}
+    - OPENVPN_PASSWORD=${VPN_PASSWORD:-}
     - SERVER_COUNTRIES=${SERVER_COUNTRIES}
     - SERVER_REGIONS=${SERVER_REGIONS}
     - SERVER_CITIES=${SERVER_CITIES}
@@ -705,7 +712,7 @@ services:
     container_name: homarr
     restart: unless-stopped
     volumes:
-    - /var/run/docker.sock:/var/run/docker.sock
+    - /var/run/docker.sock:/var/run/docker.sock:ro
     - ${FOLDER_FOR_DATA:?err}/homarr/configs:/app/data/configs
     - ${FOLDER_FOR_DATA:?err}/homarr/icons:/app/public/icons
     - ${FOLDER_FOR_DATA:?err}/homarr/data:/data
@@ -743,6 +750,11 @@ services:
     volumes:
     - ${FOLDER_FOR_MEDIA:?err}/media:/data/media
     - /opt/jellyfin/config:/config
+    # system.xml stores absolute CachePath/MetadataPath under /shared/media/data
+    # from when Jellyfin ran on the host network. Mount that path through at the
+    # same location so those paths resolve; without it Jellyfin tries to mkdir
+    # /shared at the container root and dies with UnauthorizedAccessException.
+    - /shared/media/data/jellyfin:/shared/media/data/jellyfin
     environment:
     - PUID=${PUID:?err}
     - PGID=${PGID:?err}
@@ -762,6 +774,46 @@ services:
     - traefik.http.routers.jellyfin.entrypoints=secureweb
     - traefik.http.routers.jellyfin.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
     - traefik.http.services.jellyfin.loadbalancer.server.url=http://gluetun:8096
+  lazylibrarian:
+    # Was scambra/lazylibrarian-calibre, which crash-looped on import:
+    #   ValidIntTypes = int | bool
+    #   TypeError: unsupported operand type(s) for |: 'type' and 'type'
+    # PEP 604 union syntax needs Python 3.10+, but that image ships an older
+    # interpreter alongside newer LazyLibrarian source. It publishes only
+    # :latest, so there is no earlier tag to pin around it.
+    # LinuxServer's image is actively built, matches the PUID/PGID/UMASK
+    # convention used across this stack, and provides Calibre as a docker-mod.
+    image: lscr.io/linuxserver/lazylibrarian:latest
+    container_name: lazylibrarian
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    volumes:
+    - ${FOLDER_FOR_MEDIA:?err}:/data
+    - ${FOLDER_FOR_DATA:?err}/lazylibrarian:/config
+    environment:
+    - PUID=${PUID:?err}
+    - PGID=${PGID:?err}
+    - UMASK=${UMASK:?err}
+    - TZ=${TIMEZONE:?err}
+    - DOCKER_MODS=linuxserver/mods:universal-calibre|linuxserver/mods:lazylibrarian-ffmpeg
+    - QT_QPA_PLATFORM=offscreen
+    network_mode: service:gluetun
+    labels:
+    - homepage.group=Arr Apps
+    - homepage.name=LazyLibrarian
+    - homepage.icon=lazylibrarian.png
+    - homepage.href=http://192.168.0.17:5299
+    - homepage.description=Book and audiobook manager
+    - homepage.server=my-docker
+    - traefik.enable=true
+    - traefik.http.routers.lazylibrarian.service=lazylibrarian
+    - traefik.http.routers.lazylibrarian.rule=Host(`lazylibrarian.${CLOUDFLARE_DNS_ZONE:?err}`)
+    - traefik.http.routers.lazylibrarian.entrypoints=secureweb
+    - traefik.http.routers.lazylibrarian.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+    - traefik.http.services.lazylibrarian.loadbalancer.server.url=http://gluetun:5299
   lidarr:
     image: lscr.io/linuxserver/lidarr:latest
     container_name: lidarr
@@ -1037,11 +1089,20 @@ services:
     - traefik.http.routers.sabnzbd.rule=Host(`sabnzbd.${CLOUDFLARE_DNS_ZONE:?err}`)
     - traefik.http.routers.sabnzbd.entrypoints=secureweb
     - traefik.http.routers.sabnzbd.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
-    - traefik.http.services.sabnzbd.loadbalancer.server.url=http://gluetun:8080
+    # sabnzbd.ini sets port=8100 and enable_https=1, so the backend is HTTPS on
+    # 8100 - not the image default HTTP 8080. Its cert is self-signed, so reuse
+    # the insecure-no-verify transport already defined in internal.yaml and used
+    # by the other internal HTTPS backends. TLS still terminates at Traefik.
+    - traefik.http.services.sabnzbd.loadbalancer.server.url=https://gluetun:8100
+    - traefik.http.services.sabnzbd.loadbalancer.serversTransport=insecure-no-verify@file
   seerr:
     image: ghcr.io/seerr-team/seerr:latest
     container_name: seerr
     init: true
+    # The seerr image declares USER node (uid 1000), but this stack's data
+    # dirs are owned by PUID:PGID (99:100), so the default user cannot write
+    # /app/config and the container crash-loops on EACCES writing its log.
+    user: ${PUID:?err}:${PGID:?err}
     restart: unless-stopped
     depends_on:
       gluetun:
@@ -1164,7 +1225,7 @@ services:
     - serverPort=${TDARR_SERVER_PORT:?err}
     network_mode: service:gluetun
   unpackerr:
-    image: golift/unpackerr
+    image: golift/unpackerr:latest
     labels:
     - homepage.group=Downloads
     - homepage.name=Unpackerr

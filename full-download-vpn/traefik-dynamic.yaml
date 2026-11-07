@@ -74,6 +74,10 @@ http:
       forwardAuth:
         address: http://authentik:9000/outpost.goauthentik.io/auth/traefik
         trustForwardHeader: true
+        # Bound the auth response body. Unset means unlimited, which Traefik warns
+        # about on every router load (DoS / memory exhaustion) and which was
+        # flooding the container log. 1 MiB is ~100x an outpost auth response.
+        maxResponseBodySize: 1048576
         authResponseHeaders:
           - X-authentik-username
           - X-authentik-groups
