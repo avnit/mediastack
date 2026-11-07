@@ -1,15 +1,24 @@
-# ---- AppSec WAF ----
-#listen_addr: 0.0.0.0:7422
-#appsec_config: crowdsecurity/virtual-patching
-#name: crowdsec-appsec
-#source: appsec
-#labels:
-#  type: appsec
----
+#########################################################################
+# CrowdSec acquisition — one YAML document per datasource.
+# Every document must be a non-empty mapping: a document that is entirely
+# commented out (or an empty trailing one after a final "---") parses as
+# null and makes CrowdSec fail with:
+#   Error: any only supports arrays, was !!null
+#########################################################################
+
 # ---- Traefik Logs ----
 poll_without_inotify: true
 filenames:
   - /logs/traefik/access.log
 labels:
   type: traefik
----
+
+# ---- AppSec WAF ----
+# Uncomment the whole block below (including the "---" separator) to enable.
+# ---
+# listen_addr: 0.0.0.0:7422
+# appsec_config: crowdsecurity/virtual-patching
+# name: crowdsec-appsec
+# source: appsec
+# labels:
+#   type: appsec

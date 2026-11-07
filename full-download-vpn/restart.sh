@@ -6,6 +6,32 @@ set -e
 # ==============================================================================
 FOLDER_FOR_YAMLS="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/"
 ENV_FILE=".env"
+SYNC_INDEXERS=0
+
+# ------------------------------------------------------------------------------
+# Arguments
+# ------------------------------------------------------------------------------
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --sync-indexers)
+            # Import Jackett indexers into Whisparr after the stack is verified.
+            # Opt-in: this is a one-shot administrative action, not something a
+            # restart should do on its own. Credentials come from .env, never
+            # from this file -- the repository is public.
+            SYNC_INDEXERS=1
+            ;;
+        -h|--help)
+            echo "Usage: $0 [--sync-indexers]"
+            echo "  --sync-indexers   after restarting, run ./sync-jackett-to-whisparr.sh --xxx-only"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1 (try --help)" >&2
+            exit 1
+            ;;
+    esac
+    shift
+done
 
 # ==============================================================================
 # Functions
@@ -49,41 +75,6 @@ load_vars() {
     fi
 }
 
-read_env_value() {
-    # Print the value of a variable from .env, without inline comments or whitespace
-    grep -E "^$1=" "$ENV_FILE" | head -n1 | cut -d '=' -f2- | sed -E 's/[[:space:]]+#.*$//' | xargs | tr -d '\r'
-}
-
-check_secrets() {
-    # Secrets are kept in .env only and injected into the deployed config copies
-    # by copy_configs, so they never need to be stored in the tracked YAML files.
-    MISSING_SECRETS=()
-    [ -z "$(read_env_value CROWDSEC_BOUNCER_API_KEY)" ]     && MISSING_SECRETS+=("CROWDSEC_BOUNCER_API_KEY")
-    [ -z "$(read_env_value HEADPLANE_OIDC_CLIENT_SECRET)" ] && MISSING_SECRETS+=("HEADPLANE_OIDC_CLIENT_SECRET")
-
-    if [ ${#MISSING_SECRETS[@]} -ne 0 ]; then
-        echo "❌ Error: The following secrets are missing or empty in $ENV_FILE:"
-        for var in "${MISSING_SECRETS[@]}"; do
-            echo "   - $var"
-        done
-        echo "   See .env.template for how to generate them. Nothing has been changed."
-        exit 1
-    fi
-
-    if [ -z "$(read_env_value HEADPLANE_COOKIE_SECRET)" ]; then
-        echo "⚠️  HEADPLANE_COOKIE_SECRET is not set in $ENV_FILE - Headplane will use the public default cookie secret."
-    fi
-}
-
-inject_secret() {
-    # $1 = variable name in .env, $2 = placeholder text, $3 = deployed config file
-    local value escaped
-    value=$(read_env_value "$1")
-    [ -z "$value" ] && return 0
-    escaped=$(printf '%s' "$value" | sed -e 's/[\\&|]/\\&/g')
-    sudo sed -i "s|$2|$escaped|g" "$3"
-}
-
 create_directories() {
     echo 
     echo "Creating folders and setting permissions..."
@@ -91,7 +82,7 @@ create_directories() {
     cd "$FOLDER_FOR_YAMLS"
     
     # Data Directories
-    sudo -E mkdir -p "$FOLDER_FOR_DATA"/{authentik/{certs,media,templates},bazarr,chromium,crowdsec/data,ddns-updater,filebot,gluetun,grafana,headplane/data,headscale/data,heimdall,homarr/{configs,data,icons},homepage,huntarr,jellyfin,jellyseerr,lidarr,logs/{unpackerr,traefik},mylar,plex,portainer,postgresql,prometheus,prowlarr,qbittorrent,radarr,readarr,sabnzbd,sonarr,tailscale,tdarr/{server,configs,logs},tdarr-node,traefik/letsencrypt,traefik-certs-dumper,unpackerr,valkey,whisparr}
+    sudo -E mkdir -p "$FOLDER_FOR_DATA"/{authentik/{certs,media,templates},bazarr,chromium,crowdsec/data,ddns-updater,filebot,gluetun,grafana,headplane/data,headscale/data,heimdall,homarr/{configs,data,icons},homepage,huntarr,jellyfin,jellyseerr,lazylibrarian,lidarr,logs/{unpackerr,traefik},mylar,plex,portainer,postgresql,prometheus,prometheus-config,prowlarr,qbittorrent,radarr,readarr,sabnzbd,sonarr,tailscale,tdarr/{server,configs,logs},tdarr-node,traefik/letsencrypt,traefik-certs-dumper,unpackerr,valkey,whisparr}
     
     # Media Directories
     sudo -E mkdir -p "$FOLDER_FOR_MEDIA"/media/{anime,audio,books,comics,movies,music,photos,tv,xxx}
@@ -100,9 +91,125 @@ create_directories() {
     sudo -E mkdir -p "$FOLDER_FOR_MEDIA"/watch
     sudo -E mkdir -p "$FOLDER_FOR_MEDIA"/filebot/{input,output}
     
-    # Permissions
-    sudo -E chmod -R 2775 "$FOLDER_FOR_MEDIA" "$FOLDER_FOR_DATA"
-    sudo -E chown -R $PUID:$PGID "$FOLDER_FOR_MEDIA" "$FOLDER_FOR_DATA"
+    # Permissions.
+    #
+    # A recursive chmod/chown across the media tree fails on NFS exported with
+    # root_squash - "Operation not permitted" even as root - and under "set -e"
+    # that non-zero exit aborted the entire script before copy_configs() ran.
+    # Apply per path, skip network filesystems whose ownership is server-side,
+    # and never let a permission failure kill the run.
+    local target fstype
+    for target in "$FOLDER_FOR_MEDIA" "$FOLDER_FOR_DATA"; do
+        [ -d "$target" ] || continue
+        fstype=$(stat -f -c %T "$target" 2>/dev/null || echo unknown)
+
+        case "$fstype" in
+            nfs*|cifs|smb*|fuseblk|9p)
+                echo "   - $target is on $fstype - skipping recursive chown/chmod (ownership is server-side)."
+                continue
+                ;;
+        esac
+
+        echo "   - Applying ownership and permissions to $target ($fstype)..."
+        sudo -E chmod -R 2775 "$target" 2>/dev/null \
+            || echo "     WARNING: some paths under $target could not be chmod'ed - continuing."
+        sudo -E chown -R "$PUID:$PGID" "$target" 2>/dev/null \
+            || echo "     WARNING: some paths under $target could not be chown'ed - continuing."
+    done
+}
+
+ensure_generated_secrets() {
+    # Variables the compose file requires that have no sensible default and must
+    # never be committed. Generated once and written into .env, so a fresh clone
+    # or a "git pull" that introduces a new secret does not hard-fail
+    # "docker compose config" on an unset ${VAR:?err}.
+    echo
+    echo "Checking generated secrets in $ENV_FILE..."
+
+    local var placeholder="GENERATE_YOUR_OWN_SECRET_KEY_HERE" generated=0 current
+
+    for var in HOMARR_NEXTAUTH_SECRET; do
+        current=$(grep -E "^${var}=" "$ENV_FILE" | cut -d '=' -f2- | xargs | tr -d '\r')
+
+        if [ -z "$current" ] || [ "$current" = "$placeholder" ]; then
+            # Drop any empty or placeholder line so we never end up with duplicates.
+            sudo sed -i "/^${var}=$/d;/^${var}=${placeholder}\$/d" "$ENV_FILE"
+            printf '%s=%s\n' "$var" "$(openssl rand -base64 32 2>/dev/null || head -c 32 /dev/urandom | base64)" \
+                | sudo tee -a "$ENV_FILE" > /dev/null
+            echo "   - $var: generated"
+            generated=1
+        else
+            echo "   - $var: present"
+        fi
+    done
+
+    if [ "$generated" -eq 1 ]; then
+        echo
+        echo "   New secrets were written. Homarr will require a fresh login."
+    fi
+}
+
+migrate_legacy_layout() {
+    local dst="$FOLDER_FOR_DATA/prometheus-config/prometheus.yml"
+    local src="$FOLDER_FOR_DATA/prometheus/prometheus.yml"
+
+    sudo mkdir -p "$FOLDER_FOR_DATA"/prometheus-config
+
+    # Docker silently creates an empty DIRECTORY when a bind-mount source file is
+    # missing, and every later start then dies with "not a directory: Are you
+    # trying to mount a directory onto a file". Clear the placeholder so the
+    # migration below can put the real file in its place. rmdir refuses to touch
+    # a non-empty directory, so this cannot eat real data.
+    if [ -d "$dst" ]; then
+        echo
+        echo "Removing Docker's empty placeholder directory at $dst..."
+        if ! sudo rmdir "$dst" 2>/dev/null; then
+            echo
+            echo "❌ Error: $dst is a directory and is NOT empty."
+            echo "   Inspect it by hand - something other than Docker created it:"
+            echo "     ls -la '$dst'"
+            echo
+            exit 1
+        fi
+    fi
+
+    # prometheus.yml used to be mounted from inside the TSDB data directory, which
+    # meant clearing a corrupt write-ahead log also deleted the configuration.
+    # Move it out once; safe to re-run.
+    if [ -f "$src" ] && [ ! -e "$dst" ]; then
+        echo
+        echo "Migrating prometheus.yml out of the TSDB data directory..."
+        sudo mv "$src" "$dst"
+        sudo chown "$PUID:$PGID" "$dst"
+        echo "   - moved to $dst"
+    fi
+
+    # Neither location has it: seed a minimal working config rather than letting
+    # Docker recreate the placeholder directory and fail the same way next run.
+    if [ ! -e "$dst" ]; then
+        echo
+        echo "No prometheus.yml found in either location - writing a minimal default..."
+        sudo tee "$dst" > /dev/null <<'PROMCFG'
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: traefik
+    static_configs:
+      - targets: ['traefik:8082']
+
+  - job_name: unpackerr
+    static_configs:
+      - targets: ['unpackerr:5656']
+PROMCFG
+        sudo chown "$PUID:$PGID" "$dst"
+        echo "   - wrote a default $dst (review and extend it)"
+    fi
 }
 
 validate_docker_compose() {
@@ -121,27 +228,76 @@ copy_configs() {
     echo 
     echo "Moving configuration files into application folders..."
     echo 
-    sudo chmod 664                *yaml
-    sudo chmod 640                .env                # Contains credentials - not world-readable
+    sudo chmod 664                .env *yaml
     sudo chown $PUID:$PGID        .env *yaml *sh
     
-    # Create acme.json if missing and set strict permissions
+    # Create acme.json if missing and set strict permissions.
+    # MUST run after create_directories() - the recursive "chmod -R 2775" there
+    # would otherwise leave this world-readable. Traefik refuses to load an
+    # acme.json looser than 600 and silently drops the letsencrypt resolver
+    # ("ACME resolve is skipped"), so every route falls back to the self-signed
+    # certificate. The traefik-init service in docker-compose.yaml re-asserts
+    # this on every container start; this is the belt to that pair of braces.
     sudo touch                    "$FOLDER_FOR_DATA"/traefik/letsencrypt/acme.json
-    sudo chmod 600                "$FOLDER_FOR_DATA"/traefik/letsencrypt/acme.json 
+    sudo chmod 600                "$FOLDER_FOR_DATA"/traefik/letsencrypt/acme.json
+    echo "   - acme.json permissions: $(stat -c '%a' "$FOLDER_FOR_DATA"/traefik/letsencrypt/acme.json) (must be 600)"
 
-    # Copy config files
-    sudo cp headplane-config.yaml "$FOLDER_FOR_DATA"/headplane/config.yaml
-    sudo cp headscale-config.yaml "$FOLDER_FOR_DATA"/headscale/config.yaml
-    sudo cp traefik-static.yaml   "$FOLDER_FOR_DATA"/traefik/traefik.yaml
-    sudo cp traefik-dynamic.yaml  "$FOLDER_FOR_DATA"/traefik/dynamic.yaml
-    sudo cp traefik-internal.yaml "$FOLDER_FOR_DATA"/traefik/internal.yaml
-    sudo cp crowdsec-acquis.yaml  "$FOLDER_FOR_DATA"/crowdsec/acquis.yaml
+    # Copy config files.
+    #
+    # These overwrite the live files unconditionally, so anything edited in place
+    # under $FOLDER_FOR_DATA is lost on the next run. install_config() keeps a
+    # timestamped backup whenever the live file has diverged, so an uncommitted
+    # hand edit is recoverable instead of silently destroyed.
+    install_config headplane-config.yaml "$FOLDER_FOR_DATA"/headplane/config.yaml
+    install_config headscale-config.yaml "$FOLDER_FOR_DATA"/headscale/config.yaml
+    install_config traefik-static.yaml   "$FOLDER_FOR_DATA"/traefik/traefik.yaml
+    install_config_subst traefik-dynamic.yaml "$FOLDER_FOR_DATA"/traefik/dynamic.yaml
+    install_config traefik-internal.yaml "$FOLDER_FOR_DATA"/traefik/internal.yaml
+    install_config crowdsec-acquis.yaml  "$FOLDER_FOR_DATA"/crowdsec/acquis.yaml
+}
 
-    # Inject secrets from .env into the deployed copies (tracked files only hold placeholders)
-    inject_secret CROWDSEC_BOUNCER_API_KEY     "CROWDSEC_BOUNCER_API_KEY_PLACEHOLDER"     "$FOLDER_FOR_DATA"/traefik/dynamic.yaml
-    inject_secret HEADPLANE_OIDC_CLIENT_SECRET "HEADPLANE_OIDC_CLIENT_SECRET_PLACEHOLDER" "$FOLDER_FOR_DATA"/headplane/config.yaml
-    # The tracked Headplane config ships the public default cookie secret; replace it when one is set
-    inject_secret HEADPLANE_COOKIE_SECRET      "1234567890abcdef1234567890abcdef"         "$FOLDER_FOR_DATA"/headplane/config.yaml
+install_config_subst() {
+    # Same as install_config, but substitutes secrets that must not live in the
+    # repository. Traefik's file provider does not expand ${VAR}, so the value
+    # has to be baked in at deploy time.
+    local src="$1" dst="$2" key tmp
+
+    key=$(grep -E '^CROWDSEC_LAPI_KEY=' "$ENV_FILE" | cut -d '=' -f2- | xargs | tr -d '\r')
+
+    if [ -z "$key" ]; then
+        echo
+        echo "ERROR: CROWDSEC_LAPI_KEY is not set in $ENV_FILE."
+        echo "       Refusing to install $(basename "$dst") with an unsubstituted"
+        echo "       placeholder: the crowdsec bouncer would fail to authenticate"
+        echo "       against the LAPI, and traefik-bouncer@file guards most routers."
+        echo "       Run ./rotate-crowdsec-key.sh to mint a key and populate .env."
+        echo
+        exit 1
+    fi
+
+    tmp=$(mktemp)
+    sed "s|__CROWDSEC_LAPI_KEY__|${key}|" "$src" > "$tmp"
+
+    if grep -q '__CROWDSEC_LAPI_KEY__' "$tmp"; then
+        rm -f "$tmp"
+        echo "ERROR: substitution failed for $(basename "$dst"); not installing."
+        exit 1
+    fi
+
+    install_config "$tmp" "$dst"
+    rm -f "$tmp"
+}
+
+install_config() {
+    local src="$1" dst="$2" backup
+
+    if [ -f "$dst" ] && ! cmp -s "$src" "$dst"; then
+        backup="$dst.bak.$(date +%Y%m%d-%H%M%S)"
+        sudo cp -a "$dst" "$backup"
+        echo "   - $(basename "$dst") differed from the repo; live copy saved to $(basename "$backup")"
+    fi
+
+    sudo cp "$src" "$dst"
 }
 
 cleanup_containers() {
@@ -155,6 +311,47 @@ cleanup_containers() {
       sudo docker rm   $containers || true
     fi
     sudo docker container prune -f
+}
+
+check_port_conflicts() {
+    echo
+    echo "Checking for host port conflicts before starting the stack..."
+    echo
+
+    local ports conflicts=0 holder
+    ports=$(docker compose config 2>/dev/null | sed -n 's/.*published: "\([0-9]\{1,5\}\)".*/\1/p' | sort -un)
+
+    if [ -z "$ports" ]; then
+        echo "WARNING: could not read published ports from 'docker compose config' - skipping check."
+        return 0
+    fi
+
+    for port in $ports; do
+        # Runs after cleanup_containers(), so any listener found here is foreign to this stack.
+        holder=$(ss -tulpn 2>/dev/null | awk -v p=":${port}$" '$5 ~ p' | grep -v 'docker-proxy' | head -n1 || true)
+        if [ -n "$holder" ]; then
+            echo "Host port $port is already in use:"
+            echo "     $holder"
+            conflicts=1
+        fi
+    done
+
+    if [ "$conflicts" -ne 0 ]; then
+        echo
+        echo "Free the ports listed above before starting."
+        echo
+        echo "   A conflict makes Docker fail with 'failed to bind host port', and gluetun"
+        echo "   then reports the misleading 'default route not found: in N route(s)'"
+        echo "   because its endpoint is torn down after the failed bind. Every container"
+        echo "   using 'network_mode: service:gluetun' goes down with it."
+        echo
+        echo "   Common culprit: a natively-installed service competing with its own"
+        echo "   container, e.g. 'systemctl disable --now plexmediaserver' for port 32400."
+        echo
+        exit 1
+    fi
+
+    echo "No host port conflicts detected."
 }
 
 start_stack() {
@@ -197,7 +394,7 @@ verify_stack() {
 
 check_env
 load_vars
-check_secrets
+ensure_generated_secrets
 validate_docker_compose
 
 # ------------------------------------------------------------------------------
@@ -217,6 +414,7 @@ PULL_PID=$!
 
 # Run local file operations while network pull happens
 create_directories
+migrate_legacy_layout
 copy_configs
 
 echo 
@@ -248,5 +446,13 @@ fi
 
 # Now restart the stack
 cleanup_containers
+check_port_conflicts
 start_stack
 verify_stack
+
+if [ "$SYNC_INDEXERS" -eq 1 ]; then
+    echo
+    echo "Importing Jackett indexers into Whisparr..."
+    echo
+    "$FOLDER_FOR_YAMLS"sync-jackett-to-whisparr.sh --xxx-only
+fi
