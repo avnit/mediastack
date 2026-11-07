@@ -28,8 +28,20 @@ defaults = dict(
 prov, created = ProxyProvider.objects.update_or_create(
     name="asbblog forward-auth", defaults=defaults
 )
+
+# REQUIRED. Writing the model directly bypasses the API serializer hook that
+# populates redirect_uris, leaving it empty. The outpost then sends the browser
+# to /application/o/authorize/ with a redirect_uri that the provider does not
+# recognise, and every protected host dies on "Redirect URI Error" instead of
+# showing the login page. set_oauth_defaults() fills in the outpost callback.
+prov.set_oauth_defaults()
+prov.save()
+prov.refresh_from_db()
 print(f"PROVIDER   : {prov.name} ({'created' if created else 'updated'}) "
       f"mode={prov.mode} external_host={prov.external_host} cookie_domain={prov.cookie_domain}")
+print(f"REDIRECTS  : {len(prov.redirect_uris)} uri(s) -> "
+      f"{', '.join(r.url for r in prov.redirect_uris)}")
+assert prov.redirect_uris, "redirect_uris empty - login would fail with Redirect URI Error"
 
 app, created = Application.objects.update_or_create(
     slug="asbblog", defaults=dict(name="asbblog Services", provider=prov)
