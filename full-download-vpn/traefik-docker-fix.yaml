@@ -82,7 +82,7 @@ http:
       entryPoints: [secureweb]
       priority: 100
       service: jellyfin@docker
-      middlewares: [lan-only@file, security-headers@file, traefik-bouncer@file]
+      middlewares: [authentik-forwardauth@file, security-headers@file, traefik-bouncer@file]
     fix-lidarr:
       rule: "Host(`lidarr.asbblog.com`)"
       entryPoints: [secureweb]
