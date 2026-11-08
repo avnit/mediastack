@@ -219,7 +219,7 @@ http:
       priority: 100
       service: lan-pve
       middlewares:
-      - authentik-forwardauth@file
+      - lan-and-docker
       - security-headers@file
     lan-opnsense:
       rule: Host(`opnsense.asbblog.com`)
@@ -418,7 +418,7 @@ http:
       priority: 100
       service: lan-pve7
       middlewares:
-      - authentik-forwardauth@file
+      - lan-and-docker
       - security-headers@file
     lan-headscale:
       rule: Host(`headscale.asbblog.com`)
@@ -436,7 +436,7 @@ http:
       priority: 100
       service: lan-pve4
       middlewares:
-      - authentik-forwardauth@file
+      - lan-and-docker
       - security-headers@file
     lan-pve6:
       rule: Host(`pve6.asbblog.com`)
@@ -445,7 +445,7 @@ http:
       priority: 100
       service: lan-pve6
       middlewares:
-      - authentik-forwardauth@file
+      - lan-and-docker
       - security-headers@file
     lan-hermes:
       rule: Host(`hermes.asbblog.com`)
