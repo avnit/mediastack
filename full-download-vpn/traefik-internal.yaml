@@ -345,7 +345,7 @@ http:
       priority: 100
       service: lan-truenas1
       middlewares:
-      - authentik-forwardauth@file
+      - lan-and-docker
       - security-headers@file
     lan-nas:
       rule: Host(`nas.asbblog.com`)
