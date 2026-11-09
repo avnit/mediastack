@@ -253,6 +253,18 @@ http:
       middlewares:
       - lan-and-docker
       - security-headers@file
+    lan-openwebui:
+      # LAN twin of the tunnel's openwebui.asbblog.com route (origin .95:8087).
+      # Open WebUI has its own login; externally cloudflare Access gates it.
+      # Only used once UniFi DNS resolves openwebui.asbblog.com to 192.168.0.17.
+      rule: Host(`openwebui.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-openwebui
+      middlewares:
+      - lan-and-docker
+      - security-headers@file
     lan-readarr3:
       rule: Host(`readarr3.asbblog.com`)
       entryPoints:
@@ -599,6 +611,11 @@ http:
         passHostHeader: true
         servers:
         - url: http://192.168.0.104:2283
+    lan-openwebui:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.95:8087
     lan-readarr3:
       loadBalancer:
         passHostHeader: true
