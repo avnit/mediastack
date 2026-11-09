@@ -240,13 +240,18 @@ http:
       - authentik-forwardauth@file
       - security-headers@file
     lan-immich:
+      # No forward-auth here: Immich does its own login (native OIDC against
+      # authentik, see fix-immich-oidc.py). The mobile app sends only an Immich
+      # bearer token, never an authentik cookie, so forward-auth 302'd every
+      # /api call (uploads, validateToken, socket.io) to the login page.
+      # lan-and-docker, not lan-only: tunnel traffic arrives from 172.28.10.1.
       rule: Host(`immich.asbblog.com`)
       entryPoints:
       - secureweb
       priority: 100
       service: lan-immich
       middlewares:
-      - authentik-forwardauth@file
+      - lan-and-docker
       - security-headers@file
     lan-readarr3:
       rule: Host(`readarr3.asbblog.com`)
