@@ -29,11 +29,12 @@ List of Docker applications configured in the MediaStack `docker-compose.yaml` f
 | [Heimdall](https://docs.linuxserver.io/images/docker-heimdall) | Heimdall provides a dashboard to easily access and organise web applications and services |  
 | [Homarr](https://homarr.dev/docs/getting-started/after-the-installation) | Homarr is a self-hosted, customisable dashboard for managing and monitoring your server applications |  
 | [Homepage](https://gethomepage.dev/latest/configs/) | Homepage is an alternate to Heimdall, providing a similar dashboard to easily access and organise web applications and services |  
-| [Huntarr](https://github.com/plexguide/Huntarr.io) | [DEPRECATED] Huntarr is an open-source tool that automates finding missing and upgrading media in *ARR libraries |  
 | [Jellyfin](https://jellyfin.org/docs/general/administration/installing#docker) | Jellyfin is a media server that organises, streams, and manages multimedia content for users |  
+| [LazyLibrarian](https://docs.linuxserver.io/images/docker-lazylibrarian) | LazyLibrarian is a Library Manager, automating the management and meta data for your eBook and audiobook media files |  
 | [Lidarr](https://docs.linuxserver.io/images/docker-lidarr) | Lidarr is a Library Manager, automating the management and meta data for your music media files |  
 | [Mylar](https://github.com/mylar3/mylar3/wiki) | Mylar3 is a Library Manager, automating the management and meta data for your comic media files |  
 | [Plex](https://hub.docker.com/r/linuxserver/plex) | Plex is a media server that organises, streams, and manages multimedia content across devices |  
+| [Playarr](https://github.com/dylanblokhuis/playarr) | Playarr (playarr-server) is a media player manager that sits alongside the *ARR applications |  
 | [Portainer](https://docs.portainer.io/start/install/server/docker) | Portainer provides a graphical interface for managing Docker environments, simplifying container deployment and monitoring |  
 | [Postgresql](https://hub.docker.com/_/postgres) | PostgreSQL is a powerful, open-source relational database system known for reliability and advanced features |  
 | [Prometheus](https://prometheus.io/docs/introduction/overview/) | Prometheus is an open-source monitoring system that collects and queries metrics using a time-series database |  
@@ -44,8 +45,10 @@ List of Docker applications configured in the MediaStack `docker-compose.yaml` f
 | [SABnzbd](https://docs.linuxserver.io/images/docker-sabnzbd) | SABnzbd is a Usenet newsreader that automates the downloading of binary files from Usenet |  
 | [Seerr](https://github.com/seerr-team/seerr) | Seerr is a request management tool for Jellyfin, enabling users to request and manage media content |  
 | [Sonarr](https://docs.linuxserver.io/images/docker-sonarr) | Sonarr is a Library Manager, automating the management and meta data for your TV Shows (series) media files |  
+| Status Page (`statuspage/app.py`) | Status Page is a stdlib-only Python dashboard that renders live container state from the Docker socket, see [Status Dashboard](#status-dashboard) |  
 | [Tailscale](https://tailscale.com/) | Tailscale is a secure, peer-to-peer VPN that simplifies network access using WireGuard technology |  
 | [Tdarr](https://docs.tdarr.io/docs/installation/docker/run-compose/) | Tdarr automates the transcoding and management of media files to optimise storage and playback compatibility |  
+| [Tdarr Node](https://docs.tdarr.io/docs/installation/docker/run-compose/) | Tdarr Node is a worker that performs the transcodes scheduled by the Tdarr server |  
 | [Traefik](https://doc.traefik.io/traefik/) | Traefik is a modern reverse proxy and load balancer for microservices and containerised applications with full TLS v1.2 & v1.3 support |  
 | [Traefik-Certs-Dumper](https://hub.docker.com/r/ldez/traefik-certs-dumper) | Traefik Certs Dumper extracts TLS certificates and private keys from Traefik and converts for use by other services |  
 | [Unpackerr](https://github.com/davidnewhall/unpackerr) | Unpackerr extracts and moves downloaded media files to their appropriate directories for organisation and access |  
@@ -76,33 +79,44 @@ You will also be able to connect to your MediaStack instance security from the I
 
 </br>
 
-## Internal Container Access (From Home)
+## How This Deployment Is Reached
 
-Edit the "**Import Bookmarks - MediaStackGuide Applications (Internal URLs).html**" file, and find / replace all of the **`localhost`** entries with the IP address running Docker in your home network.  
+This fork runs one stack, `full-download-vpn`, on the Docker host `192.168.0.17` (an LXC on Proxmox). Every container, and a number of other machines on the LAN, is reached by a `<name>.asbblog.com` hostname. Two paths exist and they are deliberately different:  
 
-Then import the Bookmarks into your web browser.  
+| Path | DNS answer | What handles it | Authentication |
+|------|------------|-----------------|----------------|
+| **On the LAN** | UniFi DNS overrides the name to `192.168.0.17` | Traefik (`secureweb`, Let's Encrypt wildcard `*.asbblog.com` via the Cloudflare DNS challenge) | Authentik forward-auth by default; an IP allowlist for applications that cannot complete a browser login (see [Which Authentication Each Route Uses](#which-authentication-each-route-uses)) |
+| **From the Internet** | Public Cloudflare record | Cloudflare Tunnel (`cloudflared`, token-managed, running in the separate `repair-app` compose project) sends each public hostname straight to its origin | Cloudflare Access in front of every published hostname, then the origin's own login |
 
-## External Container Access (From Internet)
+Consequences worth knowing:  
 
-Edit the "**Import Bookmarks - MediaStackGuide Applications (External URLs).html**" file, and find / replace all of the **`YOUR_DOMAIN_NAME`** entries with your Internet domain name.  
+- Ports 80 and 443 are **not** forwarded on the router. Internet traffic only arrives through the tunnel.  
+- The tunnel's ingress table (hostname to origin) lives in Cloudflare Zero Trust, not in this repository. `docker logs repair-app-cloudflared-1 | grep "Updated to new configuration"` prints the table currently in force.  
+- A hostname only works on the LAN once UniFi has a DNS record for it pointing to `192.168.0.17`. Without one, LAN clients resolve the public Cloudflare address and leave through the tunnel, where API clients such as n8n or a mobile app are stopped by Cloudflare Access.  
+- Traefik's dashboard is on `http://192.168.0.17:8080` (`api.insecure`), reachable from the LAN only.  
 
-All of the Docker images / containers in the Docker Compose file, have already been labelled for Traefik, and they will be automatically detected and assigned the correct routing based on the incoming Internet URL, using your domain name.  
+Bookmarks: `generate-bookmarks.sh` renders `bookmarks.html` from `.env`. The two `Import Bookmarks - MediaStackGuide Applications (...).html` files are upstream's templates; replace `localhost` / `YOUR_DOMAIN_NAME` in them if you still want to import those instead.  
 
-Port forward your incoming connections on your home Internet gateway / router, to the IP Address of your computer running Docker, using Ports 80 and 443 - If these are taken, you can use alternate ports using the **REVERSE_PROXY_PORT_HTTP(S)** settings in the **.ENV** variable file.  
+</br>
 
-## How Do I Use The MediaStack Repo  
+## How This Repository Is Laid Out
 
-- **base-working-files:** Download all of these files into a single directory located on your Docker computer. Then download the `docker-compose.yaml` file located in one of the following configurations, into the same directory.  
+- **full-download-vpn/** is the stack that is actually deployed, checked out at `/root/mediastack/full-download-vpn`. It holds `docker-compose.yaml` (plus `docker-compose.override.yml`, which pins Jellyfin by digest), the untracked `.env` (`.env.template` is the committed shape), `restart.sh`, the Traefik / Headscale / Headplane / CrowdSec configuration files, the `statuspage/` dashboard and the helper scripts described in [Helper Scripts](#helper-scripts).  
 
-- **docker-compose.yaml:** Download one of the `docker-compose.yaml` configuration files:  
+- **mini-download-vpn/** and **no-download-vpn/** are upstream MediaStack variants kept for reference. They are not deployed.  
 
-  - **full-download-vpn:** The `docker-compose.yaml` file located in this directory is configured so all outgoing network connections / media downloads are protected with the Gluetun VPN Tunnel, to provide maximum privacy on your Internet connection. **This is the recommended configuration for new users**.  
+- **base-working-files/** is upstream's generic configuration set; the copies inside `full-download-vpn/` supersede it here.  
 
-  - **mini-download-vpn:** The `docker-compose.yaml` file located in this directory is configured so only the SABnzbd (Usenet) and qBittorrent (Torrents) are protected with the Gluetun VPN Tunnel, to provide a moderate level of privacy just on your download activities.  
+- **archived-old-configs/** holds the earlier one-file-per-service compose layouts.  
 
-  - **no-download-vpn:** The `docker-compose.yaml` file located in this directory does not have Gluetun, or any other form of VPN for outgoing Internet traffic; you will have limited no privacy on downloads.  
+- **docs/context-map.md** is an auto-generated repository context map.  
 
-You can now configure the `docker-compose.yaml`, `.env`, and other files downloaded from the **base-working-files** configuration directory.  
+Branches:  
+
+- `host-prod` is what runs on the host. The main checkout at `/root/mediastack` sits on it and `restart.sh` runs from there.  
+- `master` is the default GitHub branch. Work lands on either branch and is carried across: `host-prod` is merged into `master` periodically, and fixes made on a `master`-based branch are cherry-picked onto `host-prod`.  
+
+> **NOTE:** `restart.sh` reinstalls the repository's Traefik files over `/opt/data/traefik/`. Before running it, make sure `host-prod` contains every Traefik change that is live, or the restart will silently revert it.  
 
 </br>
 
@@ -480,6 +494,8 @@ Start your MediaStack with `./restart.sh`
 
 > NOTE: The `restart.sh` script reads the variables in the `.env` environment file, then does most of the configuration / management for you - it will tell you if you have issues.  
 
+> On this deployment the `example.com` replacement has already been done for `asbblog.com`. `restart.sh` installs `traefik-static.yaml`, `traefik-dynamic.yaml`, `traefik-internal.yaml`, `crowdsec-acquis.yaml` and the Headscale / Headplane configs into their live locations (`install_config`, which backs up a differing live file first). `traefik-dynamic.yaml` goes through `install_config_subst`, which replaces the `__CROWDSEC_LAPI_KEY__` placeholder with the key from `.env`; never copy that file by hand. `traefik-docker-fix.yaml` and `traefik-lan-docker.yaml` are **not** installed by the script and are copied to `/opt/data/traefik/` manually. See [Traefik Configuration Files](#traefik-configuration-files).  
+
 The Postgresql server still needs some minor configuration to complete the MediaStack deployment:  
 
 - Set access permissions on Authentik Postgresql database with `./secure_authentik_database.sh` script  
@@ -717,6 +733,8 @@ The **`restart.sh`** script will automatically create the directory structure be
 </br>
 
 ## Secure Remote Network Access
+
+> **How it is wired here:** Internet users do not reach Traefik on ports 80/443. They hit Cloudflare, pass Cloudflare Access, and are carried by the Cloudflare Tunnel to the origin named in the tunnel's ingress table, which for most hostnames is the service itself rather than Traefik. The flow below is the one that applies on the LAN (and to any tunnel route whose origin is Traefik), where UniFi DNS points `*.asbblog.com` at Traefik on `192.168.0.17`. See [How This Deployment Is Reached](#how-this-deployment-is-reached).  
 
 All Docker configurations are designed to allow secure remote access to your applications while away from home. The network diagram below illustrates a secure architecture built on Docker, Traefik, Authentik, CrowdSec, Cloudflare DNS, and MFA. This setup ensures that only users you explicitly authorise can access internal Docker-based services from the Internet.  
 
@@ -1139,6 +1157,40 @@ Goto: [https://auth.example.com](https://auth.example.com) <-- change to your do
 
 </br>
 
+## Scripted Authentik Configuration
+
+The click-paths above are upstream's. On this deployment the Authentik objects are created by idempotent scripts fed to the worker's `ak shell`, so they can be re-applied after a reset or an upgrade:  
+
+| Script | What it creates |
+|--------|-----------------|
+| `fix-authentik-outpost.py` | The domain-level forward-auth Proxy Provider for `*.asbblog.com` (external host `https://auth.asbblog.com`, cookie domain `asbblog.com`), its Application, and the binding to the embedded outpost. Without it `/outpost.goauthentik.io/auth/traefik` returns 404 and every router carrying `authentik-forwardauth@file` is dead. |
+| `fix-immich-oidc.py` | A native OIDC provider for Immich: RS256 signing key (otherwise the JWKS is empty and Immich fails *after* a successful token exchange), grant types, the three redirect URIs including `app.immich:///oauth-callback`, and the email + profile scopes. The client secret is copied into the container at run time and never committed. |
+| `fix-proxmox-oidc.py` | A native OIDC provider for Proxmox VE, same pattern and same secret handling. |
+| `set-authentik-icons.py` | Launcher icons for every Application, from the dashboard-icons CDN, using the same names as the `homepage.icon` labels. |
+
+``` bash
+docker exec -i authentik-worker ak shell < fix-authentik-outpost.py
+```
+
+</br>
+
+## Which Authentication Each Route Uses
+
+Forward-auth is the default, but it only works for an interactive browser. Anything that talks to an API with its own token, or runs a non-browser client, is given a different gate. The decisions so far, all recorded in `traefik-internal.yaml`:  
+
+| Service | Gate on the LAN route | Why |
+|---------|-----------------------|-----|
+| Most web UIs (`*arr`, dashboards, Grafana, Portainer, n8n, ...) | `authentik-forwardauth@file` | Browser applications; SSO works. |
+| Immich (`immich`, on `192.168.0.104`) | `lan-and-docker`; Immich's own login with the Authentik OIDC button | The mobile app sends an Immich bearer token and never holds an Authentik cookie, so forward-auth redirected every `/api` call to the login page and broke uploads. |
+| Proxmox nodes (`pve*`) | `lan-and-docker`; Proxmox OIDC against Authentik | API pollers and the console cannot complete a browser redirect. |
+| TrueNAS (`truenas1`) | `lan-and-docker`; TrueNAS login | No practical web-UI OIDC. Forward-auth meant logging in twice and interfered with its websocket. |
+| Plex, Jellyfin, Seerr, Headscale | IP allowlist | Native clients and the tailnet control plane carry their own authentication. |
+| Open WebUI (`openwebui`, on Unraid `192.168.0.95:8087`) | `lan-and-docker`; application login | The tunnel route is gated by Cloudflare Access. |
+| Ollama (`ollama`, relay on pve7 `192.168.0.160:11436`) | `lan-and-docker` | Ollama has no authentication. Port 11434 on pve7 is NVIDIA Personal AI Router's `ollama-proxy`, which only accepts plaintext from loopback; `11436` is an nginx relay to it that, together with pve7's firewall, admits only `.95` and `.17`. The tunnel route is gated by Cloudflare Access. The legacy Open WebUI on `.95` needs the URL with `/api` appended (`https://ollama.asbblog.com/api`). |
+| Status page (`status`) | `lan-only` + CrowdSec bouncer | Read-only dashboard, LAN only. |
+
+</br>
+
 ## Configure CrowdSec
 
 Create a Crowdsec account, and obtain your Crowdsec security engine enrolement key from:  
@@ -1261,6 +1313,55 @@ No active alerts
  crowdsecurity/base-config  ✔️  enabled  0.1      /etc/crowdsec/appsec-rules/base-config.yaml 
 ----------------------------------------------------------------------------------------------
 ```
+
+## Traefik Configuration Files
+
+| Repository file | Installed as (`/opt/data/traefik/`) | Installed by | Purpose |
+|-----------------|--------------------------------------|--------------|---------|
+| `traefik-static.yaml` | `traefik.yaml` | `restart.sh` | Entrypoints, Let's Encrypt via the Cloudflare DNS challenge, file + docker providers, Prometheus metrics, the CrowdSec bouncer plugin. Static configuration: a change needs a Traefik restart. |
+| `traefik-dynamic.yaml` | `dynamic.yaml` | `restart.sh` (`install_config_subst`) | TLS options and the `security-headers`, `authentik-forwardauth` and `traefik-bouncer` middlewares. `__CROWDSEC_LAPI_KEY__` is substituted from `.env` at install time. |
+| `traefik-internal.yaml` | `internal.yaml` | `restart.sh` | Split-horizon LAN routers (`lan-*`, priority 100) for every published hostname, including services on other LAN hosts (Unraid `.95`, Immich `.104`, the Proxmox nodes, pve7's Ollama relay). Also defines the `lan-only` and `lan-and-docker` allowlists. |
+| `traefik-docker-fix.yaml` | `docker-fix.yaml` | hand copy | `fix-*` twins of the `@docker` routers carrying the forward-auth + CrowdSec chain. |
+| `traefik-lan-docker.yaml` | `lan-docker.yaml` | hand copy | LAN twins of the `@docker` routers. Originally generated; the generator is no longer in the repository, so edit it by hand. |
+| (none) | `qb2-api.yaml` | live only | qBittorrent API bypass for LAN callers. Not yet tracked in the repository. |
+
+The file provider watches `/opt/data/traefik/`, so a copied `internal.yaml`, `dynamic.yaml`, `docker-fix.yaml` or `lan-docker.yaml` takes effect within seconds without a restart. `install_config` saves a differing live file as `*.bak.<timestamp>` before overwriting it.  
+
+`lan-only` allows `192.168.0.0/24`, `192.168.30.0/24`, the Headscale tailnet `100.64.0.0/10`, `10.100.0.0/22` and loopback. `lan-and-docker` adds the mediastack bridge `172.28.10.0/24`, which is needed when a request arrives from a container (Tailscale reaching Headscale) or through the tunnel bridge gateway `172.28.10.1`.  
+
+Traefik's access log is `/opt/data/logs/traefik/access.log` (JSON) and is rotated by `logrotate-traefik.conf`, installed as `/etc/logrotate.d/traefik`.  
+
+</br>
+
+## Status Dashboard
+
+`statuspage/app.py` is a stdlib-only Python dashboard (service `statuspage`, image `python:3.13-alpine`). It reads the Docker socket read-only and renders every container's state grouped by the `homepage.*` labels already on the services, so there is no second list of services to keep in sync.  
+
+- `http://192.168.0.17:8400/` is the dashboard, auto-refreshing every 20 seconds. `/api` returns the same data as JSON and `/healthz` is the liveness probe used by the compose healthcheck.  
+- `https://status.asbblog.com/` is served by the `statuspage@docker` router (Traefik labels on the service) with the `lan-only`, `security-headers` and `traefik-bouncer` middlewares.  
+- To reach it by name, add a UniFi DNS record `status.asbblog.com -> 192.168.0.17` for the LAN. For access from outside, add a tunnel public hostname `status.asbblog.com -> http://192.168.0.17:8400` with Cloudflare Access required, because the page has no login of its own.  
+
+</br>
+
+## Helper Scripts
+
+All live in `full-download-vpn/` and read `.env` from the same directory.  
+
+| Script | Use |
+|--------|-----|
+| `restart.sh` | Full deploy / update: checks `.env`, creates the data directories, generates missing secrets, validates the compose file, installs the configuration files, refuses to start if a non-Docker process owns a published port, restarts the stack and verifies it. |
+| `secure_authentik_database.sh`, `create_guacamole_database.sh` | One-time PostgreSQL setup for Authentik and Guacamole. |
+| `rotate-crowdsec-key.sh` | Mint a new CrowdSec bouncer key, store it in `.env`, deploy it into the live `dynamic.yaml` and revoke the old one. |
+| `crowdsec-allowlist.sh` | Re-apply the CrowdSec allowlist. It lives in CrowdSec's SQLite database, not in a config file, so it is lost when that volume is rebuilt. |
+| `fix-authentik-outpost.py`, `fix-immich-oidc.py`, `fix-proxmox-oidc.py`, `set-authentik-icons.py` | Authentik objects, see [Scripted Authentik Configuration](#scripted-authentik-configuration). |
+| `generate-bookmarks.sh` | Render `bookmarks.html` from `.env`. |
+| `get-apikeys.sh` | Print the `*arr` API keys from their configuration files (needs `yq` and `xmllint`). |
+| `sync-jackett-to-whisparr.sh` / `jackett_to_whisparr.py` | Copy Jackett indexers into Whisparr; the API keys come from `.env`. |
+| `fixit.sh` | Refresh the NordLynx private key in `.env` from the NordVPN API. |
+| `untrack-env-files.sh` | One-time: remove `.env` files from git tracking while keeping them on disk. |
+| `restart-old.sh` | The previous restart script, kept for reference. |
+
+</br>
 
 ## WebUI Management For Docker - Portainer  
 

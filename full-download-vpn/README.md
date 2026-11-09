@@ -31,23 +31,26 @@ List of Docker applications configured in the MediaStack `docker-compose.yaml` f
 | [Heimdall](https://docs.linuxserver.io/images/docker-heimdall) | Heimdall provides a dashboard to easily access and organise web applications and services |  
 | [Homarr](https://homarr.dev/docs/getting-started/after-the-installation) | Homarr is a self-hosted, customisable dashboard for managing and monitoring your server applications |  
 | [Homepage](https://gethomepage.dev/latest/configs/) | Homepage is an alternate to Heimdall, providing a similar dashboard to easily access and organise web applications and services |  
-| [Huntarr](https://github.com/plexguide/Huntarr.io) | [DEPRECATED] Huntarr is an open-source tool that automates finding missing and upgrading media in *ARR libraries |  
 | [Jellyfin](https://jellyfin.org/docs/general/administration/installing#docker) | Jellyfin is a media server that organises, streams, and manages multimedia content for users |  
+| [LazyLibrarian](https://docs.linuxserver.io/images/docker-lazylibrarian) | LazyLibrarian is a Library Manager, automating the management and meta data for your eBook and audiobook media files |  
 | [Lidarr](https://docs.linuxserver.io/images/docker-lidarr) | Lidarr is a Library Manager, automating the management and meta data for your music media files |  
 | [Mylar](https://github.com/mylar3/mylar3/wiki) | Mylar3 is a Library Manager, automating the management and meta data for your comic media files |  
 | [Plex](https://hub.docker.com/r/linuxserver/plex) | Plex is a media server that organises, streams, and manages multimedia content across devices |  
+| [Playarr](https://github.com/dylanblokhuis/playarr) | Playarr (playarr-server) is a media player manager that sits alongside the *ARR applications |  
 | [Portainer](https://docs.portainer.io/start/install/server/docker) | Portainer provides a graphical interface for managing Docker environments, simplifying container deployment and monitoring |  
 | [Postgresql](https://hub.docker.com/_/postgres) | PostgreSQL is a powerful, open-source relational database system known for reliability and advanced features |  
 | [Prometheus](https://prometheus.io/docs/introduction/overview/) | Prometheus is an open-source monitoring system that collects and queries metrics using a time-series database |  
 | [Prowlarr](https://docs.linuxserver.io/images/docker-prowlarr) | Prowlarr manages and integrates indexers for various media download applications, automating search and download processes |  
 | [qBittorrent](https://docs.linuxserver.io/images/docker-qbittorrent) | qBittorrent is a peer-to-peer file sharing application that facilitates downloading and uploading torrents |  
 | [Radarr](https://docs.linuxserver.io/images/docker-radarr) | Radarr is a Library Manager, automating the management and meta data for your Movie media files |  
-| [Readarr](https://docs.linuxserver.io/images/docker-readarr) | Readarris a Library Manager, automating the management and meta data for your eBooks and Comic media files |  
+| [Readarr](https://docs.linuxserver.io/images/docker-readarr) | Readarr is a Library Manager, automating the management and meta data for your eBooks and Comic media files |  
 | [SABnzbd](https://docs.linuxserver.io/images/docker-sabnzbd) | SABnzbd is a Usenet newsreader that automates the downloading of binary files from Usenet |  
 | [Seerr](https://github.com/seerr-team/seerr) | Seerr is a request management tool for Jellyfin, enabling users to request and manage media content |  
 | [Sonarr](https://docs.linuxserver.io/images/docker-sonarr) | Sonarr is a Library Manager, automating the management and meta data for your TV Shows (series) media files |  
+| Status Page (`statuspage/app.py`) | Status Page is a stdlib-only Python dashboard that renders live container state from the Docker socket (`:8400`, `status.asbblog.com`) |  
 | [Tailscale](https://tailscale.com/) | Tailscale is a secure, peer-to-peer VPN that simplifies network access using WireGuard technology |  
 | [Tdarr](https://docs.tdarr.io/docs/installation/docker/run-compose/) | Tdarr automates the transcoding and management of media files to optimise storage and playback compatibility |  
+| [Tdarr Node](https://docs.tdarr.io/docs/installation/docker/run-compose/) | Tdarr Node is a worker that performs the transcodes scheduled by the Tdarr server |  
 | [Traefik](https://doc.traefik.io/traefik/) | Traefik is a modern reverse proxy and load balancer for microservices and containerised applications with full TLS v1.2 & v1.3 support |  
 | [Traefik-Certs-Dumper](https://hub.docker.com/r/ldez/traefik-certs-dumper) | Traefik Certs Dumper extracts TLS certificates and private keys from Traefik and converts for use by other services |  
 | [Unpackerr](https://github.com/davidnewhall/unpackerr) | Unpackerr extracts and moves downloaded media files to their appropriate directories for organisation and access |  
@@ -91,6 +94,9 @@ For internet access, edit the `Import Bookmarks - MediaStackGuide Applications (
 All containers in the Docker Compose configuration include Traefik labels for automatic service discovery and routing. Configure port forwarding on your gateway/router to direct ports 80 and 443 to the Docker host IP address. Alternative ports can be specified using the `REVERSE_PROXY_PORT_HTTP(S)` variables in the `.env` file.  
 
 ## Repository Structure and Deployment
+
+> Deployment-specific documentation for this fork (how `*.asbblog.com` is reached on the LAN and through the Cloudflare Tunnel, the `host-prod` / `master` branch model, the Traefik configuration files, which authentication each route uses, the scripted Authentik setup, the status dashboard and the helper scripts) lives in the repository root [README.md](../README.md). This file keeps upstream's deployment guide plus the [Deployment Notes & Known Issues](#deployment-notes--known-issues) below.
+
 
 The MediaStack repository is organized into configuration directories:
 
@@ -1366,6 +1372,8 @@ docker run --rm --network mediastack --cap-add NET_ADMIN --device /dev/net/tun -
 
 ### gluetun pinned to v3.41.3
 
+> **Current state (Nov 2026):** `docker-compose.yaml` pins `qmcgaw/gluetun:v3.41.1` again (commit `36fcc9a`, 2026-11-06, which also dropped `UPDATER_PERIOD=24h`), and that version has been running healthy on the current PVE kernel. The analysis below records why `v3.41.3` was chosen in September 2026 and remains the procedure to follow if the `default route not found` crash-loop reappears.
+
 `v3.41.1` fails to recognise the IPv4 default route on recent PVE kernels and crash-loops. Confirmed by two observations: an identical throwaway container sees the route without trouble, and `v3.41.1` *also* succeeds once IPv6 routes are removed:
 
 ```bash
@@ -1406,7 +1414,7 @@ ERR Error while creating certificate store
 
 Every `secureweb` route then serves Traefik's self-signed certificate. The downstream symptom is confusing — Tailscale cannot reach Headscale and reports `tls: unrecognized name`, which reads like a DNS or SNI problem rather than a file mode.
 
-Two defences are in place: `restart.sh` sets `600` after its recursive `chmod`, and a `traefik-init` sidecar re-asserts it on **every** container start via `service_completed_successfully`. The sidecar matters because `restart.sh` only runs on a full re-run, while `docker compose up -d` does not.
+One defence is in place: `restart.sh` sets `600` after its recursive `chmod`. A `traefik-init` sidecar that re-asserted the mode on every container start was added in September 2026 and removed again in commit `36fcc9a` (2026-11-06), so a plain `docker compose up -d` after something loosens `acme.json` will reproduce this failure until `restart.sh` is run or the mode is fixed by hand (`chmod 600 /opt/data/traefik/letsencrypt/acme.json`).
 
 ### CrowdSec: null YAML documents in the acquisition file
 
