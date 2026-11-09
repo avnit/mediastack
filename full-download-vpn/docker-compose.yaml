@@ -1222,6 +1222,11 @@ services:
     - TZ=${TIMEZONE:?err}
     - OLLAMA_BASE_URL=${OPENWEBUI_OLLAMA_URL:-http://192.168.0.160:11436}
     - WEBUI_URL=https://openwebui.${CLOUDFLARE_DNS_ZONE:?err}
+    # Pin the key that signs sessions and encrypts MFA/OAuth secrets. Unset,
+    # start.sh writes a random one to /app/backend/.webui_secret_key, OUTSIDE
+    # the data volume, so every recreate minted a new key; stored TOTP secrets
+    # then fail to decrypt and the container refuses to start (2026-11-09).
+    - WEBUI_SECRET_KEY=${OPENWEBUI_SECRET_KEY:?err}
     # Native Authentik OIDC (fix-openwebui-oidc.py), not forward-auth: API
     # clients and the websocket never hold an Authentik cookie. The local login
     # stays; the Authentik button appears next to it. Secret in .env only.
