@@ -265,6 +265,20 @@ http:
       middlewares:
       - lan-and-docker
       - security-headers@file
+    lan-ollama:
+      # Ollama API for LAN consumers (n8n, Open WebUI, ...) via one hostname.
+      # Backend is the nginx relay on pve7 (:11436 -> NVPAIR ollama-proxy on
+      # loopback); that relay and the pve7 firewall allowlist .17 for this.
+      # Ollama has no auth of its own, so lan-and-docker is the only gate on
+      # the LAN; externally the tunnel route is gated by cloudflare Access.
+      rule: Host(`ollama.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-ollama
+      middlewares:
+      - lan-and-docker
+      - security-headers@file
     lan-readarr3:
       rule: Host(`readarr3.asbblog.com`)
       entryPoints:
@@ -616,6 +630,12 @@ http:
         passHostHeader: true
         servers:
         - url: http://192.168.0.95:8087
+    lan-ollama:
+      loadBalancer:
+        # nginx on pve7 rewrites Host to 127.0.0.1:11434 for the proxy anyway
+        passHostHeader: false
+        servers:
+        - url: http://192.168.0.160:11436
     lan-readarr3:
       loadBalancer:
         passHostHeader: true
