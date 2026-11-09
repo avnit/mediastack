@@ -259,6 +259,11 @@ services:
     user: ${PUID:?err}:${PGID:?err}
     environment:
     - TZ=${TIMEZONE:?err}
+    # Console enrollment (app.crowdsec.net). The image enrolls itself at start-up
+    # when ENROLL_KEY is set; blank means "skip", so the stack still starts without
+    # a key. Enrollment state persists in ${FOLDER_FOR_DATA}/crowdsec/console.yaml.
+    - ENROLL_KEY=${CROWDSEC_ENROLL_KEY:-}
+    - ENROLL_INSTANCE_NAME=${CROWDSEC_ENROLL_NAME:-mediastack}
     ports:
     - 127.0.0.1:${CROWDSEC_PORT:?err}:8080
     depends_on:
