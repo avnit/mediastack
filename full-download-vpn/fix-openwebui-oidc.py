@@ -2,6 +2,7 @@
 #
 # Run with:
 #   docker cp /root/.openwebui-oidc-secret authentik-worker:/tmp/openwebui-secret
+#   docker exec -u 0 authentik-worker chmod 644 /tmp/openwebui-secret
 #   docker exec -i authentik-worker ak shell < fix-openwebui-oidc.py
 #   docker exec -u 0 authentik-worker rm -f /tmp/openwebui-secret
 #
