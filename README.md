@@ -33,6 +33,7 @@ List of Docker applications configured in the MediaStack `docker-compose.yaml` f
 | [LazyLibrarian](https://docs.linuxserver.io/images/docker-lazylibrarian) | LazyLibrarian is a Library Manager, automating the management and meta data for your eBook and audiobook media files |  
 | [Lidarr](https://docs.linuxserver.io/images/docker-lidarr) | Lidarr is a Library Manager, automating the management and meta data for your music media files |  
 | [Mylar](https://github.com/mylar3/mylar3/wiki) | Mylar3 is a Library Manager, automating the management and meta data for your comic media files |  
+| [Open WebUI](https://docs.openwebui.com/) | Open WebUI is a self-hosted chat interface for Ollama and OpenAI-compatible models; here it talks to the Ollama relay on pve7 |  
 | [Plex](https://hub.docker.com/r/linuxserver/plex) | Plex is a media server that organises, streams, and manages multimedia content across devices |  
 | [Playarr](https://github.com/dylanblokhuis/playarr) | Playarr (playarr-server) is a media player manager that sits alongside the *ARR applications |  
 | [Portainer](https://docs.portainer.io/start/install/server/docker) | Portainer provides a graphical interface for managing Docker environments, simplifying container deployment and monitoring |  
@@ -1185,8 +1186,8 @@ Forward-auth is the default, but it only works for an interactive browser. Anyth
 | Proxmox nodes (`pve*`) | `lan-and-docker`; Proxmox OIDC against Authentik | API pollers and the console cannot complete a browser redirect. |
 | TrueNAS (`truenas1`) | `lan-and-docker`; TrueNAS login | No practical web-UI OIDC. Forward-auth meant logging in twice and interfered with its websocket. |
 | Plex, Jellyfin, Seerr, Headscale | IP allowlist | Native clients and the tailnet control plane carry their own authentication. |
-| Open WebUI (`openwebui`, on Unraid `192.168.0.95:8087`) | `lan-and-docker`; application login | The tunnel route is gated by Cloudflare Access. |
-| Ollama (`ollama`, relay on pve7 `192.168.0.160:11436`) | `lan-and-docker` | Ollama has no authentication. Port 11434 on pve7 is NVIDIA Personal AI Router's `ollama-proxy`, which only accepts plaintext from loopback; `11436` is an nginx relay to it that, together with pve7's firewall, admits only `.95` and `.17`. The tunnel route is gated by Cloudflare Access. The legacy Open WebUI on `.95` needs the URL with `/api` appended (`https://ollama.asbblog.com/api`). |
+| Open WebUI (`openwebui`, container `open-webui` on `.17:8087`) | `lan-and-docker`; application login (first sign-up becomes admin) | Replaced the 2024-era instance on Unraid `.95`. The tunnel route is gated by Cloudflare Access. |
+| Ollama (`ollama`, relay on pve7 `192.168.0.160:11436`) | `lan-and-docker` | Ollama has no authentication. Port 11434 on pve7 is NVIDIA Personal AI Router's `ollama-proxy`, which only accepts plaintext from loopback; `11436` is an nginx relay to it that, together with pve7's firewall, admits only `.95` and `.17`. The tunnel route is gated by Cloudflare Access. The stack's Open WebUI reaches it directly as `http://192.168.0.160:11436` (`OLLAMA_BASE_URL`). |
 | Status page (`status`) | `lan-only` + CrowdSec bouncer | Read-only dashboard, LAN only. |
 
 </br>

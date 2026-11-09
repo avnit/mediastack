@@ -35,6 +35,7 @@ List of Docker applications configured in the MediaStack `docker-compose.yaml` f
 | [LazyLibrarian](https://docs.linuxserver.io/images/docker-lazylibrarian) | LazyLibrarian is a Library Manager, automating the management and meta data for your eBook and audiobook media files |  
 | [Lidarr](https://docs.linuxserver.io/images/docker-lidarr) | Lidarr is a Library Manager, automating the management and meta data for your music media files |  
 | [Mylar](https://github.com/mylar3/mylar3/wiki) | Mylar3 is a Library Manager, automating the management and meta data for your comic media files |  
+| [Open WebUI](https://docs.openwebui.com/) | Open WebUI is a self-hosted chat interface for Ollama and OpenAI-compatible models; here it talks to the Ollama relay on pve7 |  
 | [Plex](https://hub.docker.com/r/linuxserver/plex) | Plex is a media server that organises, streams, and manages multimedia content across devices |  
 | [Playarr](https://github.com/dylanblokhuis/playarr) | Playarr (playarr-server) is a media player manager that sits alongside the *ARR applications |  
 | [Portainer](https://docs.portainer.io/start/install/server/docker) | Portainer provides a graphical interface for managing Docker environments, simplifying container deployment and monitoring |  
