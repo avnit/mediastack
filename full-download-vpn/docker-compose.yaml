@@ -1222,6 +1222,16 @@ services:
     - TZ=${TIMEZONE:?err}
     - OLLAMA_BASE_URL=${OPENWEBUI_OLLAMA_URL:-http://192.168.0.160:11436}
     - WEBUI_URL=https://openwebui.${CLOUDFLARE_DNS_ZONE:?err}
+    # Native Authentik OIDC (fix-openwebui-oidc.py), not forward-auth: API
+    # clients and the websocket never hold an Authentik cookie. The local login
+    # stays; the Authentik button appears next to it. Secret in .env only.
+    - ENABLE_OAUTH_SIGNUP=true
+    - OAUTH_MERGE_ACCOUNTS_BY_EMAIL=true
+    - OAUTH_PROVIDER_NAME=authentik
+    - OAUTH_CLIENT_ID=open-webui
+    - OAUTH_CLIENT_SECRET=${OPENWEBUI_OIDC_SECRET:?err}
+    - OPENID_PROVIDER_URL=https://auth.${CLOUDFLARE_DNS_ZONE:?err}/application/o/openwebui/.well-known/openid-configuration
+    - OAUTH_SCOPES=openid email profile
     volumes:
     - ${FOLDER_FOR_DATA:?err}/open-webui:/app/backend/data
     healthcheck:

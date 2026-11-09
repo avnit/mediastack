@@ -1167,6 +1167,7 @@ The click-paths above are upstream's. On this deployment the Authentik objects a
 | `fix-authentik-outpost.py` | The domain-level forward-auth Proxy Provider for `*.asbblog.com` (external host `https://auth.asbblog.com`, cookie domain `asbblog.com`), its Application, and the binding to the embedded outpost. Without it `/outpost.goauthentik.io/auth/traefik` returns 404 and every router carrying `authentik-forwardauth@file` is dead. |
 | `fix-immich-oidc.py` | A native OIDC provider for Immich: RS256 signing key (otherwise the JWKS is empty and Immich fails *after* a successful token exchange), grant types, the three redirect URIs including `app.immich:///oauth-callback`, and the email + profile scopes. The client secret is copied into the container at run time and never committed. |
 | `fix-proxmox-oidc.py` | A native OIDC provider for Proxmox VE, same pattern and same secret handling. |
+| `fix-openwebui-oidc.py` | A native OIDC provider for Open WebUI (client `open-webui`, callback `https://openwebui.asbblog.com/oauth/oidc/callback`), bound to the `openwebui` Application, same pattern and same secret handling. The secret also goes into `.env` as `OPENWEBUI_OIDC_SECRET`, which the `open-webui` service reads as `OAUTH_CLIENT_SECRET`. |
 | `set-authentik-icons.py` | Launcher icons for every Application, from the dashboard-icons CDN, using the same names as the `homepage.icon` labels. |
 
 ``` bash
@@ -1186,7 +1187,7 @@ Forward-auth is the default, but it only works for an interactive browser. Anyth
 | Proxmox nodes (`pve*`) | `lan-and-docker`; Proxmox OIDC against Authentik | API pollers and the console cannot complete a browser redirect. |
 | TrueNAS (`truenas1`) | `lan-and-docker`; TrueNAS login | No practical web-UI OIDC. Forward-auth meant logging in twice and interfered with its websocket. |
 | Plex, Jellyfin, Seerr, Headscale | IP allowlist | Native clients and the tailnet control plane carry their own authentication. |
-| Open WebUI (`openwebui`, container `open-webui` on `.17:8087`) | `lan-and-docker`; application login (first sign-up becomes admin) | Replaced the 2024-era instance on Unraid `.95`. The tunnel route is gated by Cloudflare Access. |
+| Open WebUI (`openwebui`, container `open-webui` on `.17:8087`) | `lan-and-docker`; application login (first sign-up becomes admin) or the Authentik OIDC button (`fix-openwebui-oidc.py`, accounts merged by email) | Replaced the 2024-era instance on Unraid `.95`. API clients and the websocket carry no Authentik cookie, so forward-auth would break them; native OIDC instead. The tunnel route is gated by Cloudflare Access. |
 | Ollama (`ollama`, relay on pve7 `192.168.0.160:11436`) | `lan-and-docker` | Ollama has no authentication. Port 11434 on pve7 is NVIDIA Personal AI Router's `ollama-proxy`, which only accepts plaintext from loopback; `11436` is an nginx relay to it that, together with pve7's firewall, admits only `.95` and `.17`. The tunnel route is gated by Cloudflare Access. The stack's Open WebUI reaches it directly as `http://192.168.0.160:11436` (`OLLAMA_BASE_URL`). |
 | Status page (`status`) | `lan-only` + CrowdSec bouncer | Read-only dashboard, LAN only. |
 
@@ -1359,7 +1360,7 @@ All live in `full-download-vpn/` and read `.env` from the same directory.
 | `secure_authentik_database.sh`, `create_guacamole_database.sh` | One-time PostgreSQL setup for Authentik and Guacamole. |
 | `rotate-crowdsec-key.sh` | Mint a new CrowdSec bouncer key, store it in `.env`, deploy it into the live `dynamic.yaml` and revoke the old one. |
 | `crowdsec-allowlist.sh` | Re-apply the CrowdSec allowlist. It lives in CrowdSec's SQLite database, not in a config file, so it is lost when that volume is rebuilt. |
-| `fix-authentik-outpost.py`, `fix-immich-oidc.py`, `fix-proxmox-oidc.py`, `set-authentik-icons.py` | Authentik objects, see [Scripted Authentik Configuration](#scripted-authentik-configuration). |
+| `fix-authentik-outpost.py`, `fix-immich-oidc.py`, `fix-proxmox-oidc.py`, `fix-openwebui-oidc.py`, `set-authentik-icons.py` | Authentik objects, see [Scripted Authentik Configuration](#scripted-authentik-configuration). |
 | `generate-bookmarks.sh` | Render `bookmarks.html` from `.env`. |
 | `get-apikeys.sh` | Print the `*arr` API keys from their configuration files (needs `yq` and `xmllint`). |
 | `sync-jackett-to-whisparr.sh` / `jackett_to_whisparr.py` | Copy Jackett indexers into Whisparr; the API keys come from `.env`. |
