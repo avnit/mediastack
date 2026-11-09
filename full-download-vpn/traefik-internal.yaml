@@ -254,9 +254,10 @@ http:
       - lan-and-docker
       - security-headers@file
     lan-openwebui:
-      # LAN twin of the tunnel's openwebui.asbblog.com route (origin .95:8087).
-      # Open WebUI has its own login; externally cloudflare Access gates it.
-      # Only used once UniFi DNS resolves openwebui.asbblog.com to 192.168.0.17.
+      # LAN twin of the tunnel's openwebui.asbblog.com route. Backend is the
+      # open-webui container in this stack (published on .17:8087), which replaced
+      # the 2024-era ollama-webui on unraid .95. Open WebUI has its own login;
+      # externally cloudflare Access gates it.
       rule: Host(`openwebui.asbblog.com`)
       entryPoints:
       - secureweb
@@ -629,7 +630,7 @@ http:
       loadBalancer:
         passHostHeader: true
         servers:
-        - url: http://192.168.0.95:8087
+        - url: http://192.168.0.17:8087
     lan-ollama:
       loadBalancer:
         # nginx on pve7 rewrites Host to 127.0.0.1:11434 for the proxy anyway
