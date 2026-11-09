@@ -259,6 +259,11 @@ services:
     user: ${PUID:?err}:${PGID:?err}
     environment:
     - TZ=${TIMEZONE:?err}
+    # Console enrollment (app.crowdsec.net). The image enrolls itself at start-up
+    # when ENROLL_KEY is set; blank means "skip", so the stack still starts without
+    # a key. Enrollment state persists in ${FOLDER_FOR_DATA}/crowdsec/console.yaml.
+    - ENROLL_KEY=${CROWDSEC_ENROLL_KEY:-}
+    - ENROLL_INSTANCE_NAME=${CROWDSEC_ENROLL_NAME:-mediastack}
     ports:
     - 127.0.0.1:${CROWDSEC_PORT:?err}:8080
     depends_on:
@@ -1199,6 +1204,61 @@ services:
     - traefik.http.routers.statuspage.middlewares=lan-only@file,security-headers@file,traefik-bouncer@file
     - traefik.http.services.statuspage.loadbalancer.server.scheme=http
     - traefik.http.services.statuspage.loadbalancer.server.port=8400
+  open-webui:
+    # Current Open WebUI, replacing the Feb-2024 "ollama-webui" build that ran on
+    # unraid (.95:8087). Talks to Ollama through the NVPAIR relay on pve7
+    # (192.168.0.160:11436), whose nginx allowlist and PVE firewall admit .17.
+    # Has its own accounts (first sign-up becomes admin). LAN route is lan-openwebui
+    # in traefik-internal.yaml (lan-and-docker); the tunnel route for
+    # openwebui.<zone> is gated by cloudflare Access and points at .17:8087.
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    networks:
+    - mediastack
+    ports:
+    - 192.168.0.17:${WEBUI_PORT_OPENWEBUI:?err}:8080
+    environment:
+    - TZ=${TIMEZONE:?err}
+    - OLLAMA_BASE_URL=${OPENWEBUI_OLLAMA_URL:-http://192.168.0.160:11436}
+    - WEBUI_URL=https://openwebui.${CLOUDFLARE_DNS_ZONE:?err}
+    # Pin the key that signs sessions and encrypts MFA/OAuth secrets. Unset,
+    # start.sh writes a random one to /app/backend/.webui_secret_key, OUTSIDE
+    # the data volume, so every recreate minted a new key; stored TOTP secrets
+    # then fail to decrypt and the container refuses to start (2026-11-09).
+    - WEBUI_SECRET_KEY=${OPENWEBUI_SECRET_KEY:?err}
+    # Native Authentik OIDC (fix-openwebui-oidc.py), not forward-auth: API
+    # clients and the websocket never hold an Authentik cookie. The local login
+    # stays; the Authentik button appears next to it. Secret in .env only.
+    - ENABLE_OAUTH_SIGNUP=true
+    # Authentik membership is the gate: new sign-ups get "user" instead of
+    # "pending". Open WebUI persists this after first boot; change it later in
+    # Admin Panel > Settings > General, not here.
+    - DEFAULT_USER_ROLE=user
+    - OAUTH_MERGE_ACCOUNTS_BY_EMAIL=true
+    - OAUTH_PROVIDER_NAME=authentik
+    - OAUTH_CLIENT_ID=open-webui
+    - OAUTH_CLIENT_SECRET=${OPENWEBUI_OIDC_SECRET:?err}
+    - OPENID_PROVIDER_URL=https://auth.${CLOUDFLARE_DNS_ZONE:?err}/application/o/openwebui/.well-known/openid-configuration
+    - OAUTH_SCOPES=openid email profile
+    volumes:
+    - ${FOLDER_FOR_DATA:?err}/open-webui:/app/backend/data
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - curl -fsS http://127.0.0.1:8080/health || exit 1
+      start_period: 90s
+      interval: 30s
+      retries: 5
+      timeout: 10s
+    labels:
+    - homepage.group=AI
+    - homepage.name=Open WebUI
+    - homepage.icon=open-webui.png
+    - homepage.href=http://192.168.0.17:8087
+    - homepage.description=Chat UI for Ollama on pve7
+    - homepage.server=my-docker
+
   tdarr:
     image: ghcr.io/haveagitgat/tdarr:latest
     container_name: tdarr
