@@ -1226,6 +1226,10 @@ services:
     # clients and the websocket never hold an Authentik cookie. The local login
     # stays; the Authentik button appears next to it. Secret in .env only.
     - ENABLE_OAUTH_SIGNUP=true
+    # Authentik membership is the gate: new sign-ups get "user" instead of
+    # "pending". Open WebUI persists this after first boot; change it later in
+    # Admin Panel > Settings > General, not here.
+    - DEFAULT_USER_ROLE=user
     - OAUTH_MERGE_ACCOUNTS_BY_EMAIL=true
     - OAUTH_PROVIDER_NAME=authentik
     - OAUTH_CLIENT_ID=open-webui
