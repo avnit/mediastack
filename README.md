@@ -1193,9 +1193,14 @@ Forward-auth is the default, but it only works for an interactive browser. Anyth
 
 ## Configure CrowdSec
 
-Create a Crowdsec account, and obtain your Crowdsec security engine enrolement key from:  
+Create a CrowdSec account, and obtain your security engine enrollment key from:  
 
-- [https://app.  
+- [https://app.crowdsec.net/security-engines](https://app.crowdsec.net/security-engines)  
+
+> **Preferred on this deployment:** put the key in `.env` as `CROWDSEC_ENROLL_KEY` (and optionally `CROWDSEC_ENROLL_NAME`, default `mediastack`) and recreate the container with `docker compose up -d crowdsec`. The `crowdsec` service passes these through as `ENROLL_KEY` / `ENROLL_INSTANCE_NAME`, and the image enrolls itself on start-up, so a rebuilt data directory re-enrolls without anyone remembering the command below. A blank key skips enrollment. Either way, finish by accepting the engine in the console UI and confirm with `docker exec crowdsec cscli console status`.  
+
+The manual equivalent, and the rest of the one-time setup (the enroll key shown is upstream's example, use your own):  
+
 ``` bash
 sudo docker exec crowdsec cscli console enroll cm1yipaufk0021g1u01fq27s3
 sudo docker exec crowdsec cscli collections install crowdsecurity/base-http-scenarios crowdsecurity/http-cve crowdsecurity/linux crowdsecurity/iptables crowdsecurity/sshd crowdsecurity/traefik crowdsecurity/plex
