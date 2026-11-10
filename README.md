@@ -1169,6 +1169,7 @@ The click-paths above are upstream's. On this deployment the Authentik objects a
 | `fix-proxmox-oidc.py` | A native OIDC provider for Proxmox VE, same pattern and same secret handling. |
 | `fix-openwebui-oidc.py` | A native OIDC provider for Open WebUI (client `open-webui`, callback `https://openwebui.asbblog.com/oauth/oidc/callback`), bound to the `openwebui` Application, same pattern and same secret handling. The secret also goes into `.env` as `OPENWEBUI_OIDC_SECRET`, which the `open-webui` service reads as `OAUTH_CLIENT_SECRET`. |
 | `fix-vaultwarden-oidc.py` | A native OIDC provider for Vaultwarden on Unraid (client `vaultwarden`, callback `https://vault1.asbblog.com/identity/connect/oidc-signin`), attached to the existing `vault1` Application, same pattern and same secret handling. It also creates an `email` scope mapping that reports `email_verified: true`, because the stock mapping reports `false` and Vaultwarden then refuses the first login, and it adds `offline_access` so sessions can refresh. The secret also goes into the Unraid container as `SSO_CLIENT_SECRET`, see [Vaultwarden SSO](#vaultwarden-sso). |
+| `fix-nas-oidc.py` | A native OIDC provider for Synology DSM (client `synology-dsm`, redirect URI `https://nas.asbblog.com` with no path), attached to the existing `nas` Application, same pattern and same secret handling. Its `profile` scope mapping returns `preferred_username` from the user attribute `synology_username` when that is set, because DSM matches the claim against an existing DSM account and never creates one. The secret is also typed into DSM, see [Synology DSM SSO](#synology-dsm-sso). |
 | `set-authentik-icons.py` | Launcher icons for every Application, from the dashboard-icons CDN, using the same names as the `homepage.icon` labels. |
 
 ``` bash
@@ -1218,6 +1219,55 @@ The email on the Authentik user must equal the email of the existing Vaultwarden
 
 </br>
 
+### Synology DSM SSO
+
+The NAS (`nas.asbblog.com`) is a Synology at `192.168.0.87`, with DSM on `https://192.168.0.87:5001`. It is outside this stack, so its half of the configuration is entered in DSM itself.  
+
+Both ways in must name the same origin:  
+
+| Path | Where it is set | Origin |
+|------|-----------------|--------|
+| LAN | `lan-nas` in `traefik-internal.yaml` | `https://192.168.0.87:5001`, certificate not verified |
+| Internet | Cloudflare Zero Trust, Networks, Tunnels, the tunnel, Public Hostname `nas.asbblog.com` | `https://192.168.0.87:5001` with **No TLS Verify** on |
+
+The tunnel entry pointed at `192.168.0.86`, an address nothing answers on, until Nov 10 2026. That gave a Cloudflare 502 from outside while the LAN route kept working.  
+
+Create the secret once and register the provider:  
+
+``` bash
+openssl rand -hex 32 > /root/.nas-oidc-secret && chmod 600 /root/.nas-oidc-secret
+docker cp /root/.nas-oidc-secret authentik-worker:/tmp/nas-secret
+docker exec -u 0 authentik-worker chmod 644 /tmp/nas-secret
+docker exec -i authentik-worker ak shell < fix-nas-oidc.py
+docker exec -u 0 authentik-worker rm -f /tmp/nas-secret
+```
+
+Then in DSM open Control Panel, Domain/LDAP, SSO Client, tick **Enable OpenID Connect SSO service**, choose **OpenID Connect SSO Settings** and enter:  
+
+| Field | Value |
+|-------|-------|
+| Profile | `OIDC` |
+| Account type | `Domain/LDAP/local` |
+| Name | `authentik` |
+| Well Known URL | `https://auth.asbblog.com/application/o/nas/.well-known/openid-configuration` |
+| Application ID | `synology-dsm` |
+| Application Key | contents of `/root/.nas-oidc-secret` |
+| Redirect URL | `https://nas.asbblog.com` |
+| Authorization Scope | `openid profile email` |
+| Username Claim | `preferred_username` |
+
+The DSM login page then shows an **authentik** button next to the password form. The password form stays, so a local administrator can still get in if Authentik is down.  
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| "not privilege" | The browser blocked the SSO pop-up, or the Redirect URL differs from the one in Authentik. | Allow pop-ups for `nas.asbblog.com`. Keep the Redirect URL to the bare origin, without `/#/signin`. |
+| "Your SSO is not properly configured" | No DSM account has the name in `preferred_username`. DSM does not create accounts on login. | Create the DSM account, or set the attribute `synology_username: <dsm name>` on the Authentik user (Directory, Users, the user, Attributes). |
+| The button only works when DSM is opened as `https://nas.asbblog.com` | The redirect URI is that one origin. | Do not sign in with SSO from `https://192.168.0.87:5001`; use the password form there. |
+
+DSM logs the reason for a refused login in `/var/log/packages/OAuthService.log` on the NAS.  
+
+</br>
+
 ## Which Authentication Each Route Uses
 
 Forward-auth is the default, but it only works for an interactive browser. Anything that talks to an API with its own token, or runs a non-browser client, is given a different gate. The decisions so far, all recorded in `traefik-internal.yaml`:  
@@ -1228,6 +1278,7 @@ Forward-auth is the default, but it only works for an interactive browser. Anyth
 | Immich (`immich`, on `192.168.0.104`) | `lan-and-docker`; Immich's own login with the Authentik OIDC button | The mobile app sends an Immich bearer token and never holds an Authentik cookie, so forward-auth redirected every `/api` call to the login page and broke uploads. |
 | Proxmox nodes (`pve*`) | `lan-and-docker`; Proxmox OIDC against Authentik | API pollers and the console cannot complete a browser redirect. |
 | TrueNAS (`truenas1`) | `lan-and-docker`; TrueNAS login | No practical web-UI OIDC. Forward-auth meant logging in twice and interfered with its websocket. |
+| Synology DSM (`nas`, on `192.168.0.87:5001`) | `authentik-forwardauth@file`, then DSM's own login with the **authentik** button (`fix-nas-oidc.py`) | Forward-auth stays because DSM is used from a browser here. Synology's desktop and mobile apps cannot pass it; point them at `192.168.0.87` directly, or move the route to `lan-and-docker` if they must use the name. The tunnel route goes straight to the NAS and is gated by Cloudflare Access. |
 | Plex, Jellyfin, Seerr, Headscale | IP allowlist | Native clients and the tailnet control plane carry their own authentication. |
 | Open WebUI (`openwebui`, container `open-webui` on `.17:8087`) | `lan-and-docker`; application login (first sign-up becomes admin) or the Authentik OIDC button (`fix-openwebui-oidc.py`). An Authentik login merges into a local account only when the emails match exactly; otherwise it creates a new account with `DEFAULT_USER_ROLE` (`user` here, so Authentik membership is enough; before that it was `pending` and needed approval in Admin Panel, Users) | Replaced the 2024-era instance on Unraid `.95`. API clients and the websocket carry no Authentik cookie, so forward-auth would break them; native OIDC instead. The tunnel route is gated by Cloudflare Access. |
 | Vaultwarden (`vault1`, on Unraid `192.168.0.95:4743`) | `lan-and-docker`; Vaultwarden's own login with "Use single sign-on" against Authentik (`fix-vaultwarden-oidc.py`), then the master password | The browser extension and the desktop and mobile apps send a Vaultwarden bearer token and never hold an Authentik cookie, so forward-auth redirected every `/api` and `/identity` call to the login page. The tunnel route is gated by Cloudflare Access. |
@@ -1403,7 +1454,7 @@ All live in `full-download-vpn/` and read `.env` from the same directory.
 | `secure_authentik_database.sh`, `create_guacamole_database.sh` | One-time PostgreSQL setup for Authentik and Guacamole. |
 | `rotate-crowdsec-key.sh` | Mint a new CrowdSec bouncer key, store it in `.env`, deploy it into the live `dynamic.yaml` and revoke the old one. |
 | `crowdsec-allowlist.sh` | Re-apply the CrowdSec allowlist. It lives in CrowdSec's SQLite database, not in a config file, so it is lost when that volume is rebuilt. |
-| `fix-authentik-outpost.py`, `fix-immich-oidc.py`, `fix-proxmox-oidc.py`, `fix-openwebui-oidc.py`, `fix-vaultwarden-oidc.py`, `set-authentik-icons.py` | Authentik objects, see [Scripted Authentik Configuration](#scripted-authentik-configuration). |
+| `fix-authentik-outpost.py`, `fix-immich-oidc.py`, `fix-proxmox-oidc.py`, `fix-openwebui-oidc.py`, `fix-vaultwarden-oidc.py`, `fix-nas-oidc.py`, `set-authentik-icons.py` | Authentik objects, see [Scripted Authentik Configuration](#scripted-authentik-configuration). |
 | `generate-bookmarks.sh` | Render `bookmarks.html` from `.env`. |
 | `get-apikeys.sh` | Print the `*arr` API keys from their configuration files (needs `yq` and `xmllint`). |
 | `sync-jackett-to-whisparr.sh` / `jackett_to_whisparr.py` | Copy Jackett indexers into Whisparr; the API keys come from `.env`. |
