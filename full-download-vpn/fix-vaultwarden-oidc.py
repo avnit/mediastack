@@ -96,7 +96,10 @@ print(f"PROVIDER   : {provider.name} ({'created' if created else 'updated'}) "
       f"signing_key={provider.signing_key.name} grants={provider.grant_types}")
 for r in provider.redirect_uris:
     print(f"REDIRECT   : {r.matching_mode.value}  {r.url}")
-print(f"SCOPES     : {sorted(m.scope_name for m in provider.property_mappings.all())}")
+# property_mappings yields base PropertyMapping rows, which have no scope_name.
+scopes = ScopeMapping.objects.filter(
+    pk__in=provider.property_mappings.values_list("pk", flat=True))
+print(f"SCOPES     : {sorted(scopes.values_list('scope_name', flat=True))}")
 
 # The "Vault" tile already exists (set-authentik-icons.py gives it its icon), so
 # only the provider is attached; name, group and icon are left as they are.
