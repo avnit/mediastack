@@ -1168,11 +1168,46 @@ The click-paths above are upstream's. On this deployment the Authentik objects a
 | `fix-immich-oidc.py` | A native OIDC provider for Immich: RS256 signing key (otherwise the JWKS is empty and Immich fails *after* a successful token exchange), grant types, the three redirect URIs including `app.immich:///oauth-callback`, and the email + profile scopes. The client secret is copied into the container at run time and never committed. |
 | `fix-proxmox-oidc.py` | A native OIDC provider for Proxmox VE, same pattern and same secret handling. |
 | `fix-openwebui-oidc.py` | A native OIDC provider for Open WebUI (client `open-webui`, callback `https://openwebui.asbblog.com/oauth/oidc/callback`), bound to the `openwebui` Application, same pattern and same secret handling. The secret also goes into `.env` as `OPENWEBUI_OIDC_SECRET`, which the `open-webui` service reads as `OAUTH_CLIENT_SECRET`. |
+| `fix-vaultwarden-oidc.py` | A native OIDC provider for Vaultwarden on Unraid (client `vaultwarden`, callback `https://vault1.asbblog.com/identity/connect/oidc-signin`), attached to the existing `vault1` Application, same pattern and same secret handling. It also creates an `email` scope mapping that reports `email_verified: true`, because the stock mapping reports `false` and Vaultwarden then refuses the first login, and it adds `offline_access` so sessions can refresh. The secret also goes into the Unraid container as `SSO_CLIENT_SECRET`, see [Vaultwarden SSO](#vaultwarden-sso). |
 | `set-authentik-icons.py` | Launcher icons for every Application, from the dashboard-icons CDN, using the same names as the `homepage.icon` labels. |
 
 ``` bash
 docker exec -i authentik-worker ak shell < fix-authentik-outpost.py
 ```
+
+</br>
+
+### Vaultwarden SSO
+
+Vaultwarden (`vault1.asbblog.com`) runs on Unraid `.95:4743`, outside this stack, so its half of the configuration lives in the Unraid Docker template and not in `docker-compose.yaml`. The running 1.37.5 includes SSO support.  
+
+Single sign-on replaces only the login step. Vaultwarden still asks for the master password afterwards, because that password is what decrypts the vault.  
+
+Create the secret once and register the provider:  
+
+``` bash
+openssl rand -hex 32 > /root/.vaultwarden-oidc-secret && chmod 600 /root/.vaultwarden-oidc-secret
+docker cp /root/.vaultwarden-oidc-secret authentik-worker:/tmp/vaultwarden-secret
+docker exec -u 0 authentik-worker chmod 644 /tmp/vaultwarden-secret
+docker exec -i authentik-worker ak shell < fix-vaultwarden-oidc.py
+docker exec -u 0 authentik-worker rm -f /tmp/vaultwarden-secret
+```
+
+Then set these variables on the Vaultwarden container in Unraid (Docker, vaultwarden, Edit, Add another Path, Port, Variable) and apply:  
+
+| Variable | Value | Why |
+|----------|-------|-----|
+| `DOMAIN` | `https://vault1.asbblog.com` | The callback URL is built from it. It was `http://`, which Authentik rejects as a redirect URI mismatch. |
+| `SSO_ENABLED` | `true` | Shows the "Use single sign-on" button. |
+| `SSO_AUTHORITY` | `https://auth.asbblog.com/application/o/vault1/` | Must equal the issuer exactly, trailing slash included. |
+| `SSO_CLIENT_ID` | `vaultwarden` | |
+| `SSO_CLIENT_SECRET` | contents of `/root/.vaultwarden-oidc-secret` | |
+| `SSO_SCOPES` | `email profile offline_access` | `openid` is implicit. `offline_access` yields the refresh token. |
+| `SSO_PKCE` | `true` | The default; listed so it is not turned off. |
+| `SSO_SIGNUPS_MATCH_EMAIL` | `true` | Links the first SSO login to the existing account with the same email, keeping its vault. |
+| `SSO_ONLY` | `false` at first | Leave master-password login available until SSO is proven, then set `true` to make Authentik the only way in. |
+
+The email on the Authentik user must equal the email of the existing Vaultwarden account, otherwise the first SSO login creates a new, empty account instead of linking. After that first login the link is by Authentik user id, not email. In the clients, set the server URL to `https://vault1.asbblog.com`, and choose "Use single sign-on". If a client asks for an SSO identifier, any value works; Vaultwarden does not use it.  
 
 </br>
 
@@ -1188,6 +1223,7 @@ Forward-auth is the default, but it only works for an interactive browser. Anyth
 | TrueNAS (`truenas1`) | `lan-and-docker`; TrueNAS login | No practical web-UI OIDC. Forward-auth meant logging in twice and interfered with its websocket. |
 | Plex, Jellyfin, Seerr, Headscale | IP allowlist | Native clients and the tailnet control plane carry their own authentication. |
 | Open WebUI (`openwebui`, container `open-webui` on `.17:8087`) | `lan-and-docker`; application login (first sign-up becomes admin) or the Authentik OIDC button (`fix-openwebui-oidc.py`). An Authentik login merges into a local account only when the emails match exactly; otherwise it creates a new account with `DEFAULT_USER_ROLE` (`user` here, so Authentik membership is enough; before that it was `pending` and needed approval in Admin Panel, Users) | Replaced the 2024-era instance on Unraid `.95`. API clients and the websocket carry no Authentik cookie, so forward-auth would break them; native OIDC instead. The tunnel route is gated by Cloudflare Access. |
+| Vaultwarden (`vault1`, on Unraid `192.168.0.95:4743`) | `lan-and-docker`; Vaultwarden's own login with "Use single sign-on" against Authentik (`fix-vaultwarden-oidc.py`), then the master password | The browser extension and the desktop and mobile apps send a Vaultwarden bearer token and never hold an Authentik cookie, so forward-auth redirected every `/api` and `/identity` call to the login page. The tunnel route is gated by Cloudflare Access. |
 | Ollama (`ollama`, relay on pve7 `192.168.0.160:11436`) | `lan-and-docker` | Ollama has no authentication. Port 11434 on pve7 is NVIDIA Personal AI Router's `ollama-proxy`, which only accepts plaintext from loopback; `11436` is an nginx relay to it that, together with pve7's firewall, admits only `.95` and `.17`. The tunnel route is gated by Cloudflare Access. The stack's Open WebUI reaches it directly as `http://192.168.0.160:11436` (`OLLAMA_BASE_URL`). |
 | Status page (`status`) | `lan-only` + CrowdSec bouncer | Read-only dashboard, LAN only. |
 
@@ -1360,7 +1396,7 @@ All live in `full-download-vpn/` and read `.env` from the same directory.
 | `secure_authentik_database.sh`, `create_guacamole_database.sh` | One-time PostgreSQL setup for Authentik and Guacamole. |
 | `rotate-crowdsec-key.sh` | Mint a new CrowdSec bouncer key, store it in `.env`, deploy it into the live `dynamic.yaml` and revoke the old one. |
 | `crowdsec-allowlist.sh` | Re-apply the CrowdSec allowlist. It lives in CrowdSec's SQLite database, not in a config file, so it is lost when that volume is rebuilt. |
-| `fix-authentik-outpost.py`, `fix-immich-oidc.py`, `fix-proxmox-oidc.py`, `fix-openwebui-oidc.py`, `set-authentik-icons.py` | Authentik objects, see [Scripted Authentik Configuration](#scripted-authentik-configuration). |
+| `fix-authentik-outpost.py`, `fix-immich-oidc.py`, `fix-proxmox-oidc.py`, `fix-openwebui-oidc.py`, `fix-vaultwarden-oidc.py`, `set-authentik-icons.py` | Authentik objects, see [Scripted Authentik Configuration](#scripted-authentik-configuration). |
 | `generate-bookmarks.sh` | Render `bookmarks.html` from `.env`. |
 | `get-apikeys.sh` | Print the `*arr` API keys from their configuration files (needs `yq` and `xmllint`). |
 | `sync-jackett-to-whisparr.sh` / `jackett_to_whisparr.py` | Copy Jackett indexers into Whisparr; the API keys come from `.env`. |

@@ -186,13 +186,19 @@ http:
       - authentik-forwardauth@file
       - security-headers@file
     lan-vault1:
+      # No forward-auth here: Vaultwarden (unraid .95) does its own login with
+      # native SSO against authentik (fix-vaultwarden-oidc.py). The browser
+      # extension and the desktop/mobile apps send a Vaultwarden bearer token,
+      # never an authentik cookie, so forward-auth 302'd every /api and
+      # /identity call. Externally cloudflare Access gates it.
+      # lan-and-docker, not lan-only: tunnel traffic arrives from 172.28.10.1.
       rule: Host(`vault1.asbblog.com`)
       entryPoints:
       - secureweb
       priority: 100
       service: lan-vault1
       middlewares:
-      - authentik-forwardauth@file
+      - lan-and-docker
       - security-headers@file
     lan-calibre:
       rule: Host(`calibre.asbblog.com`)
