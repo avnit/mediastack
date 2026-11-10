@@ -1207,6 +1207,13 @@ Then set these variables on the Vaultwarden container in Unraid (Docker, vaultwa
 | `SSO_SIGNUPS_MATCH_EMAIL` | `true` | Links the first SSO login to the existing account with the same email, keeping its vault. |
 | `SSO_ONLY` | `false` at first | Leave master-password login available until SSO is proven, then set `true` to make Authentik the only way in. |
 
+Two things on the Unraid side decide whether this works, and neither shows a useful error:  
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| The Unraid `DOMAIN` variable is ignored; the log says it is "overridden by the config.json file" | The setting was once saved in Vaultwarden's admin page, and saved settings win over environment variables. | Change **Domain URL** at `https://vault1.asbblog.com/admin` instead. |
+| Authentik login succeeds, then the vault drops back to its login screen. In the traefik access log `POST /identity/connect/token` is 200 and the next `GET /api/sync` is 401. | Clock skew. Vaultwarden stamps its session token with the "not before" time of the Authentik token and allows 30 seconds of leeway, so an Unraid clock that runs behind `.17` rejects every fresh session. It was 176 seconds behind on Nov 10 2026. | Turn on NTP in Unraid (Settings, Date and Time). Compare with `curl -s http://192.168.0.95:4743/alive` against `date -u`. `SSO_AUTH_ONLY_NOT_SESSION=true` sidesteps it, but a wrong clock also breaks TOTP. |
+
 The email on the Authentik user must equal the email of the existing Vaultwarden account, otherwise the first SSO login creates a new, empty account instead of linking. After that first login the link is by Authentik user id, not email. In the clients, set the server URL to `https://vault1.asbblog.com`, and choose "Use single sign-on". If a client asks for an SSO identifier, any value works; Vaultwarden does not use it.  
 
 </br>
