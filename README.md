@@ -1262,6 +1262,8 @@ The DSM login page then shows an **authentik** button next to the password form.
 |---------|-------|-----|
 | "not privilege" | The browser blocked the SSO pop-up, or the Redirect URL differs from the one in Authentik. | Allow pop-ups for `nas.asbblog.com`. Keep the Redirect URL to the bare origin, without `/#/signin`. |
 | "Your SSO is not properly configured" | No DSM account has the name in `preferred_username`. DSM does not create accounts on login. | Create the DSM account, or set the attribute `synology_username: <dsm name>` on the Authentik user (Directory, Users, the user, Attributes). |
+| The Synology "page not found" 404 on `https://nas.asbblog.com`, while `https://192.168.0.87:5001` works | `nas.asbblog.com` is entered as the **Customized domain** in DSM (Control Panel, Login Portal, DSM). DSM then serves that name on ports 80 and 443 only, and answers 404 for it on 5000 and 5001. | On the LAN, `lan-nas` sets `passHostHeader: false`, so DSM sees its own address and answers. For the tunnel, clear the Customized domain in DSM, or set **HTTP Host Header** to `192.168.0.87:5001` on the Public Hostname. |
+| "The account or password is invalid" right after the authentik button | Same cause as "Your SSO is not properly configured": no DSM account matches `preferred_username`. | Same fix: the `synology_username` attribute. |
 | The button only works when DSM is opened as `https://nas.asbblog.com` | The redirect URI is that one origin. | Do not sign in with SSO from `https://192.168.0.87:5001`; use the password form there. |
 
 DSM logs the reason for a refused login in `/var/log/packages/OAuthService.log` on the NAS.  
