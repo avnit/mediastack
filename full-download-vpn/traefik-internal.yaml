@@ -209,6 +209,15 @@ http:
       middlewares:
       - authentik-forwardauth@file
       - security-headers@file
+    lan-calibre2:
+      rule: Host(`calibre2.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-calibre2
+      middlewares:
+      - authentik-forwardauth@file
+      - security-headers@file
     lan-docker:
       rule: Host(`docker.asbblog.com`)
       entryPoints:
@@ -604,6 +613,14 @@ http:
         passHostHeader: true
         servers:
         - url: http://192.168.0.95:9999
+    lan-calibre2:
+      loadBalancer:
+        # linuxserver/calibre on Unraid: container 8080 (desktop GUI over
+        # http) is published as 19003. 8181 (https) is 19292, and the
+        # content server 8081 is 10991 once it is started inside Calibre.
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.95:19003
     lan-docker:
       loadBalancer:
         passHostHeader: true
