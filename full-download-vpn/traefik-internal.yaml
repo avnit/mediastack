@@ -700,7 +700,10 @@ http:
         - url: http://192.168.0.138
     lan-nas:
       loadBalancer:
-        passHostHeader: true
+        # DSM answers 404 on 5000/5001 for a Host that is set as its
+        # "Customized domain" (Login Portal). Sending the origin's own
+        # address as Host works whether that field is set or empty.
+        passHostHeader: false
         servers:
         - url: https://192.168.0.87:5001
         serversTransport: insecure-no-verify
