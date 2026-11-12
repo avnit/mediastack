@@ -216,7 +216,7 @@ http:
       priority: 100
       service: lan-calibre2
       middlewares:
-      - authentik-forwardauth@file
+      - authentik-forwardauth-basic@file
       - security-headers@file
     lan-docker:
       rule: Host(`docker.asbblog.com`)
