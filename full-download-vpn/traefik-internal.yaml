@@ -185,6 +185,15 @@ http:
       middlewares:
       - authentik-forwardauth@file
       - security-headers@file
+    lan-umbrel:
+      rule: Host(`umbrel.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-umbrel
+      middlewares:
+      - authentik-forwardauth@file
+      - security-headers@file
     lan-vault1:
       # No forward-auth here: Vaultwarden (unraid .95) does its own login with
       # native SSO against authentik (fix-vaultwarden-oidc.py). The browser
@@ -615,6 +624,13 @@ http:
         passHostHeader: true
         servers:
         - url: http://192.168.0.95:3000
+    lan-umbrel:
+      loadBalancer:
+        # umbrelOS dashboard. The Cloudflare tunnel used to send this name
+        # straight to the box behind Cloudflare Access, which skipped Authentik.
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.179:8089
     lan-vault1:
       loadBalancer:
         passHostHeader: true
