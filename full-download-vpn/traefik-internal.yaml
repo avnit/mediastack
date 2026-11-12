@@ -218,6 +218,15 @@ http:
       middlewares:
       - authentik-forwardauth-basic@file
       - security-headers@file
+    lan-dockhand:
+      rule: Host(`dockhand.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-dockhand
+      middlewares:
+      - authentik-forwardauth@file
+      - security-headers@file
     lan-docker:
       rule: Host(`docker.asbblog.com`)
       entryPoints:
@@ -624,6 +633,13 @@ http:
         passHostHeader: true
         servers:
         - url: http://192.168.0.95:19003
+    lan-dockhand:
+      loadBalancer:
+        # Dockhand runs from its own compose project on this host and
+        # publishes container port 3000 as 3081.
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.17:3081
     lan-docker:
       loadBalancer:
         passHostHeader: true
