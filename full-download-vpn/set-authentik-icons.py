@@ -44,6 +44,7 @@ ICONS = {
     "coolify": "coolify.png",
     "docker": "docker.png",
     "dockhand": "dockhand.png",
+    "tdarr": "tdarr.png",
     "portainer": "portainer.png",
     "traefik": "traefik.png",
     "umbrel": "umbrel.png",
