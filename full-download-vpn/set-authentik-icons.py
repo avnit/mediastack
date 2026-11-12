@@ -43,6 +43,7 @@ ICONS = {
     "casaos": "casaos.png",
     "coolify": "coolify.png",
     "docker": "docker.png",
+    "dockhand": "dockhand.png",
     "portainer": "portainer.png",
     "traefik": "traefik.png",
     "umbrel": "umbrel.png",
