@@ -504,13 +504,16 @@ http:
       - authentik-forwardauth@file
       - security-headers@file
     lan-stores:
+      # No forward-auth here: this is the public store front, so visitors must
+      # not be sent to the authentik login. lan-and-docker, not lan-only: tunnel
+      # traffic arrives from the docker bridge.
       rule: Host(`stores.asbblog.com`)
       entryPoints:
       - secureweb
       priority: 100
       service: lan-stores
       middlewares:
-      - authentik-forwardauth@file
+      - lan-and-docker
       - security-headers@file
     lan-hermes2:
       rule: Host(`hermes2.asbblog.com`)
@@ -689,7 +692,7 @@ http:
       loadBalancer:
         passHostHeader: true
         servers:
-        - url: http://192.168.0.17:7575
+        - url: http://192.168.0.21:7575
     lan-homepage2:
       loadBalancer:
         passHostHeader: true
