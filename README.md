@@ -1170,8 +1170,9 @@ The click-paths above are upstream's. On this deployment the Authentik objects a
 | `fix-openwebui-oidc.py` | A native OIDC provider for Open WebUI (client `open-webui`, callback `https://openwebui.asbblog.com/oauth/oidc/callback`), bound to the `openwebui` Application, same pattern and same secret handling. The secret also goes into `.env` as `OPENWEBUI_OIDC_SECRET`, which the `open-webui` service reads as `OAUTH_CLIENT_SECRET`. |
 | `fix-vaultwarden-oidc.py` | A native OIDC provider for Vaultwarden on Unraid (client `vaultwarden`, callback `https://vault1.asbblog.com/identity/connect/oidc-signin`), attached to the existing `vault1` Application, same pattern and same secret handling. It also creates an `email` scope mapping that reports `email_verified: true`, because the stock mapping reports `false` and Vaultwarden then refuses the first login, and it adds `offline_access` so sessions can refresh. The secret also goes into the Unraid container as `SSO_CLIENT_SECRET`, see [Vaultwarden SSO](#vaultwarden-sso). |
 | `fix-nas-oidc.py` | A native OIDC provider for Synology DSM (client `synology-dsm`, redirect URI `https://nas.asbblog.com` with no path), attached to the existing `nas` Application, same pattern and same secret handling. Its `profile` scope mapping returns `preferred_username` from the user attribute `synology_username` when that is set, because DSM matches the claim against an existing DSM account and never creates one. The secret is also typed into DSM, see [Synology DSM SSO](#synology-dsm-sso). |
+| `fix-dockhand-oidc.py` | A native OIDC provider for Dockhand (client `dockhand`, redirect URI `https://dockhand.asbblog.com/api/auth/oidc/callback`), attached to the existing `dockhand` Application, same pattern and same secret handling. It also binds the Application to the group `authentik Admins`, because the free Dockhand edition makes every signed-in user an administrator. The secret is also typed into Dockhand, see [Dockhand SSO](#dockhand-sso). |
 | `fix-calibre2-basic-auth.py` | No new object. Turns on **Send HTTP-Basic Authentication** on the forward-auth provider, reading the attributes `calibre_username` and `calibre_password` of the signed-in user, so Authentik also passes Calibre's own login. Stores no secret. See [Calibre behind Authentik](#calibre-behind-authentik). |
-| `add-authentik-tiles.py` | Launcher tiles only, with no provider: **Dockhand** at `https://dockhand.asbblog.com` (Traefik `lan-dockhand`, forward-auth, origin `192.168.0.17:3081`) and **Tdarr** at `https://tdarr.asbblog.com` (the container's own Traefik labels, forward-auth). |
+| `add-authentik-tiles.py` | Launcher tiles (it never sets or clears a provider): **Dockhand** at `https://dockhand.asbblog.com` (Traefik `lan-dockhand`, forward-auth, origin `192.168.0.17:3081`) and **Tdarr** at `https://tdarr.asbblog.com` (the container's own Traefik labels, forward-auth). |
 | `set-authentik-icons.py` | Launcher icons for every Application, from the dashboard-icons CDN, using the same names as the `homepage.icon` labels. |
 
 ``` bash
@@ -1272,6 +1273,54 @@ DSM logs the reason for a refused login in `/var/log/packages/OAuthService.log` 
 
 </br>
 
+### Dockhand SSO
+
+Dockhand (`dockhand.asbblog.com`) is the container `dockhand-dockhand-1` on `192.168.0.17:3081`, from its own compose project in `/root/dockhand`. It stores its OIDC settings in its own database, so its half of the configuration is entered in the Dockhand UI.  
+
+Create the secret once and register the provider:  
+
+``` bash
+openssl rand -hex 32 > /root/.dockhand-oidc-secret && chmod 600 /root/.dockhand-oidc-secret
+docker cp /root/.dockhand-oidc-secret authentik-worker:/tmp/dockhand-secret
+docker exec -u 0 authentik-worker chmod 644 /tmp/dockhand-secret
+docker exec -i authentik-worker ak shell < fix-dockhand-oidc.py
+docker exec -u 0 authentik-worker rm -f /tmp/dockhand-secret
+```
+
+Then sign in to Dockhand with the local administrator, open Settings, Authentication, **SSO / OIDC**, choose **Add OIDC provider** and enter:  
+
+| Field | Value |
+|-------|-------|
+| Name | `authentik` |
+| Issuer URL | `https://auth.asbblog.com/application/o/dockhand/` |
+| Client ID | `dockhand` |
+| Client secret | contents of `/root/.dockhand-oidc-secret` |
+| Redirect URI | `https://dockhand.asbblog.com/api/auth/oidc/callback` |
+| Scopes | `openid profile email` |
+| Username claim | `preferred_username` |
+| Email claim | `email` |
+| Display name claim | `name` |
+| Enable this OIDC provider | on |
+
+Use the test button on the provider row; it should report **OIDC connection successful**. The login page then shows **Sign in with authentik** under the password form. The password form stays, so the local administrator can still get in if Authentik is down.  
+
+How Dockhand 1.0.49 treats the login:  
+
+- The user is matched on `preferred_username`. If a Dockhand user of that name exists it is reused and keeps its password; otherwise Dockhand creates a new user on the first login.
+- In the free edition every signed-in user is an administrator. Roles, **Admin claim** and **Claim to role mappings** need an Enterprise licence.
+- For that reason the Authentik Application is bound to the group `authentik Admins` (`ALLOWED_GROUP` in the script). Other Authentik users are refused by Authentik and never get a Dockhand account. Change the constant and re-run the script to use another group.
+- The route keeps `authentik-forwardauth@file`, so the Authentik session already exists when the button is pressed and the sign-in is a single click.
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| "Failed to reach OIDC issuer" on the test button | The container cannot reach `https://auth.asbblog.com`. Dockhand fetches discovery, token and userinfo itself. | Check DNS and outbound HTTPS from the container: `docker exec dockhand-dockhand-1 curl -sI https://auth.asbblog.com`. |
+| "Failed to exchange authorization code" with `invalid_client` | The secret in Dockhand differs from `/root/.dockhand-oidc-secret`. | Paste it again, without a trailing space or newline. |
+| Authentik shows "Redirect URI Error" | The Redirect URI in Dockhand is not exactly the callback above. | Correct it; no trailing slash, `https`. |
+| Authentik shows "Permission denied" | The user is not in `authentik Admins`. | Add the user to the group, or change `ALLOWED_GROUP`. |
+| The button only works on `https://dockhand.asbblog.com` | The redirect URI is that one origin. | On `http://192.168.0.17:3081` use the password form. |
+
+</br>
+
 ### Calibre behind Authentik
 
 `calibre2.asbblog.com` is the web desktop of the `linuxserver/calibre` container on Unraid. The container publishes its port 8080 as `192.168.0.95:19003` (https 8181 as `19292`, the content server 8081 as `10991` once it is started inside Calibre).  
@@ -1321,6 +1370,7 @@ Forward-auth is the default, but it only works for an interactive browser. Anyth
 | Proxmox nodes (`pve*`) | `lan-and-docker`; Proxmox OIDC against Authentik | API pollers and the console cannot complete a browser redirect. |
 | TrueNAS (`truenas1`) | `lan-and-docker`; TrueNAS login | No practical web-UI OIDC. Forward-auth meant logging in twice and interfered with its websocket. |
 | Synology DSM (`nas`, on `192.168.0.87:5001`) | `authentik-forwardauth@file`, then DSM's own login with the **authentik** button (`fix-nas-oidc.py`) | Forward-auth stays because DSM is used from a browser here. Synology's desktop and mobile apps cannot pass it; point them at `192.168.0.87` directly, or move the route to `lan-and-docker` if they must use the name. The tunnel route goes straight to the NAS and is gated by Cloudflare Access. |
+| Dockhand (`dockhand`, container `dockhand-dockhand-1` on `.17:3081`) | `authentik-forwardauth@file`, then Dockhand's own login with the **authentik** button (`fix-dockhand-oidc.py`) | Browser application. Forward-auth keeps the page off the open LAN name; the OIDC button replaces the second password. The OIDC Application is limited to `authentik Admins` because every Dockhand user is an administrator in the free edition. |
 | Calibre desktop (`calibre2`, container `calibre` on Unraid `192.168.0.95:19003`) | `authentik-forwardauth-basic@file` (`fix-calibre2-basic-auth.py`) | The container has one HTTP Basic login of its own. The outpost supplies it after the Authentik check, so there is a single sign-in. |
 | Umbrel (`umbrel`, umbrelOS dashboard on `192.168.0.179:8089`) | `authentik-forwardauth@file`, then Umbrel's own password | The Cloudflare tunnel must send `umbrel.asbblog.com` to `https://192.168.0.17` with **Origin Server Name** `umbrel.asbblog.com`. Pointed straight at `http://192.168.0.179:8089` the request never reaches Traefik, so Authentik is skipped and only Cloudflare Access (if enabled on the hostname) stands in front. |
 | Plex, Jellyfin, Seerr, Headscale | IP allowlist | Native clients and the tailnet control plane carry their own authentication. |
@@ -1498,7 +1548,7 @@ All live in `full-download-vpn/` and read `.env` from the same directory.
 | `secure_authentik_database.sh`, `create_guacamole_database.sh` | One-time PostgreSQL setup for Authentik and Guacamole. |
 | `rotate-crowdsec-key.sh` | Mint a new CrowdSec bouncer key, store it in `.env`, deploy it into the live `dynamic.yaml` and revoke the old one. |
 | `crowdsec-allowlist.sh` | Re-apply the CrowdSec allowlist. It lives in CrowdSec's SQLite database, not in a config file, so it is lost when that volume is rebuilt. |
-| `fix-authentik-outpost.py`, `fix-immich-oidc.py`, `fix-proxmox-oidc.py`, `fix-openwebui-oidc.py`, `fix-vaultwarden-oidc.py`, `fix-nas-oidc.py`, `set-authentik-icons.py` | Authentik objects, see [Scripted Authentik Configuration](#scripted-authentik-configuration). |
+| `fix-authentik-outpost.py`, `fix-immich-oidc.py`, `fix-proxmox-oidc.py`, `fix-openwebui-oidc.py`, `fix-vaultwarden-oidc.py`, `fix-nas-oidc.py`, `fix-dockhand-oidc.py`, `set-authentik-icons.py` | Authentik objects, see [Scripted Authentik Configuration](#scripted-authentik-configuration). |
 | `generate-bookmarks.sh` | Render `bookmarks.html` from `.env`. |
 | `get-apikeys.sh` | Print the `*arr` API keys from their configuration files (needs `yq` and `xmllint`). |
 | `sync-jackett-to-whisparr.sh` / `jackett_to_whisparr.py` | Copy Jackett indexers into Whisparr; the API keys come from `.env`. |
