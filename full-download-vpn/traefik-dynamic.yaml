@@ -91,6 +91,20 @@ http:
           - X-authentik-meta-app
           - X-authentik-meta-version
 
+    # The same Authentik check, for an origin that has its own HTTP Basic login
+    # (Calibre). The outpost answers with "Authorization: Basic ..." built from
+    # the signed-in user's calibre_username / calibre_password attributes
+    # (fix-calibre2-basic-auth.py), and Traefik replaces the request's header
+    # with it. Kept off the shared middleware so no other application is handed
+    # those credentials as a login.
+    authentik-forwardauth-basic:
+      forwardAuth:
+        address: http://authentik:9000/outpost.goauthentik.io/auth/traefik
+        trustForwardHeader: true
+        maxResponseBodySize: 1048576
+        authResponseHeaders:
+          - Authorization
+
     traefik-bouncer:
       plugin:
         crowdsec-bouncer-traefik-plugin:

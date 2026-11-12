@@ -1170,6 +1170,7 @@ The click-paths above are upstream's. On this deployment the Authentik objects a
 | `fix-openwebui-oidc.py` | A native OIDC provider for Open WebUI (client `open-webui`, callback `https://openwebui.asbblog.com/oauth/oidc/callback`), bound to the `openwebui` Application, same pattern and same secret handling. The secret also goes into `.env` as `OPENWEBUI_OIDC_SECRET`, which the `open-webui` service reads as `OAUTH_CLIENT_SECRET`. |
 | `fix-vaultwarden-oidc.py` | A native OIDC provider for Vaultwarden on Unraid (client `vaultwarden`, callback `https://vault1.asbblog.com/identity/connect/oidc-signin`), attached to the existing `vault1` Application, same pattern and same secret handling. It also creates an `email` scope mapping that reports `email_verified: true`, because the stock mapping reports `false` and Vaultwarden then refuses the first login, and it adds `offline_access` so sessions can refresh. The secret also goes into the Unraid container as `SSO_CLIENT_SECRET`, see [Vaultwarden SSO](#vaultwarden-sso). |
 | `fix-nas-oidc.py` | A native OIDC provider for Synology DSM (client `synology-dsm`, redirect URI `https://nas.asbblog.com` with no path), attached to the existing `nas` Application, same pattern and same secret handling. Its `profile` scope mapping returns `preferred_username` from the user attribute `synology_username` when that is set, because DSM matches the claim against an existing DSM account and never creates one. The secret is also typed into DSM, see [Synology DSM SSO](#synology-dsm-sso). |
+| `fix-calibre2-basic-auth.py` | No new object. Turns on **Send HTTP-Basic Authentication** on the forward-auth provider, reading the attributes `calibre_username` and `calibre_password` of the signed-in user, so Authentik also passes Calibre's own login. Stores no secret. See [Calibre behind Authentik](#calibre-behind-authentik). |
 | `set-authentik-icons.py` | Launcher icons for every Application, from the dashboard-icons CDN, using the same names as the `homepage.icon` labels. |
 
 ``` bash
@@ -1270,6 +1271,44 @@ DSM logs the reason for a refused login in `/var/log/packages/OAuthService.log` 
 
 </br>
 
+### Calibre behind Authentik
+
+`calibre2.asbblog.com` is the web desktop of the `linuxserver/calibre` container on Unraid. The container publishes its port 8080 as `192.168.0.95:19003` (https 8181 as `19292`, the content server 8081 as `10991` once it is started inside Calibre).  
+
+| Path | Where it is set | Origin |
+|------|-----------------|--------|
+| LAN and Internet | Cloudflare tunnel, Public Hostname `calibre2.asbblog.com` | `https://192.168.0.17` (type **HTTPS**), **Origin Server Name** `calibre2.asbblog.com` |
+| Traefik | `lan-calibre2` in `traefik-internal.yaml` | `http://192.168.0.95:19003` |
+
+The tunnel type must be HTTPS. With `http://192.168.0.17` Traefik answers every request with a redirect to https and the browser loops.  
+
+The container has its own HTTP Basic login (`CUSTOM_USER` / `PASSWORD` in the Unraid template). To avoid a second prompt, Authentik sends it:  
+
+1. In Authentik, Directory, Users, the user, Edit, Attributes, add the two values. A group's attributes work as well.  
+
+``` yaml
+calibre_username: the CUSTOM_USER value
+calibre_password: the PASSWORD value
+```
+
+2. Turn the feature on:  
+
+``` bash
+docker exec -i authentik-worker ak shell < fix-calibre2-basic-auth.py
+```
+
+3. The route uses `authentik-forwardauth-basic@file`, the only middleware that forwards the `Authorization` header from the outpost.  
+4. Sign out of Authentik and in again. The outpost reads attributes at login.  
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Calibre keeps asking for a password after the Authentik login, and typing it does not help | The signed-in user has no `calibre_username` / `calibre_password`, or the values are wrong. On this route Traefik replaces whatever the browser sends. | Correct the attributes, then sign out of Authentik and in again. |
+| It worked, then asks again after the container password was changed | The attribute still holds the old password. | Same fix. |
+
+User attributes travel inside the id_token, which the shared middleware forwards as `X-authentik-jwt`. Other applications behind forward-auth can therefore read `calibre_password` from that header, although none of them is logged in to with it.  
+
+</br>
+
 ## Which Authentication Each Route Uses
 
 Forward-auth is the default, but it only works for an interactive browser. Anything that talks to an API with its own token, or runs a non-browser client, is given a different gate. The decisions so far, all recorded in `traefik-internal.yaml`:  
@@ -1281,6 +1320,7 @@ Forward-auth is the default, but it only works for an interactive browser. Anyth
 | Proxmox nodes (`pve*`) | `lan-and-docker`; Proxmox OIDC against Authentik | API pollers and the console cannot complete a browser redirect. |
 | TrueNAS (`truenas1`) | `lan-and-docker`; TrueNAS login | No practical web-UI OIDC. Forward-auth meant logging in twice and interfered with its websocket. |
 | Synology DSM (`nas`, on `192.168.0.87:5001`) | `authentik-forwardauth@file`, then DSM's own login with the **authentik** button (`fix-nas-oidc.py`) | Forward-auth stays because DSM is used from a browser here. Synology's desktop and mobile apps cannot pass it; point them at `192.168.0.87` directly, or move the route to `lan-and-docker` if they must use the name. The tunnel route goes straight to the NAS and is gated by Cloudflare Access. |
+| Calibre desktop (`calibre2`, container `calibre` on Unraid `192.168.0.95:19003`) | `authentik-forwardauth-basic@file` (`fix-calibre2-basic-auth.py`) | The container has one HTTP Basic login of its own. The outpost supplies it after the Authentik check, so there is a single sign-in. |
 | Plex, Jellyfin, Seerr, Headscale | IP allowlist | Native clients and the tailnet control plane carry their own authentication. |
 | Open WebUI (`openwebui`, container `open-webui` on `.17:8087`) | `lan-and-docker`; application login (first sign-up becomes admin) or the Authentik OIDC button (`fix-openwebui-oidc.py`). An Authentik login merges into a local account only when the emails match exactly; otherwise it creates a new account with `DEFAULT_USER_ROLE` (`user` here, so Authentik membership is enough; before that it was `pending` and needed approval in Admin Panel, Users) | Replaced the 2024-era instance on Unraid `.95`. API clients and the websocket carry no Authentik cookie, so forward-auth would break them; native OIDC instead. The tunnel route is gated by Cloudflare Access. |
 | Vaultwarden (`vault1`, on Unraid `192.168.0.95:4743`) | `lan-and-docker`; Vaultwarden's own login with "Use single sign-on" against Authentik (`fix-vaultwarden-oidc.py`), then the master password | The browser extension and the desktop and mobile apps send a Vaultwarden bearer token and never hold an Authentik cookie, so forward-auth redirected every `/api` and `/identity` call to the login page. The tunnel route is gated by Cloudflare Access. |
