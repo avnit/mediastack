@@ -9,8 +9,8 @@ a bare LAN address goes straight to the application.
 
   dockhand  container dockhand-dockhand-1 on 192.168.0.17:3081, routed by
             lan-dockhand in traefik-internal.yaml (forward-auth).
-  tdarr     container tdarr on 192.168.0.17:8265, opened by LAN address, so it
-            works on the LAN only and Authentik is not in front of it.
+  tdarr     container tdarr on 192.168.0.17:8265, routed by its own Traefik
+            labels in docker-compose.yaml (forward-auth).
 """
 from authentik.core.models import Application
 
@@ -20,7 +20,7 @@ ICONS = "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/"
 TILES = [
     ("dockhand", "Dockhand", "Infrastructure", "https://dockhand.asbblog.com",
      "dockhand.png", "Docker management"),
-    ("tdarr", "Tdarr", "Media", "http://192.168.0.17:8265/#/",
+    ("tdarr", "Tdarr", "Media", "https://tdarr.asbblog.com",
      "tdarr.png", "Media transcoding"),
 ]
 
