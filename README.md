@@ -1359,6 +1359,32 @@ User attributes travel inside the id_token, which the shared middleware forwards
 
 </br>
 
+## Tailscale widget in Homarr
+
+The Homarr on `192.168.0.21` (`homarr3.asbblog.com`) shows the tailnet devices through a custom widget, `full-download-vpn/homarr-widgets/tailscale.json`. Homarr cannot ask Tailscale directly, so a small collector on this host (`192.168.0.17`, which runs `tailscaled`) turns `tailscale status --json` into the JSON the widget reads. Only name, OS, online state and last-seen time are served; no keys, addresses, routes or user IDs.  
+
+| Piece | Where | Notes |
+|-------|-------|-------|
+| Collector | `tailscale-collector.py`, run by `tailscale-collector.service` | `http://192.168.0.17:18082/tailscale/devices`, needs `Authorization: Bearer <token>`. `/healthz` is open. |
+| Token | `/root/.tailscale-collector-token` (mode 600, never committed) | Read on every request, so replacing the file rotates it. |
+| Widget | `homarr-widgets/tailscale.json` | Format `homarr-custom-widget-v2`, source `http://192.168.0.17:18082`, auth `bearer`. |
+
+Install the collector:  
+
+``` bash
+openssl rand -hex 32 > /root/.tailscale-collector-token && chmod 600 /root/.tailscale-collector-token
+install -m 755 tailscale-collector.py /usr/local/bin/tailscale-collector.py
+install -m 644 tailscale-collector.service /etc/systemd/system/tailscale-collector.service
+systemctl daemon-reload && systemctl enable --now tailscale-collector
+curl -s -H "Authorization: Bearer $(cat /root/.tailscale-collector-token)" http://192.168.0.17:18082/tailscale/devices | head -c 300
+```
+
+Then in Homarr, as an administrator: Management, **Custom Widgets**, import `tailscale.json`; on the new entry choose Actions, **Configure sources**, confirm the URL `http://192.168.0.17:18082` and paste the token as the bearer credential. Add the widget to a board in edit mode.  
+
+The widget reports "Tailscale unavailable" when the collector cannot be reached or answers 401 or 503. That means the collector failed, not that the devices are offline.  
+
+</br>
+
 ## Which Authentication Each Route Uses
 
 Forward-auth is the default, but it only works for an interactive browser. Anything that talks to an API with its own token, or runs a non-browser client, is given a different gate. The decisions so far, all recorded in `traefik-internal.yaml`:  
