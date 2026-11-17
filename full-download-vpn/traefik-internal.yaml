@@ -828,7 +828,7 @@ http:
       loadBalancer:
         passHostHeader: true
         servers:
-        - url: http://192.168.0.21:8080
+        - url: http://192.168.0.20:3030
   serversTransports:
     insecure-no-verify:
       insecureSkipVerify: true
