@@ -458,6 +458,16 @@ http:
       middlewares:
       - authentik-forwardauth@file
       - security-headers@file
+    # Nod (n8n personal agent) on 192.168.0.215 via its Caddy hop :4312. LAN/Tailscale only; Nod has its own token. (2026-11-22)
+    lan-nod:
+      rule: Host(`nod.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-nod
+      middlewares:
+      - lan-only
+      - security-headers@file
     lan-n8n:
       rule: Host(`n8n.asbblog.com`)
       entryPoints:
@@ -466,6 +476,16 @@ http:
       service: lan-n8n
       middlewares:
       - authentik-forwardauth@file
+      - security-headers@file
+    # Claude.ai MCP connector: OAuth discovery/DCR/token + MCP endpoint bypass Authentik.
+    # n8n authenticates these itself. /mcp-oauth/authorize stays behind Authentik. (2026-11-14)
+    lan-n8n-mcp:
+      rule: 'Host(`n8n.asbblog.com`) && (PathPrefix(`/.well-known/oauth-`) || Path(`/mcp-oauth/register`) || Path(`/mcp-oauth/token`) || PathPrefix(`/mcp-server/`))'
+      entryPoints:
+      - secureweb
+      priority: 200
+      service: lan-n8n
+      middlewares:
       - security-headers@file
     lan-speedtest:
       rule: Host(`speedtest.asbblog.com`)
@@ -539,6 +559,15 @@ http:
       - secureweb
       priority: 100
       service: lan-hermes2
+      middlewares:
+      - authentik-forwardauth@file
+      - security-headers@file
+    lan-movies:
+      rule: Host(`movies.asbblog.com`)
+      entryPoints:
+      - secureweb
+      priority: 100
+      service: lan-movies
       middlewares:
       - authentik-forwardauth@file
       - security-headers@file
@@ -781,6 +810,11 @@ http:
         passHostHeader: true
         servers:
         - url: http://192.168.0.214:5004
+    lan-nod:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.215:4312
     lan-n8n:
       loadBalancer:
         passHostHeader: true
@@ -829,6 +863,12 @@ http:
         passHostHeader: true
         servers:
         - url: http://192.168.0.20:3030
+    lan-movies:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+        - url: http://192.168.0.95:16089
+        serversTransport: insecure-no-verify
   serversTransports:
     insecure-no-verify:
       insecureSkipVerify: true
