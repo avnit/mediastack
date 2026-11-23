@@ -13,6 +13,8 @@ re-run here leaves it in place.
             lan-dockhand in traefik-internal.yaml (forward-auth).
   tdarr     container tdarr on 192.168.0.17:8265, routed by its own Traefik
             labels in docker-compose.yaml (forward-auth).
+  movies    Movie Inventory on Unraid 192.168.0.95:16089, routed by
+            lan-movies in traefik-internal.yaml (forward-auth).
 """
 from authentik.core.models import Application
 
@@ -24,6 +26,8 @@ TILES = [
      "dockhand.png", "Docker management"),
     ("tdarr", "Tdarr", "Media", "https://tdarr.asbblog.com",
      "tdarr.png", "Media transcoding"),
+    ("movies", "Movie Inventory", "Media", "https://movies.asbblog.com",
+     "video.png", "Movie collection inventory"),
 ]
 
 for slug, name, group, url, icon, description in TILES:
