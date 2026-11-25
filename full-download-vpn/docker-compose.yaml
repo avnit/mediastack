@@ -441,6 +441,11 @@ services:
     - DOT_PROVIDERS=cloudflare
     - DNS_UPSTREAM_RESOLVER_TYPE=DoT
     - DNS_KEEP_NAMESERVER=off
+    # Plex hands out https://<lan-ip-dashed>.<hash>.plex.direct URLs that resolve
+    # to private IPs. Gluetun's DNS rebinding protection drops those answers, so
+    # Bazarr (in this netns) could not reach the Synology Plex on 192.168.0.87.
+    # Exact names only: gluetun does not match subdomains of a listed name.
+    - DNS_REBINDING_PROTECTION_EXEMPT_HOSTNAMES=192-168-0-87.e21f91d2a77847e4b28d0ac3ee24bccd.plex.direct
     # - DNS_UPDATE_PERIOD=0
     networks:
     - mediastack
