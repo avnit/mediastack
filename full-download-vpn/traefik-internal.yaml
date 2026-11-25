@@ -5,7 +5,7 @@
 # UniFi resolves these names to 192.168.0.17 on the LAN only; off-LAN the
 # public Cloudflare record wins.  TLS: *.asbblog.com Let's Encrypt wildcard.
 # Router names are prefixed lan- and carry priority 100 so they beat any
-# docker-label router for the same Host (grafana/portainer/headscale).
+# docker-label router for the same Host (grafana/portainer).
 # Chain: lan-only (ipAllowList) + security-headers@file.  No Authentik/CrowdSec on LAN.
 #########################################################################
 http:
@@ -505,15 +505,6 @@ http:
       middlewares:
       - lan-and-docker
       - security-headers@file
-    lan-headscale:
-      rule: Host(`headscale.asbblog.com`)
-      entryPoints:
-      - secureweb
-      priority: 100
-      service: lan-headscale
-      middlewares:
-      - lan-and-docker
-      - security-headers@file
     lan-pve4:
       rule: Host(`pve4.asbblog.com`)
       entryPoints:
@@ -831,11 +822,6 @@ http:
         servers:
         - url: https://192.168.0.160:8006
         serversTransport: insecure-no-verify
-    lan-headscale:
-      loadBalancer:
-        passHostHeader: true
-        servers:
-        - url: http://headscale:8080
     lan-pve4:
       loadBalancer:
         passHostHeader: true

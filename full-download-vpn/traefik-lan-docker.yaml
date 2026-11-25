@@ -10,12 +10,6 @@ http:
       priority: 100
       service: grafana@docker
       middlewares: [authentik-forwardauth@file, security-headers@file]
-    lan-headscale:
-      rule: "Host(`headscale.asbblog.com`)"
-      entryPoints: [secureweb]
-      priority: 100
-      service: headscale@docker
-      middlewares: [lan-only@file, security-headers@file]
     lan-portainer:
       rule: "Host(`portainer.asbblog.com`)"
       entryPoints: [secureweb]

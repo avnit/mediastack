@@ -35,7 +35,6 @@ cat > "$(dirname "$0")/bookmarks.html" << 'EOF'
             <DT><A HREF="http://LOCAL_DOCKER_IP:8080/dashboard/">Traefik Proxy | Cloud Native Application Proxy</A>
             <DT><A HREF="http://LOCAL_DOCKER_IP:3800/">Grafana | Visual Monitoring Dashboard</A>
             <DT><A HREF="http://LOCAL_DOCKER_IP:9090/">Prometheus | Monitoring Dashboard</A>
-            <DT><A HREF="http://LOCAL_DOCKER_IP:3500/admin/">Headplane | Headscale & Tailscale Manager</A>
             <DT><A HREF="http://LOCAL_DOCKER_IP:3650/">Chromium | OpenSource Web Browser</A>
             <DT><A HREF="http://LOCAL_DOCKER_IP:9000/">Portainer | Docker Manager</A>
             <DT><A HREF="http://LOCAL_DOCKER_IP:9200/">Guacamole | Clientless Remote Desktop Gateway</A>
