@@ -346,7 +346,10 @@ check_port_conflicts() {
         echo "   using 'network_mode: service:gluetun' goes down with it."
         echo
         echo "   Common culprit: a natively-installed service competing with its own"
-        echo "   container, e.g. 'systemctl disable --now plexmediaserver' for port 32400."
+        echo "   container, e.g. plexmediaserver on port 32400. Mask it rather than"
+        echo "   disable it: the package's postinst restarts a disabled unit on every"
+        echo "   apt upgrade, which takes the port back from gluetun."
+        echo "     systemctl stop plexmediaserver && systemctl mask plexmediaserver"
         echo
         exit 1
     fi
